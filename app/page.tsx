@@ -196,7 +196,9 @@ export default function Home() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [remoteClasses, setRemoteClasses] = useState<RemoteClass[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
+  const [hasLoadedClasses, setHasLoadedClasses] = useState(false);
   const [classError, setClassError] = useState("");
+  const remoteResultsRef = useRef<HTMLDivElement | null>(null);
   const [courseSearch, setCourseSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("2569");
   const [semester, setSemester] = useState("1");
@@ -584,9 +586,14 @@ export default function Home() {
         throw new Error(data.error ?? "โหลดข้อมูลรายวิชาไม่สำเร็จ");
       }
 
-      setRemoteClasses(data);
+      setRemoteClasses(Array.isArray(data) ? data : []);
+      setHasLoadedClasses(true);
+      window.requestAnimationFrame(() => {
+        remoteResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     } catch (error) {
       setClassError(error instanceof Error ? error.message : "โหลดข้อมูลรายวิชาไม่สำเร็จ");
+      setHasLoadedClasses(true);
     } finally {
       setIsLoadingClasses(false);
     }
@@ -895,12 +902,17 @@ export default function Home() {
             </div>
             {filterError && <div className="alert">{filterError}</div>}
             {classError && <div className="alert">{classError}</div>}
-            {remoteClasses.length > 0 && (
-              <p className="remote-count">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
-            )}
-            {remoteClasses.length > 0 && filteredRemoteClasses.length === 0 && (
-              <p className="empty">ไม่พบรายวิชาที่ตรงกับรหัสวิชา “{courseSearch}”</p>
-            )}
+            <div ref={remoteResultsRef}>
+              {remoteClasses.length > 0 && (
+                <p className="remote-count">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
+              )}
+              {hasLoadedClasses && !classError && remoteClasses.length === 0 && (
+                <p className="empty">ไม่พบรายวิชาตามเงื่อนไขที่เลือก ลองปรับคณะ ภาควิชา หรือรหัสวิชาแล้วโหลดอีกครั้ง</p>
+              )}
+              {remoteClasses.length > 0 && filteredRemoteClasses.length === 0 && (
+                <p className="empty">ไม่พบรายวิชาที่ตรงกับรหัสวิชา “{courseSearch}”</p>
+              )}
+            </div>
             {filteredRemoteClasses.length > 0 && (
               <div className="remote-list">
                 {filteredRemoteClasses.map((remoteClass) => {
