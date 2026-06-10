@@ -258,6 +258,50 @@ function excelCellText(value: unknown) {
   return normalizeText(value);
 }
 
+function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
+  const link = document.createElement("a");
+  link.download = filename.replace(/[\\/:*?"<>|]/g, "_");
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
+function drawWrappedText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number,
+) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+
+  words.forEach((word) => {
+    const nextLine = line ? `${line} ${word}` : word;
+
+    if (context.measureText(nextLine).width <= maxWidth) {
+      line = nextLine;
+      return;
+    }
+
+    if (line) {
+      lines.push(line);
+    }
+    line = word;
+  });
+
+  if (line) {
+    lines.push(line);
+  }
+
+  lines.slice(0, maxLines).forEach((currentLine, index) => {
+    const displayLine = index === maxLines - 1 && lines.length > maxLines ? `${currentLine.slice(0, Math.max(0, currentLine.length - 1))}...` : currentLine;
+    context.fillText(displayLine, x, y + index * lineHeight);
+  });
+}
+
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") {
     return fallback;
@@ -698,6 +742,117 @@ export default function Home() {
     ]).toFile(`${activePlan?.name || "timetable"}.xlsx`.replace(/[\\/:*?"<>|]/g, "_"));
   }
 
+  function exportTimetableImage() {
+    const scale = 2;
+    const leftWidth = 150;
+    const hourWidth = 120;
+    const titleHeight = 96;
+    const headerHeight = 54;
+    const rowHeight = 122;
+    const padding = 36;
+    const width = padding * 2 + leftWidth + hours.length * hourWidth;
+    const height = padding * 2 + titleHeight + headerHeight + days.length * rowHeight;
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return;
+    }
+
+    canvas.width = width * scale;
+    canvas.height = height * scale;
+    context.scale(scale, scale);
+    context.fillStyle = "#f7f8f2";
+    context.fillRect(0, 0, width, height);
+
+    context.fillStyle = "#172033";
+    context.font = '900 32px "Noto Sans Thai", "Segoe UI", sans-serif';
+    context.fillText(activePlan?.name || defaultPlanName, padding, padding + 34);
+    context.fillStyle = "#465064";
+    context.font = '700 17px "Noto Sans Thai", "Segoe UI", sans-serif';
+    context.fillText(`${courses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 66);
+
+    const gridX = padding;
+    const gridY = padding + titleHeight;
+    const gridWidth = leftWidth + hours.length * hourWidth;
+    const gridHeight = headerHeight + days.length * rowHeight;
+
+    context.fillStyle = "#fffef8";
+    context.fillRect(gridX, gridY, gridWidth, gridHeight);
+    context.strokeStyle = "#bdc7b1";
+    context.lineWidth = 1;
+    context.strokeRect(gridX, gridY, gridWidth, gridHeight);
+
+    context.fillStyle = "#edf1e8";
+    context.fillRect(gridX, gridY, gridWidth, headerHeight);
+    context.fillRect(gridX, gridY, leftWidth, gridHeight);
+
+    context.fillStyle = "#364056";
+    context.font = '900 15px "Noto Sans Thai", "Segoe UI", sans-serif';
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText("วัน / เวลา", gridX + leftWidth / 2, gridY + headerHeight / 2);
+
+    hours.forEach((hour, index) => {
+      const x = gridX + leftWidth + index * hourWidth;
+      context.fillText(`${String(hour).padStart(2, "0")}:00`, x + hourWidth / 2, gridY + headerHeight / 2);
+    });
+
+    days.forEach((day, index) => {
+      const y = gridY + headerHeight + index * rowHeight;
+      context.fillText(day.label, gridX + leftWidth / 2, y + rowHeight / 2);
+    });
+
+    context.strokeStyle = "#d9dece";
+    for (let index = 0; index <= hours.length; index += 1) {
+      const x = gridX + leftWidth + index * hourWidth;
+      context.beginPath();
+      context.moveTo(x, gridY);
+      context.lineTo(x, gridY + gridHeight);
+      context.stroke();
+    }
+
+    for (let index = 0; index <= days.length; index += 1) {
+      const y = gridY + headerHeight + index * rowHeight;
+      context.beginPath();
+      context.moveTo(gridX, y);
+      context.lineTo(gridX + gridWidth, y);
+      context.stroke();
+    }
+
+    courses.forEach((course) => {
+      const dayIndex = days.findIndex((day) => day.key === course.day);
+      const startOffset = (toMinutes(course.start) - hours[0] * 60) / 60;
+      const endOffset = (toMinutes(course.end) - hours[0] * 60) / 60;
+
+      if (dayIndex < 0 || endOffset <= 0 || startOffset >= hours.length) {
+        return;
+      }
+
+      const x = gridX + leftWidth + Math.max(0, startOffset) * hourWidth + 5;
+      const y = gridY + headerHeight + dayIndex * rowHeight + 8;
+      const blockWidth = Math.max(48, (Math.min(hours.length, endOffset) - Math.max(0, startOffset)) * hourWidth - 10);
+      const blockHeight = rowHeight - 16;
+
+      context.fillStyle = course.color;
+      context.beginPath();
+      context.roundRect(x, y, blockWidth, blockHeight, 8);
+      context.fill();
+
+      context.fillStyle = "#ffffff";
+      context.textAlign = "left";
+      context.textBaseline = "alphabetic";
+      context.font = '900 15px "Noto Sans Thai", "Segoe UI", sans-serif';
+      drawWrappedText(context, course.code, x + 10, y + 24, blockWidth - 20, 18, 1);
+      context.font = '700 13px "Noto Sans Thai", "Segoe UI", sans-serif';
+      drawWrappedText(context, course.name, x + 10, y + 46, blockWidth - 20, 17, 2);
+      context.font = '700 12px "Noto Sans Thai", "Segoe UI", sans-serif';
+      drawWrappedText(context, `${course.start}-${course.end} ${course.room}`, x + 10, y + blockHeight - 14, blockWidth - 20, 16, 1);
+    });
+
+    downloadCanvas(canvas, `${activePlan?.name || "timetable"}.png`);
+  }
+
   async function importExcel(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -951,6 +1106,7 @@ export default function Home() {
                 aria-label="Import Excel"
               />
               <button type="button" className="ghost" onClick={() => excelInputRef.current?.click()}>Import Excel</button>
+              <button type="button" className="ghost" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
               <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
             </div>
           </div>
