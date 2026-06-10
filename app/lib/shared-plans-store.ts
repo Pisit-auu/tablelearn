@@ -18,6 +18,7 @@ export type SharedCoursePayload = {
 export type SharedPlanPayload = {
   name: string;
   courses: SharedCoursePayload[];
+  updatedAt?: string;
 };
 
 const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
@@ -49,7 +50,7 @@ async function ensureSchema() {
 export async function getSharedPlan(id: string) {
   await ensureSchema();
 
-  const plans = await sql!`select id, name from shared_plans where id = ${id}`;
+  const plans = await sql!`select id, name, updated_at from shared_plans where id = ${id}`;
 
   if (plans.length === 0) {
     return null;
@@ -65,8 +66,13 @@ export async function getSharedPlan(id: string) {
   return {
     id: plans[0].id as string,
     name: plans[0].name as string,
+    updatedAt: formatTimestamp(plans[0].updated_at),
     courses: courses.map((course) => course.data as SharedCoursePayload),
   };
+}
+
+function formatTimestamp(value: unknown) {
+  return value instanceof Date ? value.toISOString() : String(value);
 }
 
 export async function saveSharedPlan(id: string, payload: Partial<SharedPlanPayload>) {
@@ -74,14 +80,17 @@ export async function saveSharedPlan(id: string, payload: Partial<SharedPlanPayl
 
   const name = payload.name?.trim() || "ตารางเรียนแชร์";
   const courses = payload.courses ?? [];
+  let updatedAt = "";
 
   await sql!.begin(async (transaction) => {
-    await transaction`
+    const plans = await transaction`
       insert into shared_plans (id, name, updated_at)
       values (${id}, ${name}, now())
       on conflict (id)
       do update set name = excluded.name, updated_at = now()
+      returning updated_at
     `;
+    updatedAt = formatTimestamp(plans[0].updated_at);
 
     await transaction`delete from shared_courses where plan_id = ${id}`;
 
@@ -93,5 +102,5 @@ export async function saveSharedPlan(id: string, payload: Partial<SharedPlanPayl
     }
   });
 
-  return { id, name, courses };
+  return { id, name, updatedAt, courses };
 }

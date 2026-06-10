@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadSharedPlanAction, saveSharedPlanAction } from "./actions/shared-plans";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -64,7 +64,7 @@ const days: { key: DayKey; label: string; short: string }[] = [
   { key: "sun", label: "อาทิตย์", short: "อา" },
 ];
 
-const palette = ["#2563eb", "#0f766e", "#b45309", "#be123c", "#6d28d9", "#15803d", "#c2410c"];
+const palette = ["#2457ff", "#008c7a", "#d36b00", "#d8345f", "#7357ff", "#25935f", "#b84a1b"];
 const hours = Array.from({ length: 14 }, (_, index) => 7 + index);
 const fallbackFilters: FilterOptions = {
   campuses: [{ comboid: 10, comboshow: "10 : มจพ. กรุงเทพฯ" }],
@@ -209,15 +209,19 @@ export default function Home() {
   const [filterOptions, setFilterOptions] = useState<FilterOptions>(fallbackFilters);
   const [departmentOptions, setDepartmentOptions] = useState<ComboOption[]>([]);
   const [filterError, setFilterError] = useState("");
+  const [isCourseBrowserOpen, setIsCourseBrowserOpen] = useState(false);
   const [sharedPlanId, setSharedPlanId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [lastSharedUpdatedAt, setLastSharedUpdatedAt] = useState("");
+  const lastSharedUpdatedAtRef = useRef("");
+  const skipNextSharedSaveRef = useRef(false);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
 
-  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[]) => {
+  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "") => {
     const localId = `shared-${planId}`;
     setPlans((currentPlans) => {
       const nextPlan = { id: localId, name: planName, courses: planCourses };
@@ -227,6 +231,11 @@ export default function Home() {
     });
     setActivePlanId(localId);
     setSharedPlanId(planId);
+    if (updatedAt) {
+      skipNextSharedSaveRef.current = true;
+      lastSharedUpdatedAtRef.current = updatedAt;
+      setLastSharedUpdatedAt(updatedAt);
+    }
     setShareUrl(`${window.location.origin}${window.location.pathname}?share=${planId}`);
   }, []);
 
@@ -238,7 +247,7 @@ export default function Home() {
     try {
       const data = await loadSharedPlanAction(planId);
 
-      setSharedPlan(planId, data.name, data.courses);
+      setSharedPlan(planId, data.name, data.courses, data.updatedAt);
       if (showStatus) {
         setShareStatus("โหลดตารางแชร์แล้ว");
       }
@@ -253,7 +262,9 @@ export default function Home() {
     }
 
     try {
-      await saveSharedPlanAction(planId, { name, courses: planCourses });
+      const data = await saveSharedPlanAction(planId, { name, courses: planCourses });
+      lastSharedUpdatedAtRef.current = data.updatedAt;
+      setLastSharedUpdatedAt(data.updatedAt);
 
       if (showStatus) {
         setShareStatus("บันทึกตารางแชร์แล้ว");
@@ -288,6 +299,11 @@ export default function Home() {
       return;
     }
 
+    if (skipNextSharedSaveRef.current) {
+      skipNextSharedSaveRef.current = false;
+      return;
+    }
+
     const timeout = window.setTimeout(() => {
       saveSharedPlan(sharedPlanId, activePlan.name, courses, false);
     }, 700);
@@ -300,12 +316,21 @@ export default function Home() {
       return;
     }
 
-    const interval = window.setInterval(() => {
-      loadSharedPlan(sharedPlanId, false);
-    }, 8000);
+    const interval = window.setInterval(async () => {
+      try {
+        const data = await loadSharedPlanAction(sharedPlanId);
+
+        if (data.updatedAt && data.updatedAt !== lastSharedUpdatedAtRef.current) {
+          setSharedPlan(sharedPlanId, data.name, data.courses, data.updatedAt);
+          setShareStatus("อัปเดตตารางล่าสุดแล้ว");
+        }
+      } catch (error) {
+        setShareStatus(error instanceof Error ? error.message : "ซิงก์ตารางแชร์ไม่สำเร็จ");
+      }
+    }, 2000);
 
     return () => window.clearInterval(interval);
-  }, [loadSharedPlan, sharedPlanId]);
+  }, [setSharedPlan, sharedPlanId]);
 
   useEffect(() => {
     async function loadFilters() {
@@ -356,6 +381,7 @@ export default function Home() {
   }, [departmentId, facultyId]);
 
   const totalCredits = useMemo(() => courses.reduce((sum, course) => sum + course.credits, 0), [courses]);
+  const examCount = useMemo(() => courses.filter((course) => course.midterm || course.final).length, [courses]);
   const conflicts = useMemo(
     () =>
       courses.flatMap((course, index) =>
@@ -459,7 +485,7 @@ export default function Home() {
     const name = activePlan?.name || defaultPlanName;
 
     await saveSharedPlan(planId, name, courses);
-    setSharedPlan(planId, name, courses);
+    setSharedPlan(planId, name, courses, lastSharedUpdatedAtRef.current);
     window.history.replaceState(null, "", `?share=${planId}`);
   }
 
@@ -587,15 +613,32 @@ export default function Home() {
     <main className="shell">
       <section className="topbar">
         <div className="brand-heading">
-          <div className="logo-mark" aria-hidden="true">TL</div>
+          <div className="logo-mark" aria-hidden="true">
+            <span>TL</span>
+          </div>
           <div>
-            <p className="eyebrow">Plan, compare, and export your study schedule</p>
+            <p className="eyebrow">KMUTNB study planner</p>
             <h1>TableLearn</h1>
+            <p className="hero-copy">จัดตารางเรียน ตารางสอบ และแผนสำรองให้อยู่ในหน้าเดียว พร้อมนำเข้ารายวิชาจากระบบมหาวิทยาลัย</p>
           </div>
         </div>
-        <div className="summary">
-          <span>{courses.length} วิชา</span>
-          <strong>{totalCredits} หน่วยกิต</strong>
+        <div className="summary" aria-label="สรุปตารางเรียน">
+          <div>
+            <span>รายวิชา</span>
+            <strong>{courses.length}</strong>
+          </div>
+          <div>
+            <span>หน่วยกิต</span>
+            <strong>{totalCredits}</strong>
+          </div>
+          <div>
+            <span>เวลาชน</span>
+            <strong>{conflicts.length}</strong>
+          </div>
+          <div>
+            <span>ตารางสอบ</span>
+            <strong>{examCount}</strong>
+          </div>
         </div>
       </section>
 
@@ -614,7 +657,8 @@ export default function Home() {
             <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} />
           </label>
           <div className="button-row">
-            <button type="button" className="primary" onClick={addPlan}>เพิ่มตาราง</button>
+            <button type="button" className="primary" onClick={() => setIsCourseBrowserOpen(true)}>ค้นหารายวิชา</button>
+            <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
             <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
           </div>
         </div>
@@ -622,7 +666,12 @@ export default function Home() {
         <div className="share-bar panel">
           <div>
             <h2>แชร์ตารางร่วมกัน</h2>
-            <p>{shareUrl || "สร้างลิงก์แชร์เพื่อให้คนอื่นเปิดและแก้ตารางเดียวกันได้"}</p>
+            <p>{shareUrl || "สร้างลิงก์ให้เพื่อนร่วมแผนเปิดและแก้ตารางเดียวกันได้"}</p>
+            {sharedPlanId && (
+              <small className="sync-note">
+                อัปเดตอัตโนมัติทุก 2 วินาที{lastSharedUpdatedAt ? ` · ล่าสุด ${new Date(lastSharedUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
+              </small>
+            )}
           </div>
           <div className="button-row">
             <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
@@ -630,6 +679,22 @@ export default function Home() {
             <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
           </div>
           {shareStatus && <span>{shareStatus}</span>}
+        </div>
+      </section>
+
+      <section className="notice panel" aria-label="หมายเหตุการใช้งาน">
+        <div className="notice-mark" aria-hidden="true">!</div>
+        <div className="notice-content">
+          <strong>หมายเหตุการใช้งาน</strong>
+          <ul>
+            <li>เว็บนี้ทำขึ้นเพื่อช่วยอำนวยความสะดวกสำหรับวางแผนการลงทะเบียนการศึกษาเท่านั้น ไม่ได้เป็นระบบของมหาวิทยาลัย</li>
+            <li>
+              ข้อมูลรายวิชานำมาจากเว็บ <a href="https://reg.kmutnb.ac.th/" target="_blank" rel="noreferrer">reg.kmutnb.ac.th</a>
+              หากข้อมูลผิดพลาดหรือไม่ตรงกัน ให้ตรวจสอบข้อมูลล่าสุดจากเว็บ
+              <a href="https://reg.kmutnb.ac.th/" target="_blank" rel="noreferrer"> reg.kmutnb.ac.th</a>
+            </li>
+            <li>เว็บไซต์นี้ไม่มีการเก็บข้อมูลผู้ใช้ใด ๆ และจัดทำขึ้นโดยนักศึกษาเพื่ออำนวยความสะดวกให้นักศึกษา มจพ. โดยไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัยอย่างเป็นทางการ</li>
+          </ul>
         </div>
       </section>
 
@@ -728,123 +793,128 @@ export default function Home() {
         </section>
       </section>
 
-      <section className="remote panel">
-        <div className="remote-head">
-          <div>
-            <h2>ข้อมูลรายวิชา KMUTNB</h2>
-            <p>เลือกตัวกรองแล้วกดโหลด ระบบจะดึงข้อมูลจาก regapi ตามค่าที่กำหนด</p>
-          </div>
-          <div className="remote-tools">
-            <label>
-              ปีการศึกษา
-              <input
-                inputMode="numeric"
-                maxLength={4}
-                value={academicYear}
-                onChange={(event) => setAcademicYear(event.target.value.replace(/\D/g, ""))}
-                placeholder="2569"
-              />
-            </label>
-            <label>
-              ภาคเรียน
-              <select value={semester} onChange={(event) => setSemester(event.target.value)}>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
-            </label>
-            <label>
-              วิทยาเขต
-              <select value={campusId} onChange={(event) => setCampusId(event.target.value)}>
-                {filterOptions.campuses.map((option) => (
-                  <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              ประเภทนักศึกษา
-              <select value={divisionCode} onChange={(event) => setDivisionCode(event.target.value)}>
-                <option value="">ทั้งหมด</option>
-                {filterOptions.divisions.map((option) => (
-                  <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              ระดับการศึกษา
-              <select value={levelId} onChange={(event) => setLevelId(event.target.value)}>
-                {filterOptions.levels.map((option) => (
-                  <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              คณะ
-              <select value={facultyId} onChange={(event) => setFacultyId(event.target.value)}>
-                <option value="">ทั้งหมด</option>
-                {filterOptions.faculties.map((option) => (
-                  <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              ภาควิชา
-              <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} disabled={!facultyId}>
-                <option value="">ทั้งหมด</option>
-                {departmentOptions.map((option) => (
-                  <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              กลุ่มเรียน
-              <select value={classSet} onChange={(event) => setClassSet(event.target.value)}>
-                <option value="">ทั้งหมด</option>
-                {filterOptions.classSets.map((option) => (
-                  <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              รหัสวิชา
-              <input
-                value={courseSearch}
-                onChange={(event) => setCourseSearch(event.target.value)}
-                placeholder="เช่น 040613100"
-              />
-            </label>
-            <button className="primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
-              {isLoadingClasses ? "กำลังโหลด..." : "โหลดรายวิชา KMUTNB"}
-            </button>
-          </div>
-        </div>
-        {filterError && <div className="alert">{filterError}</div>}
-        {classError && <div className="alert">{classError}</div>}
-        {remoteClasses.length > 0 && (
-          <p className="remote-count">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
-        )}
-        {remoteClasses.length > 0 && filteredRemoteClasses.length === 0 && (
-          <p className="empty">ไม่พบรายวิชาที่ตรงกับรหัสวิชา “{courseSearch}”</p>
-        )}
-        {filteredRemoteClasses.length > 0 && (
-          <div className="remote-list">
-            {filteredRemoteClasses.map((remoteClass) => {
-              const parsedTime = parseClassTime(remoteClass.classtime);
+      {isCourseBrowserOpen && (
+        <div className="modal-backdrop" role="presentation" onClick={() => setIsCourseBrowserOpen(false)}>
+          <section className="remote modal-panel" role="dialog" aria-modal="true" aria-labelledby="course-browser-title" onClick={(event) => event.stopPropagation()}>
+            <div className="remote-head">
+              <div>
+                <h2 id="course-browser-title">ข้อมูลรายวิชา KMUTNB</h2>
+                <p>เลือกตัวกรองแล้วกดโหลด ระบบจะดึงข้อมูลจาก regapi ตามค่าที่กำหนด</p>
+              </div>
+              <button type="button" className="ghost" onClick={() => setIsCourseBrowserOpen(false)}>ปิด</button>
+            </div>
+            <div className="remote-tools">
+              <label>
+                ปีการศึกษา
+                <input
+                  inputMode="numeric"
+                  maxLength={4}
+                  value={academicYear}
+                  onChange={(event) => setAcademicYear(event.target.value.replace(/\D/g, ""))}
+                  placeholder="2569"
+                />
+              </label>
+              <label>
+                ภาคเรียน
+                <select value={semester} onChange={(event) => setSemester(event.target.value)}>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </select>
+              </label>
+              <label>
+                วิทยาเขต
+                <select value={campusId} onChange={(event) => setCampusId(event.target.value)}>
+                  {filterOptions.campuses.map((option) => (
+                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                ประเภทนักศึกษา
+                <select value={divisionCode} onChange={(event) => setDivisionCode(event.target.value)}>
+                  <option value="">ทั้งหมด</option>
+                  {filterOptions.divisions.map((option) => (
+                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                ระดับการศึกษา
+                <select value={levelId} onChange={(event) => setLevelId(event.target.value)}>
+                  {filterOptions.levels.map((option) => (
+                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                คณะ
+                <select value={facultyId} onChange={(event) => setFacultyId(event.target.value)}>
+                  <option value="">ทั้งหมด</option>
+                  {filterOptions.faculties.map((option) => (
+                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                ภาควิชา
+                <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} disabled={!facultyId}>
+                  <option value="">ทั้งหมด</option>
+                  {departmentOptions.map((option) => (
+                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                กลุ่มเรียน
+                <select value={classSet} onChange={(event) => setClassSet(event.target.value)}>
+                  <option value="">ทั้งหมด</option>
+                  {filterOptions.classSets.map((option) => (
+                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                รหัสวิชา
+                <input
+                  value={courseSearch}
+                  onChange={(event) => setCourseSearch(event.target.value)}
+                  placeholder="เช่น 040613100"
+                />
+              </label>
+              <button className="primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
+                {isLoadingClasses ? "กำลังโหลด..." : "โหลดรายวิชา KMUTNB"}
+              </button>
+            </div>
+            {filterError && <div className="alert">{filterError}</div>}
+            {classError && <div className="alert">{classError}</div>}
+            {remoteClasses.length > 0 && (
+              <p className="remote-count">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
+            )}
+            {remoteClasses.length > 0 && filteredRemoteClasses.length === 0 && (
+              <p className="empty">ไม่พบรายวิชาที่ตรงกับรหัสวิชา “{courseSearch}”</p>
+            )}
+            {filteredRemoteClasses.length > 0 && (
+              <div className="remote-list">
+                {filteredRemoteClasses.map((remoteClass) => {
+                  const parsedTime = parseClassTime(remoteClass.classtime);
 
-              return (
-                <article className="remote-card" key={remoteClass.classid}>
-                  <div>
-                    <strong>{remoteClass.coursecode} · {remoteClass.coursename} · S.{remoteClass.sectioncode}</strong>
-                    <span>{days.find((day) => day.key === parsedTime.day)?.label} {parsedTime.start}-{parsedTime.end} · {parsedTime.room || "-"}</span>
-                    <span>{teacherName(remoteClass) || "-"} · {remoteClass.courseunit}</span>
-                  </div>
-                  <button type="button" onClick={() => importRemoteClass(remoteClass)}>นำเข้า</button>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
+                  return (
+                    <article className="remote-card" key={remoteClass.classid}>
+                      <div>
+                        <strong>{remoteClass.coursecode} · {remoteClass.coursename} · S.{remoteClass.sectioncode}</strong>
+                        <span>{days.find((day) => day.key === parsedTime.day)?.label} {parsedTime.start}-{parsedTime.end} · {parsedTime.room || "-"}</span>
+                        <span>{teacherName(remoteClass) || "-"} · {remoteClass.courseunit}</span>
+                      </div>
+                      <button type="button" onClick={() => importRemoteClass(remoteClass)}>นำเข้า</button>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
 
       <section className="lower">
         <div className="panel">
