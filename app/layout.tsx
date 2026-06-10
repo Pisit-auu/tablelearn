@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ตารางเรียนส่วนตัว",
-  description: "วางแผนรายวิชา ตารางเรียน และตารางสอบ",
+  title: "TableLearn",
+  description: "วางแผนรายวิชา ตารางเรียน ตารางสอบ และจัดตารางร่วมกัน",
 };
 
 export default function RootLayout({

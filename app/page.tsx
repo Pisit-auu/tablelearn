@@ -586,9 +586,12 @@ export default function Home() {
   return (
     <main className="shell">
       <section className="topbar">
-        <div>
-          <p className="eyebrow">Student timetable planner</p>
-          <h1>ตารางเรียนส่วนตัว</h1>
+        <div className="brand-heading">
+          <div className="logo-mark" aria-hidden="true">TL</div>
+          <div>
+            <p className="eyebrow">Plan, compare, and export your study schedule</p>
+            <h1>TableLearn</h1>
+          </div>
         </div>
         <div className="summary">
           <span>{courses.length} วิชา</span>
@@ -596,33 +599,38 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="plan-bar panel">
-        <label>
-          เลือกตาราง
-          <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
-            {plans.map((plan) => (
-              <option key={plan.id} value={plan.id}>{plan.name}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          ชื่อตาราง
-          <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} />
-        </label>
-        <button type="button" className="primary" onClick={addPlan}>เพิ่มตาราง</button>
-        <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
-        <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
-      </section>
-
-      <section className="share-bar panel">
-        <div>
-          <h2>แชร์ตารางร่วมกัน</h2>
-          <p>{shareUrl || "สร้างลิงก์แชร์เพื่อให้คนอื่นเปิดและแก้ตารางเดียวกันได้"}</p>
+      <section className="control-grid">
+        <div className="plan-bar panel">
+          <label>
+            เลือกตาราง
+            <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>{plan.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            ชื่อตาราง
+            <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} />
+          </label>
+          <div className="button-row">
+            <button type="button" className="primary" onClick={addPlan}>เพิ่มตาราง</button>
+            <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
+          </div>
         </div>
-        <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
-        <button type="button" className="ghost" onClick={copyShareLink} disabled={!shareUrl}>คัดลอกลิงก์</button>
-        <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
-        {shareStatus && <span>{shareStatus}</span>}
+
+        <div className="share-bar panel">
+          <div>
+            <h2>แชร์ตารางร่วมกัน</h2>
+            <p>{shareUrl || "สร้างลิงก์แชร์เพื่อให้คนอื่นเปิดและแก้ตารางเดียวกันได้"}</p>
+          </div>
+          <div className="button-row">
+            <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
+            <button type="button" className="ghost" onClick={copyShareLink} disabled={!shareUrl}>คัดลอกลิงก์</button>
+            <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
+          </div>
+          {shareStatus && <span>{shareStatus}</span>}
+        </div>
       </section>
 
       <section className="workspace">
@@ -695,6 +703,13 @@ export default function Home() {
         </form>
 
         <section className="board">
+          <div className="board-head">
+            <div>
+              <h2>{activePlan?.name ?? defaultPlanName}</h2>
+              <p>{courses.length} วิชา · {totalCredits} หน่วยกิต</p>
+            </div>
+            <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
+          </div>
           {conflicts.length > 0 && (
             <div className="alert">
               พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
