@@ -25,6 +25,7 @@ const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
 const sql = connectionString ? postgres(connectionString, { ssl: "require" }) : null;
 const maxCoursesPerPlan = 80;
 const maxTextLength = 160;
+const sharedPlanRetentionDays = 30;
 const validDays = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
 
 export function validateShareId(id: string) {
@@ -134,11 +135,24 @@ async function ensureSchema() {
       position integer not null default 0
     )
   `;
+
+  await sql`
+    create index if not exists shared_plans_updated_at_idx
+    on shared_plans (updated_at)
+  `;
+}
+
+async function deleteExpiredSharedPlans() {
+  await sql!`
+    delete from shared_plans
+    where updated_at < now() - (${sharedPlanRetentionDays} * interval '1 day')
+  `;
 }
 
 export async function getSharedPlan(id: string) {
   validateShareId(id);
   await ensureSchema();
+  await deleteExpiredSharedPlans();
 
   const plans = await sql!`select id, name, updated_at from shared_plans where id = ${id}`;
 
@@ -168,6 +182,7 @@ function formatTimestamp(value: unknown) {
 export async function saveSharedPlan(id: string, payload: Partial<SharedPlanPayload>) {
   validateShareId(id);
   await ensureSchema();
+  await deleteExpiredSharedPlans();
 
   const editToken = trimField((payload as Partial<SharedPlanPayload> & { editToken?: unknown }).editToken);
   validateEditToken(editToken);

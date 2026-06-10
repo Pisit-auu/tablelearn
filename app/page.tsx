@@ -30,6 +30,16 @@ type TimetablePlan = {
   canEdit?: boolean;
 };
 
+type ShareSession = {
+  shareId: string;
+  editToken: string;
+  localPlanId: string;
+  mode: "view" | "edit";
+  status: "idle" | "saving" | "syncing" | "conflict" | "readonly";
+  lastServerUpdatedAt: string;
+  dirty: boolean;
+};
+
 type RemoteClass = {
   classid: number;
   coursecode: string;
@@ -568,11 +578,8 @@ export default function Home() {
   const [filterError, setFilterError] = useState("");
   const [isCourseBrowserOpen, setIsCourseBrowserOpen] = useState(false);
   const [isManualCourseOpen, setIsManualCourseOpen] = useState(false);
-  const [sharedPlanId, setSharedPlanId] = useState<string | null>(null);
-  const [sharedEditToken, setSharedEditToken] = useState("");
-  const [shareUrl, setShareUrl] = useState("");
+  const [shareSession, setShareSession] = useState<ShareSession | null>(null);
   const [shareStatus, setShareStatus] = useState("");
-  const [shareConflict, setShareConflict] = useState(false);
   const [excelStatus, setExcelStatus] = useState("");
   const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
@@ -584,24 +591,20 @@ export default function Home() {
   const [comparePlanAId, setComparePlanAId] = useState("");
   const [comparePlanBId, setComparePlanBId] = useState("");
   const [timetableView, setTimetableView] = useState<"grid" | "list">("grid");
-  const [lastSharedUpdatedAt, setLastSharedUpdatedAt] = useState("");
   const excelInputRef = useRef<HTMLInputElement | null>(null);
-  const lastSharedUpdatedAtRef = useRef("");
-  const sharedEditTokenRef = useRef("");
   const hasLocalPlanMutationRef = useRef(false);
-  const sharedDirtyRef = useRef(false);
   const plansRef = useRef<TimetablePlan[]>([]);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
-  const sharedLocalPlan = sharedPlanId ? plans.find((plan) => plan.sharedId === sharedPlanId) ?? null : null;
-  const sharedLocalPlanId = sharedLocalPlan?.id ?? (sharedPlanId ? `shared-${sharedPlanId}` : "");
-  const isActiveSharedPlan = activePlan?.source === "shared";
-  const canEditActivePlan = !isActiveSharedPlan || activePlan?.canEdit === true;
+  const shareSessionPlan = shareSession ? plans.find((plan) => plan.id === shareSession.localPlanId) ?? null : null;
+  const isActiveSharedPlan = Boolean(shareSession && currentPlanId === shareSession.localPlanId);
+  const canEditActivePlan = !isActiveSharedPlan || shareSession?.mode === "edit";
   const isActiveReadOnlySharedPlan = isActiveSharedPlan && !canEditActivePlan;
+  const shareUrl = shareSession && typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?share=${shareSession.shareId}${shareSession.editToken ? `&edit=${shareSession.editToken}` : ""}` : "";
 
-  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current, activate = true, preferredLocalId = "") => {
+  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = "", activate = true, preferredLocalId = "") => {
     const canEdit = Boolean(editToken);
     const localId = preferredLocalId || plansRef.current.find((plan) => plan.sharedId === planId)?.id || `shared-${planId}`;
 
@@ -614,15 +617,15 @@ export default function Home() {
     if (activate) {
       setActivePlanId(localId);
     }
-    setSharedPlanId(planId);
-    setSharedEditToken(editToken);
-    sharedEditTokenRef.current = editToken;
-    if (updatedAt) {
-      sharedDirtyRef.current = false;
-      lastSharedUpdatedAtRef.current = updatedAt;
-      setLastSharedUpdatedAt(updatedAt);
-    }
-    setShareUrl(`${window.location.origin}${window.location.pathname}?share=${planId}${editToken ? `&edit=${editToken}` : ""}`);
+    setShareSession({
+      shareId: planId,
+      editToken,
+      localPlanId: localId,
+      mode: canEdit ? "edit" : "view",
+      status: canEdit ? "idle" : "readonly",
+      lastServerUpdatedAt: updatedAt,
+      dirty: false,
+    });
   }, []);
 
   useEffect(() => {
@@ -646,7 +649,7 @@ export default function Home() {
     }
   }, [setSharedPlan]);
 
-  const saveSharedPlan = useCallback(async (planId: string, editToken: string, name: string, planCourses: Course[], showStatus = true) => {
+  const saveSharedPlan = useCallback(async (planId: string, editToken: string, name: string, planCourses: Course[], updatedAt = "", showStatus = true) => {
     if (!editToken) {
       setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อบันทึก");
       return false;
@@ -661,24 +664,17 @@ export default function Home() {
         name,
         courses: planCourses,
         editToken,
-        updatedAt: lastSharedUpdatedAtRef.current,
+        updatedAt,
       });
-      lastSharedUpdatedAtRef.current = data.updatedAt;
-      setLastSharedUpdatedAt(data.updatedAt);
-      sharedDirtyRef.current = false;
-      setShareConflict(false);
 
       if (showStatus) {
         setShareStatus("บันทึกตารางแชร์แล้ว");
       }
-      return true;
+      return data;
     } catch (error) {
       const message = error instanceof Error ? error.message : "บันทึกตารางแชร์ไม่สำเร็จ";
       setShareStatus(message);
-      if (message.includes("เปลี่ยนแปลงใหม่กว่า")) {
-        setShareConflict(true);
-      }
-      return false;
+      return null;
     }
   }, []);
 
@@ -735,37 +731,66 @@ export default function Home() {
   }, [loadSharedPlan]);
 
   useEffect(() => {
-    if (!sharedPlanId || !sharedEditToken || !sharedLocalPlan) {
+    if (!shareSession || !shareSessionPlan) {
       return;
     }
 
-    if (!sharedLocalPlan.canEdit || !sharedDirtyRef.current) {
+    if (shareSession.mode !== "edit" || !shareSession.dirty || shareSession.status === "conflict") {
       return;
     }
 
-    const timeout = window.setTimeout(() => {
-      saveSharedPlan(sharedPlanId, sharedEditToken, sharedLocalPlan.name, sharedLocalPlan.courses, false);
+    const timeout = window.setTimeout(async () => {
+      setShareSession((current) => current ? { ...current, status: "saving" } : current);
+      const data = await saveSharedPlan(
+        shareSession.shareId,
+        shareSession.editToken,
+        shareSessionPlan.name,
+        shareSessionPlan.courses,
+        shareSession.lastServerUpdatedAt,
+        false,
+      );
+
+      if (data) {
+        setShareSession((current) =>
+          current && current.shareId === shareSession.shareId
+            ? { ...current, status: "idle", lastServerUpdatedAt: data.updatedAt, dirty: false }
+            : current,
+        );
+      } else {
+        setShareSession((current) =>
+          current && current.shareId === shareSession.shareId
+            ? { ...current, status: "conflict" }
+            : current,
+        );
+      }
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [saveSharedPlan, sharedEditToken, sharedLocalPlan, sharedPlanId]);
+  }, [saveSharedPlan, shareSession, shareSessionPlan]);
 
   useEffect(() => {
-    if (!sharedPlanId) {
+    if (!shareSession) {
       return;
     }
 
     const interval = window.setInterval(async () => {
       try {
-        if (sharedDirtyRef.current || (isManualCourseOpen && activePlanId === sharedLocalPlanId)) {
+        if (shareSession.dirty || shareSession.status === "saving" || shareSession.status === "conflict" || (isManualCourseOpen && activePlanId === shareSession.localPlanId)) {
           return;
         }
 
-        const data = await loadSharedPlanAction(sharedPlanId);
+        setShareSession((current) => current ? { ...current, status: current.mode === "view" ? "readonly" : "syncing" } : current);
+        const data = await loadSharedPlanAction(shareSession.shareId);
 
-        if (data.updatedAt && data.updatedAt !== lastSharedUpdatedAtRef.current) {
-          setSharedPlan(sharedPlanId, data.name, data.courses, data.updatedAt, sharedEditTokenRef.current, false);
+        if (data.updatedAt && data.updatedAt !== shareSession.lastServerUpdatedAt) {
+          setSharedPlan(shareSession.shareId, data.name, data.courses, data.updatedAt, shareSession.editToken, false, shareSession.localPlanId);
           setShareStatus("อัปเดตตารางล่าสุดแล้ว");
+        } else {
+          setShareSession((current) =>
+            current && current.shareId === shareSession.shareId
+              ? { ...current, status: current.mode === "view" ? "readonly" : "idle" }
+              : current,
+          );
         }
       } catch (error) {
         setShareStatus(error instanceof Error ? error.message : "ซิงก์ตารางแชร์ไม่สำเร็จ");
@@ -773,7 +798,7 @@ export default function Home() {
     }, 2000);
 
     return () => window.clearInterval(interval);
-  }, [activePlanId, isManualCourseOpen, setSharedPlan, sharedLocalPlanId, sharedPlanId]);
+  }, [activePlanId, isManualCourseOpen, setSharedPlan, shareSession]);
 
   useEffect(() => {
     async function loadFilters() {
@@ -966,7 +991,7 @@ export default function Home() {
 
     hasLocalPlanMutationRef.current = true;
     if (isActiveSharedPlan) {
-      sharedDirtyRef.current = true;
+      setShareSession((current) => current && current.localPlanId === currentPlanId ? { ...current, dirty: true, status: "idle" } : current);
     }
     setPlans((currentPlans) =>
       currentPlans.map((plan) => (plan.id === currentPlanId ? { ...plan, courses: updater(plan.courses) } : plan)),
@@ -999,7 +1024,7 @@ export default function Home() {
 
     hasLocalPlanMutationRef.current = true;
     if (isActiveSharedPlan) {
-      sharedDirtyRef.current = true;
+      setShareSession((current) => current && current.localPlanId === currentPlanId ? { ...current, dirty: true, status: "idle" } : current);
     }
     setPlans((currentPlans) =>
       currentPlans.map((plan) => (plan.id === currentPlanId ? { ...plan, name } : plan)),
@@ -1015,7 +1040,7 @@ export default function Home() {
     hasLocalPlanMutationRef.current = true;
     setPlans(nextPlans);
     setActivePlanId(nextPlans[0].id);
-    if (currentPlanId === sharedLocalPlanId) {
+    if (shareSession?.localPlanId === currentPlanId) {
       leaveSharedMode(false);
     }
     setEditingId(null);
@@ -1145,21 +1170,21 @@ export default function Home() {
       return;
     }
 
-    setSharedPlan(planId, name, courses, lastSharedUpdatedAtRef.current, editToken, true, currentPlanId);
+    setSharedPlan(planId, name, courses, saved.updatedAt, editToken, true, currentPlanId);
     window.history.replaceState(null, "", `?share=${planId}&edit=${editToken}`);
   }
 
   async function copySharedPlanLink(mode: "view" | "edit") {
-    if (!sharedPlanId) {
+    if (!shareSession) {
       return;
     }
 
-    if (mode === "edit" && !sharedEditToken) {
+    if (mode === "edit" && !shareSession.editToken) {
       setShareStatus("ยังไม่มีลิงก์แก้ไข");
       return;
     }
 
-    const link = `${window.location.origin}${window.location.pathname}?share=${sharedPlanId}${mode === "edit" ? `&edit=${sharedEditToken}` : ""}`;
+    const link = `${window.location.origin}${window.location.pathname}?share=${shareSession.shareId}${mode === "edit" ? `&edit=${shareSession.editToken}` : ""}`;
 
     await navigator.clipboard.writeText(link);
     setShareStatus(mode === "edit" ? "คัดลอกลิงก์แก้ไขแล้ว" : "คัดลอกลิงก์ดูอย่างเดียวแล้ว");
@@ -1194,14 +1219,7 @@ export default function Home() {
       copyActivePlanToLocal();
     }
 
-    setSharedPlanId(null);
-    setSharedEditToken("");
-    sharedEditTokenRef.current = "";
-    setShareUrl("");
-    setLastSharedUpdatedAt("");
-    lastSharedUpdatedAtRef.current = "";
-    sharedDirtyRef.current = false;
-    setShareConflict(false);
+    setShareSession(null);
     setShareStatus("ออกจากโหมดแชร์แล้ว");
   }
 
@@ -1782,23 +1800,24 @@ export default function Home() {
               <div>
                 <h2>แชร์ตารางร่วมกัน</h2>
                 <p>{shareUrl || "สร้างลิงก์ให้เพื่อนร่วมแผนเปิดและแก้ตารางเดียวกันได้"}</p>
-                {sharedPlanId && (
+                <small className="sync-note">ลิงก์แชร์จะถูกลบหากไม่มีการอัปเดตเกิน 30 วัน</small>
+                {shareSession && (
                   <small className="sync-note">
-                    อัปเดตอัตโนมัติทุก 2 วินาที{lastSharedUpdatedAt ? ` · ล่าสุด ${new Date(lastSharedUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
+                    อัปเดตอัตโนมัติทุก 2 วินาที{shareSession.lastServerUpdatedAt ? ` · ล่าสุด ${new Date(shareSession.lastServerUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
                   </small>
                 )}
               </div>
               <div className="button-row">
                 <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
-                <button type="button" className="ghost" onClick={() => copySharedPlanLink("view")} disabled={!sharedPlanId}>คัดลอกลิงก์ดู</button>
-                <button type="button" className="ghost" onClick={() => copySharedPlanLink("edit")} disabled={!sharedPlanId || !sharedEditToken}>คัดลอกลิงก์แก้ไข</button>
-                <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
-                <button type="button" className="ghost" onClick={() => leaveSharedMode()} disabled={!sharedPlanId}>ออกจากโหมดแชร์</button>
+                <button type="button" className="ghost" onClick={() => copySharedPlanLink("view")} disabled={!shareSession}>คัดลอกลิงก์ดู</button>
+                <button type="button" className="ghost" onClick={() => copySharedPlanLink("edit")} disabled={!shareSession?.editToken}>คัดลอกลิงก์แก้ไข</button>
+                <button type="button" className="ghost" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
+                <button type="button" className="ghost" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากโหมดแชร์</button>
               </div>
-              {shareConflict && (
+              {shareSession?.status === "conflict" && (
                 <div className="share-conflict">
                   <span>ตารางกลางมีข้อมูลใหม่กว่า</span>
-                  <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
+                  <button type="button" className="ghost" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
                   <button type="button" className="secondary" onClick={copyActivePlanToLocal}>คัดลอกเป็นตารางใหม่</button>
                 </div>
               )}
