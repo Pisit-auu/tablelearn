@@ -914,22 +914,47 @@ export default function Home() {
               )}
             </div>
             {filteredRemoteClasses.length > 0 && (
-              <div className="remote-list">
+              <ul className="remote-list">
                 {filteredRemoteClasses.map((remoteClass) => {
                   const parsedTime = parseClassTime(remoteClass.classtime);
+                  const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
 
                   return (
-                    <article className="remote-card" key={remoteClass.classid}>
-                      <div>
-                        <strong>{remoteClass.coursecode} · {remoteClass.coursename} · S.{remoteClass.sectioncode}</strong>
-                        <span>{days.find((day) => day.key === parsedTime.day)?.label} {parsedTime.start}-{parsedTime.end} · {parsedTime.room || "-"}</span>
-                        <span>{teacherName(remoteClass) || "-"} · {remoteClass.courseunit}</span>
+                    <li className="remote-item" key={remoteClass.classid}>
+                      <div className="remote-item-title">
+                        <span className="remote-item-code">{remoteClass.coursecode}</span>
+                        <span className="remote-item-section">S.{remoteClass.sectioncode}</span>
                       </div>
-                      <button type="button" onClick={() => importRemoteClass(remoteClass)}>นำเข้า</button>
-                    </article>
+                      <div className="remote-item-name">{remoteClass.coursename}</div>
+                      <dl className="remote-item-meta">
+                        <div>
+                          <dt>เวลา</dt>
+                          <dd>{dayLabel} {parsedTime.start}-{parsedTime.end}</dd>
+                        </div>
+                        <div>
+                          <dt>ห้อง</dt>
+                          <dd>{parsedTime.room || "-"}</dd>
+                        </div>
+                        <div>
+                          <dt>อาจารย์</dt>
+                          <dd>{teacherName(remoteClass) || "-"}</dd>
+                        </div>
+                        <div>
+                          <dt>หน่วยกิต</dt>
+                          <dd>{remoteClass.courseunit}</dd>
+                        </div>
+                      </dl>
+                      <button
+                        type="button"
+                        className="remote-item-import"
+                        onClick={() => importRemoteClass(remoteClass)}
+                      >
+                        นำเข้าลงตาราง
+                      </button>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
           </section>
         </div>
