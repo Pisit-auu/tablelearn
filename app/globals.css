@@ -23,11 +23,15 @@
 
 html {
   min-width: 320px;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--paper);
 }
 
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   color: var(--ink);
   font-family: "Noto Sans Thai", "Leelawadee UI", "Segoe UI", Tahoma, sans-serif;
   font-size: 15px;
@@ -43,11 +47,14 @@ body {
 button,
 input,
 select {
+  max-width: 100%;
+  box-sizing: border-box;
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  white-space: normal;
 }
 
 button:disabled {
@@ -57,6 +64,7 @@ button:disabled {
 
 .shell {
   width: min(1500px, 100%);
+  max-width: 100%;
   margin: 0 auto;
   padding: 30px;
   display: flex;
@@ -218,13 +226,6 @@ h2 {
   align-items: start;
 }
 
-.control-grid {
-  order: 2;
-  display: grid;
-  grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
-  gap: 18px;
-}
-
 .notice {
   order: 3;
   display: grid;
@@ -298,7 +299,7 @@ h2 {
 
 .plan-bar {
   display: grid;
-  grid-template-columns: minmax(180px, 260px) minmax(220px, 1fr);
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
   align-items: end;
   gap: 12px;
 }
@@ -310,43 +311,34 @@ h2 {
   gap: 12px;
 }
 
-.template-bar {
-  display: grid;
-  grid-column: 1 / -1;
-  gap: 12px;
-}
-
 .share-bar h2,
-.share-bar p,
-.template-bar h2,
-.template-bar p {
+.share-bar p {
   margin-bottom: 0;
 }
 
 .share-bar p,
-.share-bar span,
-.template-bar p,
-.template-status {
+.share-bar span {
   margin-top: 5px;
   color: var(--muted);
   font-size: 0.9rem;
   overflow-wrap: anywhere;
 }
 
-.template-codes {
+.share-conflict {
   display: flex;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
-  gap: 7px;
+  padding: 10px;
+  border: 1px solid rgba(180, 35, 24, 0.22);
+  border-radius: var(--radius);
+  background: #fff0ed;
 }
 
-.template-codes span {
-  border: 1px solid rgba(36, 87, 255, 0.18);
-  border-radius: 7px;
-  padding: 5px 8px;
-  background: rgba(36, 87, 255, 0.07);
-  color: #1f45c7;
-  font-size: 0.82rem;
-  font-weight: 900;
+.share-conflict span {
+  margin: 0;
+  color: var(--danger);
+  font-weight: 850;
 }
 
 .sync-note {
@@ -371,6 +363,8 @@ h2 {
 
 .panel,
 .board {
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--panel);
@@ -397,8 +391,14 @@ h2 {
   margin: 0;
 }
 
+.course-list-head {
+  margin-bottom: 16px;
+}
+
 label {
   display: grid;
+  min-width: 0;
+  max-width: 100%;
   gap: 7px;
   color: #364056;
   font-size: 0.88rem;
@@ -408,6 +408,7 @@ label {
 input,
 select {
   width: 100%;
+  max-width: 100%;
   min-height: 42px;
   border: 1px solid #c7cfbe;
   border-radius: 7px;
@@ -440,11 +441,11 @@ select:focus {
 }
 
 .grid-2 {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .grid-3 {
-  grid-template-columns: 1.1fr 1fr 1fr;
+  grid-template-columns: minmax(0, 1.1fr) repeat(2, minmax(0, 1fr));
 }
 
 .primary,
@@ -502,6 +503,17 @@ select:focus {
   margin-bottom: 12px;
 }
 
+.board-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: rgba(255, 254, 248, 0.72);
+}
+
 .board-head h2,
 .board-head p {
   margin-bottom: 0;
@@ -539,13 +551,13 @@ select:focus {
 }
 
 .planner {
-  order: 4;
+  order: 6;
   display: grid;
   gap: 16px;
 }
 
 .compare {
-  order: 4;
+  order: 7;
   display: grid;
   gap: 14px;
 }
@@ -652,7 +664,7 @@ select:focus {
 
 .planner-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.8fr) minmax(320px, 1fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -698,13 +710,13 @@ select:focus {
 
 .planner-times {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .planner-days {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(46px, 1fr));
   gap: 7px;
 }
 
@@ -712,7 +724,10 @@ select:focus {
   display: inline-flex;
   grid-template-columns: none;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  width: 100%;
+  max-width: 100%;
   min-height: 34px;
   border: 1px solid var(--rule);
   border-radius: 7px;
@@ -890,7 +905,7 @@ select:focus {
 .lower {
   order: 5;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.62fr) minmax(320px, 0.72fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.62fr) minmax(0, 0.72fr);
   gap: 18px;
 }
 
@@ -920,7 +935,7 @@ select:focus {
 
 .remote-tools {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   align-items: end;
   gap: 12px;
 }
@@ -1135,7 +1150,7 @@ select:focus {
   .topbar,
   .workspace,
   .lower,
-  .control-grid,
+  .board-controls,
   .planner-grid,
   .compare-selects,
   .compare-diff {
@@ -1176,6 +1191,7 @@ select:focus {
   .brand-heading,
   .planner-head,
   .compare-head,
+  .course-list-head,
   .generated-plan,
   .remote-head,
   .course-card {

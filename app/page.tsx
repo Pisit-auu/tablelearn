@@ -25,13 +25,9 @@ type TimetablePlan = {
   id: string;
   name: string;
   courses: Course[];
-};
-
-type CourseTemplate = {
-  id: string;
-  name: string;
-  department: string;
-  courses: { code: string; name: string }[];
+  source?: "local" | "shared";
+  sharedId?: string;
+  canEdit?: boolean;
 };
 
 type RemoteClass = {
@@ -101,34 +97,10 @@ const emptyCourse = {
   midterm: "",
   final: "",
 };
-const defaultPlanName = "ตารางเรียนหลัก";
+const defaultPlanName = "ตาราง1";
 const noCourses: Course[] = [];
 const maxExcelFileSize = 1024 * 1024;
 const maxExcelRows = 80;
-const builtInCourseTemplates: CourseTemplate[] = [
-  {
-    id: "as-freshman-1",
-    name: "ปี 1 เทอม 1",
-    department: "วิทยาศาสตร์ประยุกต์",
-    courses: [
-      { code: "040613100", name: "รายวิชาพื้นฐานคณะ" },
-      { code: "040203111", name: "แคลคูลัส 1" },
-      { code: "040313005", name: "ฟิสิกส์ทั่วไป" },
-      { code: "080103001", name: "ภาษาอังกฤษพื้นฐาน" },
-    ],
-  },
-  {
-    id: "as-freshman-2",
-    name: "ปี 1 เทอม 2",
-    department: "วิทยาศาสตร์ประยุกต์",
-    courses: [
-      { code: "040203112", name: "แคลคูลัส 2" },
-      { code: "040313006", name: "ปฏิบัติการฟิสิกส์" },
-      { code: "080103002", name: "ภาษาอังกฤษเชิงวิชาการ" },
-      { code: "040613101", name: "การเขียนโปรแกรมเบื้องต้น" },
-    ],
-  },
-];
 
 function toMinutes(value: string) {
   const [hour, minute] = value.split(":").map(Number);
@@ -489,6 +461,22 @@ function courseKey(course: Course) {
   return `${course.code}|${course.name}|${course.day}|${course.start}|${course.end}|${course.room}`;
 }
 
+function nextTableName(planList: TimetablePlan[]) {
+  const usedNumbers = new Set(
+    planList
+      .map((plan) => plan.name.match(/^ตาราง(\d+)$/)?.[1])
+      .filter(Boolean)
+      .map(Number),
+  );
+  let nextNumber = 1;
+
+  while (usedNumbers.has(nextNumber)) {
+    nextNumber += 1;
+  }
+
+  return `ตาราง${nextNumber}`;
+}
+
 function planStats(courseList: Course[]) {
   const usedDays = new Set(courseList.map((course) => course.day));
   const freeMinutes = freeSlotsForCourses(courseList)
@@ -556,26 +544,9 @@ function scorePlan(courseList: Course[], avoidDays: DayKey[], preferredStart: st
 }
 
 export default function Home() {
-  const [plans, setPlans] = useState<TimetablePlan[]>(() => {
-    if (typeof window === "undefined") {
-      return [{ id: "default", name: defaultPlanName, courses: [] }];
-    }
-
-    const savedPlans = readJson<TimetablePlan[] | null>("student-timetable-plans", null);
-    if (savedPlans) {
-      return savedPlans;
-    }
-
-    const saved = readJson<Course[]>("student-timetable", []);
-    return [{ id: "default", name: defaultPlanName, courses: saved }];
-  });
-  const [activePlanId, setActivePlanId] = useState(() => {
-    if (typeof window === "undefined") {
-      return "default";
-    }
-
-    return window.localStorage.getItem("student-timetable-active-plan") ?? "default";
-  });
+  const [plans, setPlans] = useState<TimetablePlan[]>([{ id: "default", name: defaultPlanName, courses: [] }]);
+  const [activePlanId, setActivePlanId] = useState("default");
+  const [hasLoadedLocalData, setHasLoadedLocalData] = useState(false);
   const [form, setForm] = useState(emptyCourse);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [remoteClasses, setRemoteClasses] = useState<RemoteClass[]>([]);
@@ -601,6 +572,7 @@ export default function Home() {
   const [sharedEditToken, setSharedEditToken] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [shareConflict, setShareConflict] = useState(false);
   const [excelStatus, setExcelStatus] = useState("");
   const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
@@ -609,9 +581,6 @@ export default function Home() {
   const [plannerLunchBreak, setPlannerLunchBreak] = useState(true);
   const [generatedPlans, setGeneratedPlans] = useState<GeneratedSchedulePlan[]>([]);
   const [plannerStatus, setPlannerStatus] = useState("");
-  const [customTemplates, setCustomTemplates] = useState<CourseTemplate[]>(() => readJson<CourseTemplate[]>("student-timetable-course-templates", []));
-  const [selectedTemplateId, setSelectedTemplateId] = useState(builtInCourseTemplates[0]?.id ?? "");
-  const [templateStatus, setTemplateStatus] = useState("");
   const [comparePlanAId, setComparePlanAId] = useState("");
   const [comparePlanBId, setComparePlanBId] = useState("");
   const [timetableView, setTimetableView] = useState<"grid" | "list">("grid");
@@ -620,26 +589,36 @@ export default function Home() {
   const lastSharedUpdatedAtRef = useRef("");
   const sharedEditTokenRef = useRef("");
   const skipNextSharedSaveRef = useRef(false);
+  const hasLocalPlanMutationRef = useRef(false);
+  const sharedDirtyRef = useRef(false);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
-  const courseTemplates = useMemo(() => [...builtInCourseTemplates, ...customTemplates], [customTemplates]);
+  const sharedLocalPlanId = sharedPlanId ? `shared-${sharedPlanId}` : "";
+  const sharedLocalPlan = sharedLocalPlanId ? plans.find((plan) => plan.id === sharedLocalPlanId) : null;
+  const isActiveSharedPlan = activePlan?.source === "shared";
+  const canEditActivePlan = !isActiveSharedPlan || activePlan?.canEdit === true;
+  const isActiveReadOnlySharedPlan = isActiveSharedPlan && !canEditActivePlan;
 
-  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current) => {
+  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current, activate = true) => {
     const localId = `shared-${planId}`;
+    const canEdit = Boolean(editToken);
     setPlans((currentPlans) => {
-      const nextPlan = { id: localId, name: planName, courses: planCourses };
+      const nextPlan = { id: localId, name: planName, courses: planCourses, source: "shared" as const, sharedId: planId, canEdit };
       const existing = currentPlans.some((plan) => plan.id === localId);
 
       return existing ? currentPlans.map((plan) => (plan.id === localId ? nextPlan : plan)) : [...currentPlans, nextPlan];
     });
-    setActivePlanId(localId);
+    if (activate) {
+      setActivePlanId(localId);
+    }
     setSharedPlanId(planId);
     setSharedEditToken(editToken);
     sharedEditTokenRef.current = editToken;
     if (updatedAt) {
       skipNextSharedSaveRef.current = true;
+      sharedDirtyRef.current = false;
       lastSharedUpdatedAtRef.current = updatedAt;
       setLastSharedUpdatedAt(updatedAt);
     }
@@ -682,28 +661,61 @@ export default function Home() {
       });
       lastSharedUpdatedAtRef.current = data.updatedAt;
       setLastSharedUpdatedAt(data.updatedAt);
+      sharedDirtyRef.current = false;
+      setShareConflict(false);
 
       if (showStatus) {
         setShareStatus("บันทึกตารางแชร์แล้ว");
       }
       return true;
     } catch (error) {
-      setShareStatus(error instanceof Error ? error.message : "บันทึกตารางแชร์ไม่สำเร็จ");
+      const message = error instanceof Error ? error.message : "บันทึกตารางแชร์ไม่สำเร็จ";
+      setShareStatus(message);
+      if (message.includes("เปลี่ยนแปลงใหม่กว่า")) {
+        setShareConflict(true);
+      }
       return false;
     }
   }, []);
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (hasLocalPlanMutationRef.current) {
+        setHasLoadedLocalData(true);
+        return;
+      }
+
+      const savedPlans = readJson<TimetablePlan[] | null>("student-timetable-plans", null);
+
+      if (savedPlans) {
+        setPlans(savedPlans);
+      } else {
+        const saved = readJson<Course[]>("student-timetable", []);
+        setPlans([{ id: "default", name: defaultPlanName, courses: saved }]);
+      }
+
+      setActivePlanId(window.localStorage.getItem("student-timetable-active-plan") ?? "default");
+      setHasLoadedLocalData(true);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedLocalData) {
+      return;
+    }
+
     window.localStorage.setItem("student-timetable-plans", JSON.stringify(plans));
-  }, [plans]);
+  }, [hasLoadedLocalData, plans]);
 
   useEffect(() => {
+    if (!hasLoadedLocalData) {
+      return;
+    }
+
     window.localStorage.setItem("student-timetable-active-plan", currentPlanId);
-  }, [currentPlanId]);
-
-  useEffect(() => {
-    window.localStorage.setItem("student-timetable-course-templates", JSON.stringify(customTemplates));
-  }, [customTemplates]);
+  }, [currentPlanId, hasLoadedLocalData]);
 
   useEffect(() => {
     const sharedId = new URLSearchParams(window.location.search).get("share");
@@ -719,7 +731,11 @@ export default function Home() {
   }, [loadSharedPlan]);
 
   useEffect(() => {
-    if (!sharedPlanId || !sharedEditToken || !activePlan) {
+    if (!sharedPlanId || !sharedEditToken || !sharedLocalPlan) {
+      return;
+    }
+
+    if (!sharedLocalPlan.canEdit || !sharedDirtyRef.current) {
       return;
     }
 
@@ -729,11 +745,11 @@ export default function Home() {
     }
 
     const timeout = window.setTimeout(() => {
-      saveSharedPlan(sharedPlanId, sharedEditToken, activePlan.name, courses, false);
+      saveSharedPlan(sharedPlanId, sharedEditToken, sharedLocalPlan.name, sharedLocalPlan.courses, false);
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [activePlan, courses, saveSharedPlan, sharedEditToken, sharedPlanId]);
+  }, [saveSharedPlan, sharedEditToken, sharedLocalPlan, sharedPlanId]);
 
   useEffect(() => {
     if (!sharedPlanId) {
@@ -742,10 +758,14 @@ export default function Home() {
 
     const interval = window.setInterval(async () => {
       try {
+        if (sharedDirtyRef.current || (isManualCourseOpen && activePlanId === sharedLocalPlanId)) {
+          return;
+        }
+
         const data = await loadSharedPlanAction(sharedPlanId);
 
         if (data.updatedAt && data.updatedAt !== lastSharedUpdatedAtRef.current) {
-          setSharedPlan(sharedPlanId, data.name, data.courses, data.updatedAt);
+          setSharedPlan(sharedPlanId, data.name, data.courses, data.updatedAt, sharedEditTokenRef.current, false);
           setShareStatus("อัปเดตตารางล่าสุดแล้ว");
         }
       } catch (error) {
@@ -754,7 +774,7 @@ export default function Home() {
     }, 2000);
 
     return () => window.clearInterval(interval);
-  }, [setSharedPlan, sharedPlanId]);
+  }, [activePlanId, isManualCourseOpen, setSharedPlan, sharedLocalPlanId, sharedPlanId]);
 
   useEffect(() => {
     async function loadFilters() {
@@ -869,6 +889,11 @@ export default function Home() {
 
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
     if (toMinutes(form.start) >= toMinutes(form.end)) {
       return;
     }
@@ -889,6 +914,11 @@ export default function Home() {
   }
 
   function editCourse(course: Course) {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
     setForm({
       name: course.name,
       code: course.code,
@@ -906,6 +936,11 @@ export default function Home() {
   }
 
   function removeCourse(id: string) {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
     updateActiveCourses((current) => current.filter((course) => course.id !== id));
     if (editingId === id) {
       setEditingId(null);
@@ -913,27 +948,60 @@ export default function Home() {
     }
   }
 
+  function removeAllCourses() {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
+    updateActiveCourses(() => []);
+    setEditingId(null);
+    setForm(emptyCourse);
+  }
+
   function updateActiveCourses(updater: (current: Course[]) => Course[]) {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
+    hasLocalPlanMutationRef.current = true;
+    if (isActiveSharedPlan) {
+      sharedDirtyRef.current = true;
+    }
     setPlans((currentPlans) =>
       currentPlans.map((plan) => (plan.id === currentPlanId ? { ...plan, courses: updater(plan.courses) } : plan)),
     );
   }
 
   function addPlan() {
-    const nextPlan: TimetablePlan = {
-      id: crypto.randomUUID(),
-      name: `ตารางเรียน ${plans.length + 1}`,
-      courses: [],
-    };
+    hasLocalPlanMutationRef.current = true;
+    const nextPlanId = crypto.randomUUID();
 
-    setPlans((currentPlans) => [...currentPlans, nextPlan]);
-    setActivePlanId(nextPlan.id);
+    setPlans((currentPlans) => [
+      ...currentPlans,
+      {
+        id: nextPlanId,
+        name: nextTableName(currentPlans),
+        courses: [],
+      },
+    ]);
+    setActivePlanId(nextPlanId);
     setEditingId(null);
     setForm(emptyCourse);
     setIsManualCourseOpen(false);
   }
 
   function renamePlan(name: string) {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
+    hasLocalPlanMutationRef.current = true;
+    if (isActiveSharedPlan) {
+      sharedDirtyRef.current = true;
+    }
     setPlans((currentPlans) =>
       currentPlans.map((plan) => (plan.id === currentPlanId ? { ...plan, name } : plan)),
     );
@@ -945,47 +1013,22 @@ export default function Home() {
     }
 
     const nextPlans = plans.filter((plan) => plan.id !== currentPlanId);
+    hasLocalPlanMutationRef.current = true;
     setPlans(nextPlans);
     setActivePlanId(nextPlans[0].id);
+    if (currentPlanId === sharedLocalPlanId) {
+      leaveSharedMode(false);
+    }
     setEditingId(null);
     setForm(emptyCourse);
   }
 
-  function applySelectedTemplate() {
-    const template = courseTemplates.find((item) => item.id === selectedTemplateId);
-
-    if (!template) {
-      setTemplateStatus("ไม่พบ template ที่เลือก");
-      return;
-    }
-
-    const codes = template.courses.map((course) => course.code);
-    setPlannerSelectedCodes(codes);
-    setCourseSearch(codes[0] ?? "");
-    setTemplateStatus(`เลือก ${template.name} แล้ว (${codes.length} วิชา) โหลดข้อมูล KMUTNB แล้วกดสร้างแผน`);
-  }
-
-  function saveCurrentPlanAsTemplate() {
-    const uniqueCourses = Array.from(new Map(courses.map((course) => [course.code, { code: course.code, name: course.name }])).values());
-
-    if (uniqueCourses.length === 0) {
-      setTemplateStatus("ต้องมีรายวิชาในตารางก่อนบันทึกเป็น template");
-      return;
-    }
-
-    const template: CourseTemplate = {
-      id: crypto.randomUUID(),
-      name: `${activePlan?.name ?? defaultPlanName} template`,
-      department: "ส่วนตัว",
-      courses: uniqueCourses,
-    };
-
-    setCustomTemplates((current) => [...current, template]);
-    setSelectedTemplateId(template.id);
-    setTemplateStatus(`บันทึก ${template.name} แล้ว`);
-  }
-
   function toggleCourseLocked(id: string) {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
     updateActiveCourses((current) => current.map((course) => (course.id === id ? { ...course, locked: !course.locked } : course)));
   }
 
@@ -1077,14 +1120,19 @@ export default function Home() {
   }
 
   function applyGeneratedPlan(plan: GeneratedSchedulePlan) {
-    const nextPlan: TimetablePlan = {
-      id: crypto.randomUUID(),
-      name: `${activePlan?.name ?? defaultPlanName} · ${plan.name}`,
-      courses: plan.courses.map((course) => ({ ...course, id: crypto.randomUUID() })),
-    };
+    hasLocalPlanMutationRef.current = true;
+    const nextPlanId = crypto.randomUUID();
+    const nextCourses = plan.courses.map((course) => ({ ...course, id: crypto.randomUUID() }));
 
-    setPlans((currentPlans) => [...currentPlans, nextPlan]);
-    setActivePlanId(nextPlan.id);
+    setPlans((currentPlans) => [
+      ...currentPlans,
+      {
+        id: nextPlanId,
+        name: nextTableName(currentPlans),
+        courses: nextCourses,
+      },
+    ]);
+    setActivePlanId(nextPlanId);
     setPlannerStatus(`ใช้ ${plan.name} แล้ว`);
   }
 
@@ -1102,13 +1150,60 @@ export default function Home() {
     window.history.replaceState(null, "", `?share=${planId}&edit=${editToken}`);
   }
 
-  async function copyShareLink() {
-    if (!shareUrl) {
+  async function copySharedPlanLink(mode: "view" | "edit") {
+    if (!sharedPlanId) {
       return;
     }
 
-    await navigator.clipboard.writeText(shareUrl);
-    setShareStatus("คัดลอกลิงก์แล้ว");
+    if (mode === "edit" && !sharedEditToken) {
+      setShareStatus("ยังไม่มีลิงก์แก้ไข");
+      return;
+    }
+
+    const link = `${window.location.origin}${window.location.pathname}?share=${sharedPlanId}${mode === "edit" ? `&edit=${sharedEditToken}` : ""}`;
+
+    await navigator.clipboard.writeText(link);
+    setShareStatus(mode === "edit" ? "คัดลอกลิงก์แก้ไขแล้ว" : "คัดลอกลิงก์ดูอย่างเดียวแล้ว");
+  }
+
+  function copyActivePlanToLocal() {
+    if (!activePlan) {
+      return;
+    }
+
+    const nextPlanId = crypto.randomUUID();
+    const copiedCourses = activePlan.courses.map((course) => ({ ...course, id: crypto.randomUUID() }));
+
+    hasLocalPlanMutationRef.current = true;
+    setPlans((currentPlans) => [
+      ...currentPlans,
+      {
+        id: nextPlanId,
+        name: nextTableName(currentPlans),
+        courses: copiedCourses,
+        source: "local",
+      },
+    ]);
+    setActivePlanId(nextPlanId);
+    setEditingId(null);
+    setForm(emptyCourse);
+    setShareStatus("คัดลอกเป็นตารางใหม่แล้ว");
+  }
+
+  function leaveSharedMode(copyCurrentPlan = true) {
+    if (copyCurrentPlan && isActiveSharedPlan) {
+      copyActivePlanToLocal();
+    }
+
+    setSharedPlanId(null);
+    setSharedEditToken("");
+    sharedEditTokenRef.current = "";
+    setShareUrl("");
+    setLastSharedUpdatedAt("");
+    lastSharedUpdatedAtRef.current = "";
+    sharedDirtyRef.current = false;
+    setShareConflict(false);
+    setShareStatus("ออกจากโหมดแชร์แล้ว");
   }
 
   async function exportExcel() {
@@ -1280,6 +1375,12 @@ export default function Home() {
   }
 
   async function importExcel(event: ChangeEvent<HTMLInputElement>) {
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      event.currentTarget.value = "";
+      return;
+    }
+
     const file = event.target.files?.[0];
     event.target.value = "";
 
@@ -1404,22 +1505,13 @@ export default function Home() {
   }
 
   function importRemoteClass(remoteClass: RemoteClass) {
-    const meetings = parseClassMeetings(remoteClass.classtime);
+    if (!canEditActivePlan) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      return;
+    }
+
     const color = palette[courses.length % palette.length];
-    const importedCourses: Course[] = (meetings.length > 0 ? meetings : [parseClassTime(remoteClass.classtime)]).map((meeting, index, allMeetings) => ({
-      id: crypto.randomUUID(),
-      name: `${remoteClass.coursename} S.${remoteClass.sectioncode}${allMeetings.length > 1 ? ` (${index + 1})` : ""}`,
-      code: remoteClass.coursecode,
-      credits: parseCredits(remoteClass.courseunit),
-      day: meeting.day,
-      start: meeting.start,
-      end: meeting.end,
-      room: meeting.room,
-      teacher: teacherName(remoteClass),
-      midterm: parseExam(remoteClass.classexam, "MIDTERM"),
-      final: parseExam(remoteClass.classexam, "FINAL"),
-      color,
-    }));
+    const importedCourses = remoteClassToCourses(remoteClass, color);
 
     updateActiveCourses((current) => [...current, ...importedCourses]);
   }
@@ -1454,74 +1546,6 @@ export default function Home() {
             <span>ตารางสอบ</span>
             <strong>{examCount}</strong>
           </div>
-        </div>
-      </section>
-
-      <section className="control-grid">
-        <div className="plan-bar panel">
-          <label>
-            เลือกตาราง
-            <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
-              {plans.map((plan) => (
-                <option key={plan.id} value={plan.id}>{plan.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            ชื่อตาราง
-            <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} />
-          </label>
-          <div className="button-row">
-            <button type="button" className="primary" onClick={() => setIsCourseBrowserOpen(true)}>ดึงรายวิชาจากเว็บ</button>
-            <button type="button" className="secondary" onClick={() => { setEditingId(null); setForm(emptyCourse); setIsManualCourseOpen(true); }}>เพิ่มด้วยตนเอง</button>
-            <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
-            <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
-          </div>
-        </div>
-
-        <div className="share-bar panel">
-          <div>
-            <h2>แชร์ตารางร่วมกัน</h2>
-            <p>{shareUrl || "สร้างลิงก์ให้เพื่อนร่วมแผนเปิดและแก้ตารางเดียวกันได้"}</p>
-            {sharedPlanId && (
-              <small className="sync-note">
-                อัปเดตอัตโนมัติทุก 2 วินาที{lastSharedUpdatedAt ? ` · ล่าสุด ${new Date(lastSharedUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
-              </small>
-            )}
-          </div>
-          <div className="button-row">
-            <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
-            <button type="button" className="ghost" onClick={copyShareLink} disabled={!shareUrl}>คัดลอกลิงก์</button>
-            <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
-          </div>
-          {shareStatus && <span>{shareStatus}</span>}
-        </div>
-
-        <div className="template-bar panel">
-          <div>
-            <h2>Template รายวิชา</h2>
-            <p>เลือกชุดรายวิชาตามปี/เทอม แล้วโหลด section จาก KMUTNB ต่อ</p>
-          </div>
-          <label>
-            ชุดรายวิชา
-            <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)}>
-              {courseTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name} · {template.department} · {template.courses.length} วิชา
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="template-codes">
-            {(courseTemplates.find((template) => template.id === selectedTemplateId)?.courses ?? []).map((course) => (
-              <span key={course.code}>{course.code}</span>
-            ))}
-          </div>
-          <div className="button-row">
-            <button type="button" className="primary" onClick={applySelectedTemplate}>ใช้ template</button>
-            <button type="button" className="ghost" onClick={saveCurrentPlanAsTemplate}>บันทึกตารางนี้เป็น template</button>
-          </div>
-          {templateStatus && <p className="template-status">{templateStatus}</p>}
         </div>
       </section>
 
@@ -1695,7 +1719,10 @@ export default function Home() {
           <div className="board-head">
             <div>
               <h2>{activePlan?.name ?? defaultPlanName}</h2>
-              <p>{courses.length} วิชา · {totalCredits} หน่วยกิต</p>
+              <p>
+                {courses.length} วิชา · {totalCredits} หน่วยกิต
+                {isActiveSharedPlan ? ` · ${canEditActivePlan ? "ตารางแชร์แบบแก้ไข" : "ตารางแชร์แบบดูอย่างเดียว"}` : ""}
+              </p>
               {excelStatus && <p className="excel-status">{excelStatus}</p>}
             </div>
             <div className="button-row">
@@ -1707,7 +1734,7 @@ export default function Home() {
                 onChange={importExcel}
                 aria-label="Import Excel"
               />
-              <button type="button" className="ghost" onClick={() => excelInputRef.current?.click()}>Import Excel</button>
+              <button type="button" className="ghost" onClick={() => excelInputRef.current?.click()} disabled={!canEditActivePlan}>Import Excel</button>
               <button type="button" className="ghost" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
               <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
               <button type="button" className="ghost" onClick={() => setTimetableView((view) => (view === "grid" ? "list" : "grid"))}>
@@ -1715,6 +1742,58 @@ export default function Home() {
               </button>
             </div>
           </div>
+          <div className="board-controls">
+            <div className="plan-bar">
+              <label>
+                เลือกตาราง
+                <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
+                  {plans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>{plan.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                ชื่อตาราง
+                <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} disabled={!canEditActivePlan} />
+              </label>
+              <div className="button-row">
+                <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
+                <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
+              </div>
+            </div>
+
+            <div className="share-bar">
+              <div>
+                <h2>แชร์ตารางร่วมกัน</h2>
+                <p>{shareUrl || "สร้างลิงก์ให้เพื่อนร่วมแผนเปิดและแก้ตารางเดียวกันได้"}</p>
+                {sharedPlanId && (
+                  <small className="sync-note">
+                    อัปเดตอัตโนมัติทุก 2 วินาที{lastSharedUpdatedAt ? ` · ล่าสุด ${new Date(lastSharedUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
+                  </small>
+                )}
+              </div>
+              <div className="button-row">
+                <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
+                <button type="button" className="ghost" onClick={() => copySharedPlanLink("view")} disabled={!sharedPlanId}>คัดลอกลิงก์ดู</button>
+                <button type="button" className="ghost" onClick={() => copySharedPlanLink("edit")} disabled={!sharedPlanId || !sharedEditToken}>คัดลอกลิงก์แก้ไข</button>
+                <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
+                <button type="button" className="ghost" onClick={() => leaveSharedMode()} disabled={!sharedPlanId}>ออกจากโหมดแชร์</button>
+              </div>
+              {shareConflict && (
+                <div className="share-conflict">
+                  <span>ตารางกลางมีข้อมูลใหม่กว่า</span>
+                  <button type="button" className="ghost" onClick={() => sharedPlanId && loadSharedPlan(sharedPlanId)} disabled={!sharedPlanId}>โหลดล่าสุด</button>
+                  <button type="button" className="secondary" onClick={copyActivePlanToLocal}>คัดลอกเป็นตารางใหม่</button>
+                </div>
+              )}
+              {shareStatus && <span>{shareStatus}</span>}
+            </div>
+          </div>
+          {isActiveReadOnlySharedPlan && (
+            <div className="alert">
+              ลิงก์นี้เป็นโหมดดูอย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อเพิ่ม ลบ หรือแก้รายวิชา
+            </div>
+          )}
           {conflicts.length > 0 && (
             <div className="alert">
               พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
@@ -1957,6 +2036,7 @@ export default function Home() {
                         type="button"
                         className="remote-item-import"
                         onClick={() => importRemoteClass(remoteClass)}
+                        disabled={!canEditActivePlan}
                       >
                         นำเข้าลงตาราง
                       </button>
@@ -1978,10 +2058,17 @@ export default function Home() {
 
       <section className="lower">
         <div className="panel">
-          <h2>รายวิชาที่บันทึก</h2>
+          <div className="panel-title course-list-head">
+            <h2>รายวิชาที่บันทึก</h2>
+            <div className="button-row">
+              <button type="button" className="primary" onClick={() => setIsCourseBrowserOpen(true)}>ดึงรายวิชาจากเว็บ</button>
+              <button type="button" className="secondary" onClick={() => { setEditingId(null); setForm(emptyCourse); setIsManualCourseOpen(true); }} disabled={!canEditActivePlan}>เพิ่มด้วยตนเอง</button>
+              <button type="button" className="ghost danger" onClick={removeAllCourses} disabled={courses.length === 0 || !canEditActivePlan}>ลบทั้งหมด</button>
+            </div>
+          </div>
           <div className="course-list">
             {courses.length === 0 ? (
-              <p className="empty">ยังไม่มีรายวิชา เพิ่มข้อมูลด้านบนเพื่อเริ่มจัดตาราง</p>
+              <p className="empty">ยังไม่มีรายวิชา ดึงรายวิชาจากเว็บหรือเพิ่มด้วยตนเองเพื่อเริ่มจัดตาราง</p>
             ) : (
               courses.map((course) => (
                 <article className="course-card" key={course.id} style={{ borderColor: course.color }}>
@@ -1991,11 +2078,11 @@ export default function Home() {
                     <span>{course.teacher} · {course.credits} หน่วยกิต</span>
                   </div>
                   <div className="actions">
-                    <button type="button" className={course.locked ? "secondary" : ""} onClick={() => toggleCourseLocked(course.id)}>
+                    <button type="button" className={course.locked ? "secondary" : ""} onClick={() => toggleCourseLocked(course.id)} disabled={!canEditActivePlan}>
                       {course.locked ? "ปลดล็อก" : "ล็อก"}
                     </button>
-                    <button type="button" onClick={() => editCourse(course)}>แก้ไข</button>
-                    <button type="button" className="danger" onClick={() => removeCourse(course.id)}>ลบ</button>
+                    <button type="button" onClick={() => editCourse(course)} disabled={!canEditActivePlan}>แก้ไข</button>
+                    <button type="button" className="danger" onClick={() => removeCourse(course.id)} disabled={!canEditActivePlan}>ลบ</button>
                   </div>
                 </article>
               ))
