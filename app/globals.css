@@ -310,17 +310,43 @@ h2 {
   gap: 12px;
 }
 
+.template-bar {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 12px;
+}
+
 .share-bar h2,
-.share-bar p {
+.share-bar p,
+.template-bar h2,
+.template-bar p {
   margin-bottom: 0;
 }
 
 .share-bar p,
-.share-bar span {
+.share-bar span,
+.template-bar p,
+.template-status {
   margin-top: 5px;
   color: var(--muted);
   font-size: 0.9rem;
   overflow-wrap: anywhere;
+}
+
+.template-codes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.template-codes span {
+  border: 1px solid rgba(36, 87, 255, 0.18);
+  border-radius: 7px;
+  padding: 5px 8px;
+  background: rgba(36, 87, 255, 0.07);
+  color: #1f45c7;
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .sync-note {
@@ -518,6 +544,93 @@ select:focus {
   gap: 16px;
 }
 
+.compare {
+  order: 4;
+  display: grid;
+  gap: 14px;
+}
+
+.compare-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.compare-head h2,
+.compare-head p,
+.compare-diff h3 {
+  margin-bottom: 0;
+}
+
+.compare-head p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.compare-selects,
+.compare-diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.compare-stat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: rgba(255, 254, 248, 0.72);
+}
+
+.compare-stat span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.compare-stat strong {
+  font-size: 1.25rem;
+}
+
+.compare-diff > div {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: rgba(255, 254, 248, 0.72);
+}
+
+.diff-course {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--rule);
+  border-left-width: 5px;
+  border-radius: 7px;
+  padding: 9px;
+  background: #fffef8;
+}
+
+.diff-course span,
+.diff-course small {
+  color: var(--muted);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
 .planner-head {
   display: flex;
   align-items: end;
@@ -656,6 +769,59 @@ select:focus {
   border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
   background: var(--panel-solid);
+}
+
+.mobile-day-list {
+  display: grid;
+  gap: 12px;
+}
+
+.day-list-section {
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--panel-solid);
+}
+
+.day-list-section h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.day-list-courses {
+  display: grid;
+  gap: 8px;
+}
+
+.day-list-card {
+  border: 1px solid var(--rule);
+  border-left-width: 6px;
+  border-radius: 7px;
+  padding: 11px;
+  background: rgba(255, 254, 248, 0.86);
+}
+
+.day-list-card div {
+  display: grid;
+  gap: 4px;
+}
+
+.day-list-card span,
+.day-list-card small {
+  color: var(--muted);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.day-gap {
+  margin: 6px 0 0 12px;
+  border-left: 2px solid var(--rule-strong);
+  padding-left: 10px;
+  color: var(--teal);
+  font-size: 0.84rem;
+  font-weight: 850;
 }
 
 .corner,
@@ -970,7 +1136,9 @@ select:focus {
   .workspace,
   .lower,
   .control-grid,
-  .planner-grid {
+  .planner-grid,
+  .compare-selects,
+  .compare-diff {
     grid-template-columns: 1fr;
   }
 
@@ -984,6 +1152,10 @@ select:focus {
 
   .form {
     position: static;
+  }
+
+  .compare-grid {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -1003,6 +1175,7 @@ select:focus {
 
   .brand-heading,
   .planner-head,
+  .compare-head,
   .generated-plan,
   .remote-head,
   .course-card {
@@ -1047,7 +1220,8 @@ select:focus {
   }
 
   .planner-times,
-  .free-item {
+  .free-item,
+  .compare-grid {
     grid-template-columns: 1fr;
   }
 

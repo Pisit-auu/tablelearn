@@ -18,12 +18,20 @@ type Course = {
   midterm: string;
   final: string;
   color: string;
+  locked?: boolean;
 };
 
 type TimetablePlan = {
   id: string;
   name: string;
   courses: Course[];
+};
+
+type CourseTemplate = {
+  id: string;
+  name: string;
+  department: string;
+  courses: { code: string; name: string }[];
 };
 
 type RemoteClass = {
@@ -97,6 +105,30 @@ const defaultPlanName = "ตารางเรียนหลัก";
 const noCourses: Course[] = [];
 const maxExcelFileSize = 1024 * 1024;
 const maxExcelRows = 80;
+const builtInCourseTemplates: CourseTemplate[] = [
+  {
+    id: "as-freshman-1",
+    name: "ปี 1 เทอม 1",
+    department: "วิทยาศาสตร์ประยุกต์",
+    courses: [
+      { code: "040613100", name: "รายวิชาพื้นฐานคณะ" },
+      { code: "040203111", name: "แคลคูลัส 1" },
+      { code: "040313005", name: "ฟิสิกส์ทั่วไป" },
+      { code: "080103001", name: "ภาษาอังกฤษพื้นฐาน" },
+    ],
+  },
+  {
+    id: "as-freshman-2",
+    name: "ปี 1 เทอม 2",
+    department: "วิทยาศาสตร์ประยุกต์",
+    courses: [
+      { code: "040203112", name: "แคลคูลัส 2" },
+      { code: "040313006", name: "ปฏิบัติการฟิสิกส์" },
+      { code: "080103002", name: "ภาษาอังกฤษเชิงวิชาการ" },
+      { code: "040613101", name: "การเขียนโปรแกรมเบื้องต้น" },
+    ],
+  },
+];
 
 function toMinutes(value: string) {
   const [hour, minute] = value.split(":").map(Number);
@@ -453,6 +485,24 @@ function examWarningsForCourses(courseList: Course[]) {
   );
 }
 
+function courseKey(course: Course) {
+  return `${course.code}|${course.name}|${course.day}|${course.start}|${course.end}|${course.room}`;
+}
+
+function planStats(courseList: Course[]) {
+  const usedDays = new Set(courseList.map((course) => course.day));
+  const freeMinutes = freeSlotsForCourses(courseList)
+    .filter((slot) => usedDays.has(slot.day))
+    .reduce((sum, slot) => sum + slot.minutes, 0);
+
+  return {
+    credits: courseList.reduce((sum, course) => sum + course.credits, 0),
+    usedDays: usedDays.size,
+    freeHours: Math.round((freeMinutes / 60) * 10) / 10,
+    conflicts: courseList.flatMap((course, index) => courseList.slice(index + 1).filter((next) => overlaps(course, next))).length,
+  };
+}
+
 function scorePlan(courseList: Course[], avoidDays: DayKey[], preferredStart: string, preferredEnd: string, requireLunchBreak: boolean) {
   let score = 100;
   const reasons: string[] = [];
@@ -559,6 +609,12 @@ export default function Home() {
   const [plannerLunchBreak, setPlannerLunchBreak] = useState(true);
   const [generatedPlans, setGeneratedPlans] = useState<GeneratedSchedulePlan[]>([]);
   const [plannerStatus, setPlannerStatus] = useState("");
+  const [customTemplates, setCustomTemplates] = useState<CourseTemplate[]>(() => readJson<CourseTemplate[]>("student-timetable-course-templates", []));
+  const [selectedTemplateId, setSelectedTemplateId] = useState(builtInCourseTemplates[0]?.id ?? "");
+  const [templateStatus, setTemplateStatus] = useState("");
+  const [comparePlanAId, setComparePlanAId] = useState("");
+  const [comparePlanBId, setComparePlanBId] = useState("");
+  const [timetableView, setTimetableView] = useState<"grid" | "list">("grid");
   const [lastSharedUpdatedAt, setLastSharedUpdatedAt] = useState("");
   const excelInputRef = useRef<HTMLInputElement | null>(null);
   const lastSharedUpdatedAtRef = useRef("");
@@ -568,6 +624,7 @@ export default function Home() {
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
+  const courseTemplates = useMemo(() => [...builtInCourseTemplates, ...customTemplates], [customTemplates]);
 
   const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current) => {
     const localId = `shared-${planId}`;
@@ -643,6 +700,10 @@ export default function Home() {
   useEffect(() => {
     window.localStorage.setItem("student-timetable-active-plan", currentPlanId);
   }, [currentPlanId]);
+
+  useEffect(() => {
+    window.localStorage.setItem("student-timetable-course-templates", JSON.stringify(customTemplates));
+  }, [customTemplates]);
 
   useEffect(() => {
     const sharedId = new URLSearchParams(window.location.search).get("share");
@@ -778,6 +839,33 @@ export default function Home() {
   }, [remoteClasses]);
   const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
   const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
+  const comparePlanA = plans.find((plan) => plan.id === comparePlanAId) ?? plans[0];
+  const comparePlanB = plans.find((plan) => plan.id === comparePlanBId) ?? plans[1] ?? plans[0];
+  const comparison = useMemo(() => {
+    if (!comparePlanA || !comparePlanB) {
+      return null;
+    }
+
+    const aKeys = new Set(comparePlanA.courses.map(courseKey));
+    const bKeys = new Set(comparePlanB.courses.map(courseKey));
+    const onlyA = comparePlanA.courses.filter((course) => !bKeys.has(courseKey(course)));
+    const onlyB = comparePlanB.courses.filter((course) => !aKeys.has(courseKey(course)));
+
+    return {
+      aStats: planStats(comparePlanA.courses),
+      bStats: planStats(comparePlanB.courses),
+      onlyA,
+      onlyB,
+    };
+  }, [comparePlanA, comparePlanB]);
+  const dailyCourses = useMemo(
+    () =>
+      days.map((day) => ({
+        ...day,
+        courses: courses.filter((course) => course.day === day.key).sort((a, b) => toMinutes(a.start) - toMinutes(b.start)),
+      })),
+    [courses],
+  );
 
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -863,6 +951,44 @@ export default function Home() {
     setForm(emptyCourse);
   }
 
+  function applySelectedTemplate() {
+    const template = courseTemplates.find((item) => item.id === selectedTemplateId);
+
+    if (!template) {
+      setTemplateStatus("ไม่พบ template ที่เลือก");
+      return;
+    }
+
+    const codes = template.courses.map((course) => course.code);
+    setPlannerSelectedCodes(codes);
+    setCourseSearch(codes[0] ?? "");
+    setTemplateStatus(`เลือก ${template.name} แล้ว (${codes.length} วิชา) โหลดข้อมูล KMUTNB แล้วกดสร้างแผน`);
+  }
+
+  function saveCurrentPlanAsTemplate() {
+    const uniqueCourses = Array.from(new Map(courses.map((course) => [course.code, { code: course.code, name: course.name }])).values());
+
+    if (uniqueCourses.length === 0) {
+      setTemplateStatus("ต้องมีรายวิชาในตารางก่อนบันทึกเป็น template");
+      return;
+    }
+
+    const template: CourseTemplate = {
+      id: crypto.randomUUID(),
+      name: `${activePlan?.name ?? defaultPlanName} template`,
+      department: "ส่วนตัว",
+      courses: uniqueCourses,
+    };
+
+    setCustomTemplates((current) => [...current, template]);
+    setSelectedTemplateId(template.id);
+    setTemplateStatus(`บันทึก ${template.name} แล้ว`);
+  }
+
+  function toggleCourseLocked(id: string) {
+    updateActiveCourses((current) => current.map((course) => (course.id === id ? { ...course, locked: !course.locked } : course)));
+  }
+
   function togglePlannerCode(code: string) {
     setPlannerSelectedCodes((current) =>
       current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
@@ -892,15 +1018,29 @@ export default function Home() {
       return;
     }
 
-    const lockedCourses = courses.filter((course) => !plannerSelectedCodes.includes(course.code));
+    const lockedCourses = courses.filter((course) => course.locked || !plannerSelectedCodes.includes(course.code));
+    const lockedCodes = new Set(courses.filter((course) => course.locked).map((course) => course.code));
+    const unlockedSelectedGroups = selectedGroups.filter((group) => !lockedCodes.has(group.code));
     const results: GeneratedSchedulePlan[] = [];
+
+    if (coursesHaveConflict(lockedCourses)) {
+      setGeneratedPlans([]);
+      setPlannerStatus("วิชาที่ล็อกหรือวิชาที่คงไว้มีเวลาชนกัน จึงสร้างแผนไม่ได้");
+      return;
+    }
+
+    if (unlockedSelectedGroups.length === 0) {
+      setGeneratedPlans([]);
+      setPlannerStatus("วิชาที่เลือกถูกล็อกไว้ทั้งหมด หรือยังไม่ได้โหลด section ของรหัสที่เลือก");
+      return;
+    }
 
     function walk(groupIndex: number, picked: Course[][]) {
       if (results.length >= 20) {
         return;
       }
 
-      if (groupIndex >= selectedGroups.length) {
+      if (groupIndex >= unlockedSelectedGroups.length) {
         const candidateCourses = [...lockedCourses, ...picked.flat()];
 
         if (coursesHaveConflict(candidateCourses)) {
@@ -918,7 +1058,7 @@ export default function Home() {
         return;
       }
 
-      selectedGroups[groupIndex].classes.slice(0, 12).forEach((remoteClass, optionIndex) => {
+      unlockedSelectedGroups[groupIndex].classes.slice(0, 12).forEach((remoteClass, optionIndex) => {
         const color = palette[(lockedCourses.length + groupIndex + optionIndex) % palette.length];
         const candidate = remoteClassToCourses(remoteClass, color);
         const partialCourses = [...lockedCourses, ...picked.flat(), ...candidate];
@@ -1356,6 +1496,33 @@ export default function Home() {
           </div>
           {shareStatus && <span>{shareStatus}</span>}
         </div>
+
+        <div className="template-bar panel">
+          <div>
+            <h2>Template รายวิชา</h2>
+            <p>เลือกชุดรายวิชาตามปี/เทอม แล้วโหลด section จาก KMUTNB ต่อ</p>
+          </div>
+          <label>
+            ชุดรายวิชา
+            <select value={selectedTemplateId} onChange={(event) => setSelectedTemplateId(event.target.value)}>
+              {courseTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name} · {template.department} · {template.courses.length} วิชา
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="template-codes">
+            {(courseTemplates.find((template) => template.id === selectedTemplateId)?.courses ?? []).map((course) => (
+              <span key={course.code}>{course.code}</span>
+            ))}
+          </div>
+          <div className="button-row">
+            <button type="button" className="primary" onClick={applySelectedTemplate}>ใช้ template</button>
+            <button type="button" className="ghost" onClick={saveCurrentPlanAsTemplate}>บันทึกตารางนี้เป็น template</button>
+          </div>
+          {templateStatus && <p className="template-status">{templateStatus}</p>}
+        </div>
       </section>
 
       <section className="notice panel" aria-label="หมายเหตุการใช้งาน">
@@ -1464,6 +1631,65 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="compare panel" aria-label="เปรียบเทียบตาราง">
+        <div className="compare-head">
+          <div>
+            <h2>เปรียบเทียบ 2 แผน</h2>
+            <p>ดูคะแนนพื้นฐาน วันเรียน หน่วยกิต เวลาว่าง และรายวิชาที่ต่างกัน</p>
+          </div>
+          <div className="button-row">
+            <button type="button" className="ghost" onClick={() => comparePlanA && setActivePlanId(comparePlanA.id)} disabled={!comparePlanA}>ใช้แผน A</button>
+            <button type="button" className="ghost" onClick={() => comparePlanB && setActivePlanId(comparePlanB.id)} disabled={!comparePlanB}>ใช้แผน B</button>
+          </div>
+        </div>
+        <div className="compare-selects">
+          <label>
+            แผน A
+            <select value={comparePlanA?.id ?? ""} onChange={(event) => setComparePlanAId(event.target.value)}>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>{plan.name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            แผน B
+            <select value={comparePlanB?.id ?? ""} onChange={(event) => setComparePlanBId(event.target.value)}>
+              {plans.map((plan) => (
+                <option key={plan.id} value={plan.id}>{plan.name}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {comparison && (
+          <div className="compare-grid">
+            {[
+              ["หน่วยกิต", comparison.aStats.credits, comparison.bStats.credits],
+              ["วันเรียน", comparison.aStats.usedDays, comparison.bStats.usedDays],
+              ["เวลาว่าง", `${comparison.aStats.freeHours} ชม.`, `${comparison.bStats.freeHours} ชม.`],
+              ["เวลาชน", comparison.aStats.conflicts, comparison.bStats.conflicts],
+            ].map(([label, aValue, bValue]) => (
+              <div className="compare-stat" key={label}>
+                <span>{label}</span>
+                <strong>{aValue}</strong>
+                <strong>{bValue}</strong>
+              </div>
+            ))}
+          </div>
+        )}
+        {comparison && (
+          <div className="compare-diff">
+            <div>
+              <h3>มีเฉพาะแผน A</h3>
+              {comparison.onlyA.length === 0 ? <p className="empty">ไม่ต่างจากแผน B</p> : comparison.onlyA.map((course) => <CourseDifference key={course.id} course={course} />)}
+            </div>
+            <div>
+              <h3>มีเฉพาะแผน B</h3>
+              {comparison.onlyB.length === 0 ? <p className="empty">ไม่ต่างจากแผน A</p> : comparison.onlyB.map((course) => <CourseDifference key={course.id} course={course} />)}
+            </div>
+          </div>
+        )}
+      </section>
+
       <section className="workspace">
         <section className="board">
           <div className="board-head">
@@ -1484,6 +1710,9 @@ export default function Home() {
               <button type="button" className="ghost" onClick={() => excelInputRef.current?.click()}>Import Excel</button>
               <button type="button" className="ghost" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
               <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
+              <button type="button" className="ghost" onClick={() => setTimetableView((view) => (view === "grid" ? "list" : "grid"))}>
+                {timetableView === "grid" ? "มุมมองรายการ" : "มุมมองตาราง"}
+              </button>
             </div>
           </div>
           {conflicts.length > 0 && (
@@ -1497,15 +1726,23 @@ export default function Home() {
             </div>
           )}
 
-          <div className="timetable">
-            <div className="corner">วัน / เวลา</div>
-            {hours.map((hour) => (
-              <div className="time-head" key={hour}>{String(hour).padStart(2, "0")}:00</div>
-            ))}
-            {days.map((day) => (
-              <DayRow key={day.key} day={day} courses={courses} />
-            ))}
-          </div>
+          {timetableView === "grid" ? (
+            <div className="timetable">
+              <div className="corner">วัน / เวลา</div>
+              {hours.map((hour) => (
+                <div className="time-head" key={hour}>{String(hour).padStart(2, "0")}:00</div>
+              ))}
+              {days.map((day) => (
+                <DayRow key={day.key} day={day} courses={courses} />
+              ))}
+            </div>
+          ) : (
+            <div className="mobile-day-list">
+              {dailyCourses.map((day) => (
+                <DayList key={day.key} day={day} />
+              ))}
+            </div>
+          )}
         </section>
       </section>
 
@@ -1754,6 +1991,9 @@ export default function Home() {
                     <span>{course.teacher} · {course.credits} หน่วยกิต</span>
                   </div>
                   <div className="actions">
+                    <button type="button" className={course.locked ? "secondary" : ""} onClick={() => toggleCourseLocked(course.id)}>
+                      {course.locked ? "ปลดล็อก" : "ล็อก"}
+                    </button>
                     <button type="button" onClick={() => editCourse(course)}>แก้ไข</button>
                     <button type="button" className="danger" onClick={() => removeCourse(course.id)}>ลบ</button>
                   </div>
@@ -1832,5 +2072,50 @@ function DayRow({ day, courses }: { day: (typeof days)[number]; courses: Course[
         );
       })}
     </>
+  );
+}
+
+function CourseDifference({ course }: { course: Course }) {
+  return (
+    <div className="diff-course" style={{ borderColor: course.color }}>
+      <strong>{course.code}</strong>
+      <span>{course.name}</span>
+      <small>{days.find((day) => day.key === course.day)?.label} {course.start}-{course.end}</small>
+    </div>
+  );
+}
+
+function DayList({ day }: { day: (typeof days)[number] & { courses: Course[] } }) {
+  return (
+    <section className="day-list-section">
+      <h3>{day.label}</h3>
+      {day.courses.length === 0 ? (
+        <p className="empty">ไม่มีเรียน</p>
+      ) : (
+        <div className="day-list-courses">
+          {day.courses.map((course, index) => {
+            const nextCourse = day.courses[index + 1];
+            const gapMinutes = nextCourse ? toMinutes(nextCourse.start) - toMinutes(course.end) : 0;
+
+            return (
+              <div key={course.id}>
+                <article className="day-list-card" style={{ borderColor: course.color }}>
+                  <div>
+                    <strong>{course.code} · {course.name}</strong>
+                    <span>{course.start}-{course.end} · {course.room || "-"}</span>
+                    <small>{course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}</small>
+                  </div>
+                </article>
+                {gapMinutes > 0 && (
+                  <div className="day-gap">
+                    ว่าง {minutesToTime(toMinutes(course.end))}-{minutesToTime(toMinutes(nextCourse.start))} · {Math.round((gapMinutes / 60) * 10) / 10} ชม.
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
