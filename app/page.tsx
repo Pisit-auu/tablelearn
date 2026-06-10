@@ -210,6 +210,7 @@ export default function Home() {
   const [departmentOptions, setDepartmentOptions] = useState<ComboOption[]>([]);
   const [filterError, setFilterError] = useState("");
   const [isCourseBrowserOpen, setIsCourseBrowserOpen] = useState(false);
+  const [isManualCourseOpen, setIsManualCourseOpen] = useState(false);
   const [sharedPlanId, setSharedPlanId] = useState<string | null>(null);
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
@@ -417,6 +418,7 @@ export default function Home() {
     );
     setForm(emptyCourse);
     setEditingId(null);
+    setIsManualCourseOpen(false);
   }
 
   function editCourse(course: Course) {
@@ -433,6 +435,7 @@ export default function Home() {
       final: course.final,
     });
     setEditingId(course.id);
+    setIsManualCourseOpen(true);
   }
 
   function removeCourse(id: string) {
@@ -460,6 +463,7 @@ export default function Home() {
     setActivePlanId(nextPlan.id);
     setEditingId(null);
     setForm(emptyCourse);
+    setIsManualCourseOpen(false);
   }
 
   function renamePlan(name: string) {
@@ -657,7 +661,8 @@ export default function Home() {
             <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} />
           </label>
           <div className="button-row">
-            <button type="button" className="primary" onClick={() => setIsCourseBrowserOpen(true)}>ค้นหารายวิชา</button>
+            <button type="button" className="primary" onClick={() => setIsCourseBrowserOpen(true)}>ดึงรายวิชาจากเว็บ</button>
+            <button type="button" className="secondary" onClick={() => { setEditingId(null); setForm(emptyCourse); setIsManualCourseOpen(true); }}>เพิ่มด้วยตนเอง</button>
             <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
             <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
           </div>
@@ -699,74 +704,6 @@ export default function Home() {
       </section>
 
       <section className="workspace">
-        <form className="panel form" onSubmit={submitCourse}>
-          <div className="panel-title">
-            <h2>{editingId ? "แก้ไขรายวิชา" : "เพิ่มรายวิชา"}</h2>
-            {editingId && (
-              <button type="button" className="ghost" onClick={() => { setEditingId(null); setForm(emptyCourse); }}>
-                ยกเลิก
-              </button>
-            )}
-          </div>
-
-          <label>
-            ชื่อวิชา
-            <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="เช่น การเขียนโปรแกรมเว็บ" />
-          </label>
-
-          <div className="grid-2">
-            <label>
-              รหัสวิชา
-              <input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} placeholder="CS101" />
-            </label>
-            <label>
-              หน่วยกิต
-              <input required min="1" max="9" type="number" value={form.credits} onChange={(event) => setForm({ ...form, credits: Number(event.target.value) })} />
-            </label>
-          </div>
-
-          <div className="grid-3">
-            <label>
-              วันเรียน
-              <select value={form.day} onChange={(event) => setForm({ ...form, day: event.target.value as DayKey })}>
-                {days.map((day) => (
-                  <option key={day.key} value={day.key}>{day.label}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              เริ่ม
-              <input required type="time" value={form.start} onChange={(event) => setForm({ ...form, start: event.target.value })} />
-            </label>
-            <label>
-              สิ้นสุด
-              <input required type="time" value={form.end} onChange={(event) => setForm({ ...form, end: event.target.value })} />
-            </label>
-          </div>
-
-          <div className="grid-2">
-            <label>
-              ห้องเรียน
-              <input required value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} placeholder="อาคาร 5 ห้อง 301" />
-            </label>
-            <label>
-              อาจารย์
-              <input required value={form.teacher} onChange={(event) => setForm({ ...form, teacher: event.target.value })} placeholder="อ. สมชาย" />
-            </label>
-          </div>
-
-          <label>
-            สอบกลางภาค
-            <input type="datetime-local" value={form.midterm} onChange={(event) => setForm({ ...form, midterm: event.target.value })} />
-          </label>
-          <label>
-            สอบปลายภาค
-            <input type="datetime-local" value={form.final} onChange={(event) => setForm({ ...form, final: event.target.value })} />
-          </label>
-
-          <button className="primary" type="submit">{editingId ? "บันทึกการแก้ไข" : "เพิ่มลงตาราง"}</button>
-        </form>
-
         <section className="board">
           <div className="board-head">
             <div>
@@ -792,6 +729,76 @@ export default function Home() {
           </div>
         </section>
       </section>
+
+      {isManualCourseOpen && (
+        <div className="modal-backdrop" role="presentation" onClick={() => { setIsManualCourseOpen(false); setEditingId(null); setForm(emptyCourse); }}>
+          <form className="panel form modal-panel course-modal" role="dialog" aria-modal="true" aria-labelledby="manual-course-title" onSubmit={submitCourse} onClick={(event) => event.stopPropagation()}>
+            <div className="panel-title">
+              <h2 id="manual-course-title">{editingId ? "แก้ไขรายวิชา" : "เพิ่มรายวิชาด้วยตนเอง"}</h2>
+              <button type="button" className="ghost" onClick={() => { setIsManualCourseOpen(false); setEditingId(null); setForm(emptyCourse); }}>
+                ปิด
+              </button>
+            </div>
+
+            <label>
+              ชื่อวิชา
+              <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="เช่น การเขียนโปรแกรมเว็บ" />
+            </label>
+
+            <div className="grid-2">
+              <label>
+                รหัสวิชา
+                <input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} placeholder="CS101" />
+              </label>
+              <label>
+                หน่วยกิต
+                <input required min="1" max="9" type="number" value={form.credits} onChange={(event) => setForm({ ...form, credits: Number(event.target.value) })} />
+              </label>
+            </div>
+
+            <div className="grid-3">
+              <label>
+                วันเรียน
+                <select value={form.day} onChange={(event) => setForm({ ...form, day: event.target.value as DayKey })}>
+                  {days.map((day) => (
+                    <option key={day.key} value={day.key}>{day.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                เริ่ม
+                <input required type="time" value={form.start} onChange={(event) => setForm({ ...form, start: event.target.value })} />
+              </label>
+              <label>
+                สิ้นสุด
+                <input required type="time" value={form.end} onChange={(event) => setForm({ ...form, end: event.target.value })} />
+              </label>
+            </div>
+
+            <div className="grid-2">
+              <label>
+                ห้องเรียน
+                <input required value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} placeholder="อาคาร 5 ห้อง 301" />
+              </label>
+              <label>
+                อาจารย์
+                <input required value={form.teacher} onChange={(event) => setForm({ ...form, teacher: event.target.value })} placeholder="อ. สมชาย" />
+              </label>
+            </div>
+
+            <label>
+              สอบกลางภาค
+              <input type="datetime-local" value={form.midterm} onChange={(event) => setForm({ ...form, midterm: event.target.value })} />
+            </label>
+            <label>
+              สอบปลายภาค
+              <input type="datetime-local" value={form.final} onChange={(event) => setForm({ ...form, final: event.target.value })} />
+            </label>
+
+            <button className="primary" type="submit">{editingId ? "บันทึกการแก้ไข" : "เพิ่มลงตาราง"}</button>
+          </form>
+        </div>
+      )}
 
       {isCourseBrowserOpen && (
         <div className="modal-backdrop" role="presentation" onClick={() => setIsCourseBrowserOpen(false)}>
