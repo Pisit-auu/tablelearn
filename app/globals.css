@@ -579,6 +579,7 @@ select:focus {
 
 .remote {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
 
@@ -621,6 +622,7 @@ select:focus {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 10px;
+  min-width: 0;
   max-height: min(48vh, 520px);
   overflow: auto;
 }
@@ -655,15 +657,24 @@ select:focus {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 12px;
   background: rgba(255, 254, 248, 0.8);
 }
 
-.remote-card div {
+.remote-card > div {
   display: grid;
   gap: 5px;
+  min-width: 0;
+  flex: 1;
+}
+
+.remote-card strong,
+.remote-card span {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .remote-card span {
