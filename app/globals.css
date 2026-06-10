@@ -487,6 +487,15 @@ select:focus {
   font-size: 0.9rem;
 }
 
+.board-head .excel-status {
+  color: var(--teal);
+  font-weight: 850;
+}
+
+.file-input {
+  display: none;
+}
+
 .alert {
   margin-bottom: 12px;
   border: 1px solid #e4a63a;

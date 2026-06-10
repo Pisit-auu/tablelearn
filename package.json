@@ -10,10 +10,12 @@
   },
   "dependencies": {
     "next": "^16.2.9",
+    "postcss": "^8.5.15",
     "postgres": "^3.4.9",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "xlsx": "^0.18.5"
+    "read-excel-file": "^9.1.1",
+    "write-excel-file": "^4.1.1"
   },
   "devDependencies": {
     "@types/node": "22.15.30",
@@ -22,5 +24,8 @@
     "eslint": "9.28.0",
     "eslint-config-next": "^16.2.9",
     "typescript": "5.8.3"
+  },
+  "overrides": {
+    "postcss": "^8.5.15"
   }
 }

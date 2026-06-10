@@ -23,6 +23,89 @@ export type SharedPlanPayload = {
 
 const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
 const sql = connectionString ? postgres(connectionString, { ssl: "require" }) : null;
+const maxCoursesPerPlan = 80;
+const maxTextLength = 160;
+const validDays = new Set(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+
+export function validateShareId(id: string) {
+  if (!/^[A-Za-z0-9-]{3,64}$/.test(id)) {
+    throw new Error("รหัสลิงก์แชร์ไม่ถูกต้อง");
+  }
+}
+
+export function validateEditToken(token: string) {
+  if (!/^[A-Za-z0-9_-]{24,128}$/.test(token)) {
+    throw new Error("รหัสแก้ไขตารางแชร์ไม่ถูกต้อง");
+  }
+}
+
+function trimField(value: unknown, fallback = "") {
+  return String(value ?? fallback).trim().slice(0, maxTextLength);
+}
+
+function validateTime(value: unknown, fallback: string) {
+  const text = trimField(value, fallback);
+
+  if (!/^\d{2}:\d{2}$/.test(text)) {
+    return fallback;
+  }
+
+  const [hour, minute] = text.split(":").map(Number);
+  if (hour > 23 || minute > 59) {
+    return fallback;
+  }
+
+  return text;
+}
+
+function validateDateTime(value: unknown) {
+  const text = trimField(value);
+
+  if (!text || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) {
+    return text;
+  }
+
+  return "";
+}
+
+function sanitizeCourse(course: Partial<SharedCoursePayload>, index: number): SharedCoursePayload {
+  const day = validDays.has(String(course.day)) ? course.day as SharedCoursePayload["day"] : "mon";
+  const credits = Number(course.credits);
+
+  return {
+    id: trimField(course.id, `course-${index}`) || `course-${index}`,
+    name: trimField(course.name, "ไม่ระบุชื่อวิชา"),
+    code: trimField(course.code, "ไม่ระบุรหัสวิชา"),
+    credits: Number.isFinite(credits) ? Math.min(Math.max(Math.round(credits), 0), 30) : 3,
+    day,
+    start: validateTime(course.start, "09:00"),
+    end: validateTime(course.end, "10:00"),
+    room: trimField(course.room),
+    teacher: trimField(course.teacher),
+    midterm: validateDateTime(course.midterm),
+    final: validateDateTime(course.final),
+    color: /^#[0-9a-f]{6}$/i.test(String(course.color ?? "")) ? String(course.color) : "#2457ff",
+  };
+}
+
+function sanitizePayload(payload: Partial<SharedPlanPayload>) {
+  const courses = Array.isArray(payload.courses) ? payload.courses : [];
+  const expectedUpdatedAt = payload.updatedAt ? new Date(payload.updatedAt) : null;
+
+  if (courses.length > maxCoursesPerPlan) {
+    throw new Error(`ตารางแชร์บันทึกได้สูงสุด ${maxCoursesPerPlan} วิชา`);
+  }
+
+  if (expectedUpdatedAt && Number.isNaN(expectedUpdatedAt.getTime())) {
+    throw new Error("เวลาบันทึกตารางแชร์ไม่ถูกต้อง");
+  }
+
+  return {
+    name: trimField(payload.name, "ตารางเรียนแชร์") || "ตารางเรียนแชร์",
+    courses: courses.map((course, index) => sanitizeCourse(course, index)),
+    expectedUpdatedAt,
+  };
+}
 
 async function ensureSchema() {
   if (!sql) {
@@ -32,9 +115,15 @@ async function ensureSchema() {
   await sql`
     create table if not exists shared_plans (
       id text primary key,
+      edit_token text,
       name text not null,
       updated_at timestamptz not null default now()
     )
+  `;
+
+  await sql`
+    alter table shared_plans
+    add column if not exists edit_token text
   `;
 
   await sql`
@@ -48,6 +137,7 @@ async function ensureSchema() {
 }
 
 export async function getSharedPlan(id: string) {
+  validateShareId(id);
   await ensureSchema();
 
   const plans = await sql!`select id, name, updated_at from shared_plans where id = ${id}`;
@@ -76,16 +166,30 @@ function formatTimestamp(value: unknown) {
 }
 
 export async function saveSharedPlan(id: string, payload: Partial<SharedPlanPayload>) {
+  validateShareId(id);
   await ensureSchema();
 
-  const name = payload.name?.trim() || "ตารางเรียนแชร์";
-  const courses = payload.courses ?? [];
+  const editToken = trimField((payload as Partial<SharedPlanPayload> & { editToken?: unknown }).editToken);
+  validateEditToken(editToken);
+  const { name, courses, expectedUpdatedAt } = sanitizePayload(payload);
   let updatedAt = "";
 
   await sql!.begin(async (transaction) => {
+    const existingPlans = await transaction`select edit_token, updated_at from shared_plans where id = ${id} for update`;
+
+    if (existingPlans.length > 0) {
+      if (existingPlans[0].edit_token !== editToken) {
+        throw new Error("ไม่มีสิทธิ์แก้ไขตารางแชร์นี้");
+      }
+
+      if (expectedUpdatedAt && formatTimestamp(existingPlans[0].updated_at) !== expectedUpdatedAt.toISOString()) {
+        throw new Error("ตารางแชร์มีการเปลี่ยนแปลงใหม่กว่า กรุณาโหลดล่าสุดก่อนบันทึก");
+      }
+    }
+
     const plans = await transaction`
-      insert into shared_plans (id, name, updated_at)
-      values (${id}, ${name}, now())
+      insert into shared_plans (id, edit_token, name, updated_at)
+      values (${id}, ${editToken}, ${name}, now())
       on conflict (id)
       do update set name = excluded.name, updated_at = now()
       returning updated_at

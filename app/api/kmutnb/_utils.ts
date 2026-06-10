@@ -2,6 +2,8 @@ import { gunzipSync } from "zlib";
 
 export const apiBase = "https://reg1.kmutnb.ac.th/regapiweb2/api/th";
 export const tokenUrl = `${apiBase}/Validate/tokenservice`;
+const maxBase64ResultLength = 5 * 1024 * 1024;
+const maxJsonOutputLength = 10 * 1024 * 1024;
 
 export async function getToken() {
   const tokenResponse = await fetch(tokenUrl, { cache: "no-store" });
@@ -37,6 +39,13 @@ export async function fetchCompressedJson<T>(path: string, token: string) {
     throw new Error("ระบบทะเบียนไม่ส่งข้อมูลกลับมา");
   }
 
-  const json = gunzipSync(Buffer.from(data.result, "base64")).toString("utf8");
+  if (data.result.length > maxBase64ResultLength) {
+    throw new Error("ข้อมูลจากระบบทะเบียนมีขนาดใหญ่เกินไป");
+  }
+
+  const json = gunzipSync(Buffer.from(data.result, "base64"), {
+    maxOutputLength: maxJsonOutputLength,
+  }).toString("utf8");
+
   return JSON.parse(json) as T;
 }

@@ -1,4 +1,5 @@
 import { fetchCompressedJson, getToken } from "../_utils";
+import { rateLimit } from "../../rate-limit";
 
 function pathSegment(value: string | null, fallback: string, emptyFallback = fallback) {
   const trimmed = value?.trim();
@@ -12,6 +13,9 @@ function pathSegment(value: string | null, fallback: string, emptyFallback = fal
 }
 
 export async function GET(request: Request) {
+  const limited = rateLimit(request, "kmutnb-classes", 30);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const academicYear = searchParams.get("year") ?? "2569";
   const semester = searchParams.get("semester") ?? "1";

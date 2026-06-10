@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadSharedPlanAction, saveSharedPlanAction } from "./actions/shared-plans";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -87,6 +87,8 @@ const emptyCourse = {
 };
 const defaultPlanName = "ตารางเรียนหลัก";
 const noCourses: Course[] = [];
+const maxExcelFileSize = 1024 * 1024;
+const maxExcelRows = 80;
 
 function toMinutes(value: string) {
   const [hour, minute] = value.split(":").map(Number);
@@ -171,19 +173,130 @@ function examText(value: string) {
   return value ? new Date(value).toLocaleString("th-TH") : "";
 }
 
+function normalizeText(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function rowValue(row: Record<string, unknown>, keys: string[]) {
+  const normalizedKeys = new Map(Object.keys(row).map((key) => [key.trim().toLowerCase(), key]));
+  const match = keys.map((key) => normalizedKeys.get(key.trim().toLowerCase())).find(Boolean);
+
+  return match ? normalizeText(row[match]) : "";
+}
+
+function parseImportedDay(value: string): DayKey {
+  const normalized = value.trim().toLowerCase();
+  const matchedDay = days.find((day) => [day.key, day.label, day.short].some((item) => item.toLowerCase() === normalized));
+
+  if (matchedDay) {
+    return matchedDay.key;
+  }
+
+  if (normalized.startsWith("mon")) return "mon";
+  if (normalized.startsWith("tue")) return "tue";
+  if (normalized.startsWith("wed")) return "wed";
+  if (normalized.startsWith("thu")) return "thu";
+  if (normalized.startsWith("fri")) return "fri";
+  if (normalized.startsWith("sat")) return "sat";
+  if (normalized.startsWith("sun")) return "sun";
+
+  return "mon";
+}
+
+function parseImportedTime(value: string, fallback: string) {
+  const match = value.match(/(\d{1,2}):(\d{2})/);
+
+  if (!match) {
+    return fallback;
+  }
+
+  return `${match[1].padStart(2, "0")}:${match[2]}`;
+}
+
+function parseImportedDateTime(value: string) {
+  const normalized = value.trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const isoMatch = normalized.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}T${isoMatch[4] ?? "00"}:${isoMatch[5] ?? "00"}`;
+  }
+
+  const dateMatch = normalized.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\D+(\d{1,2}):(\d{2}))?/);
+  if (!dateMatch) {
+    return "";
+  }
+
+  const year = Number(dateMatch[3]) > 2400 ? Number(dateMatch[3]) - 543 : Number(dateMatch[3]);
+  return `${year}-${dateMatch[2].padStart(2, "0")}-${dateMatch[1].padStart(2, "0")}T${(dateMatch[4] ?? "00").padStart(2, "0")}:${dateMatch[5] ?? "00"}`;
+}
+
+function excelCellText(value: unknown) {
+  if (value instanceof Date) {
+    return value.toLocaleString("th-TH");
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const maybeCell = value as { text?: unknown; result?: unknown; richText?: { text?: unknown }[] };
+
+    if (maybeCell.text) {
+      return normalizeText(maybeCell.text);
+    }
+
+    if (maybeCell.result) {
+      return normalizeText(maybeCell.result);
+    }
+
+    if (Array.isArray(maybeCell.richText)) {
+      return maybeCell.richText.map((part) => normalizeText(part.text)).join("");
+    }
+  }
+
+  return normalizeText(value);
+}
+
+function readJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") {
+    return fallback;
+  }
+
+  const saved = window.localStorage.getItem(key);
+
+  if (!saved) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(saved) as T;
+  } catch {
+    window.localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
+function createEditToken() {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
 export default function Home() {
   const [plans, setPlans] = useState<TimetablePlan[]>(() => {
     if (typeof window === "undefined") {
       return [{ id: "default", name: defaultPlanName, courses: [] }];
     }
 
-    const savedPlans = window.localStorage.getItem("student-timetable-plans");
+    const savedPlans = readJson<TimetablePlan[] | null>("student-timetable-plans", null);
     if (savedPlans) {
-      return JSON.parse(savedPlans);
+      return savedPlans;
     }
 
-    const saved = window.localStorage.getItem("student-timetable");
-    return [{ id: "default", name: defaultPlanName, courses: saved ? JSON.parse(saved) : [] }];
+    const saved = readJson<Course[]>("student-timetable", []);
+    return [{ id: "default", name: defaultPlanName, courses: saved }];
   });
   const [activePlanId, setActivePlanId] = useState(() => {
     if (typeof window === "undefined") {
@@ -214,17 +327,21 @@ export default function Home() {
   const [isCourseBrowserOpen, setIsCourseBrowserOpen] = useState(false);
   const [isManualCourseOpen, setIsManualCourseOpen] = useState(false);
   const [sharedPlanId, setSharedPlanId] = useState<string | null>(null);
+  const [sharedEditToken, setSharedEditToken] = useState("");
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [excelStatus, setExcelStatus] = useState("");
   const [lastSharedUpdatedAt, setLastSharedUpdatedAt] = useState("");
+  const excelInputRef = useRef<HTMLInputElement | null>(null);
   const lastSharedUpdatedAtRef = useRef("");
+  const sharedEditTokenRef = useRef("");
   const skipNextSharedSaveRef = useRef(false);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
 
-  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "") => {
+  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current) => {
     const localId = `shared-${planId}`;
     setPlans((currentPlans) => {
       const nextPlan = { id: localId, name: planName, courses: planCourses };
@@ -234,15 +351,17 @@ export default function Home() {
     });
     setActivePlanId(localId);
     setSharedPlanId(planId);
+    setSharedEditToken(editToken);
+    sharedEditTokenRef.current = editToken;
     if (updatedAt) {
       skipNextSharedSaveRef.current = true;
       lastSharedUpdatedAtRef.current = updatedAt;
       setLastSharedUpdatedAt(updatedAt);
     }
-    setShareUrl(`${window.location.origin}${window.location.pathname}?share=${planId}`);
+    setShareUrl(`${window.location.origin}${window.location.pathname}?share=${planId}${editToken ? `&edit=${editToken}` : ""}`);
   }, []);
 
-  const loadSharedPlan = useCallback(async (planId: string, showStatus = true) => {
+  const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "") => {
     if (showStatus) {
       setShareStatus("กำลังโหลดตารางแชร์...");
     }
@@ -250,30 +369,42 @@ export default function Home() {
     try {
       const data = await loadSharedPlanAction(planId);
 
-      setSharedPlan(planId, data.name, data.courses, data.updatedAt);
+      setSharedPlan(planId, data.name, data.courses, data.updatedAt, editToken);
       if (showStatus) {
-        setShareStatus("โหลดตารางแชร์แล้ว");
+        setShareStatus(editToken ? "โหลดตารางแชร์แล้ว" : "โหลดตารางแชร์แล้ว โหมดดูอย่างเดียว");
       }
     } catch (error) {
       setShareStatus(error instanceof Error ? error.message : "โหลดตารางแชร์ไม่สำเร็จ");
     }
   }, [setSharedPlan]);
 
-  const saveSharedPlan = useCallback(async (planId: string, name: string, planCourses: Course[], showStatus = true) => {
+  const saveSharedPlan = useCallback(async (planId: string, editToken: string, name: string, planCourses: Course[], showStatus = true) => {
+    if (!editToken) {
+      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อบันทึก");
+      return false;
+    }
+
     if (showStatus) {
       setShareStatus("กำลังบันทึกตารางแชร์...");
     }
 
     try {
-      const data = await saveSharedPlanAction(planId, { name, courses: planCourses });
+      const data = await saveSharedPlanAction(planId, {
+        name,
+        courses: planCourses,
+        editToken,
+        updatedAt: lastSharedUpdatedAtRef.current,
+      });
       lastSharedUpdatedAtRef.current = data.updatedAt;
       setLastSharedUpdatedAt(data.updatedAt);
 
       if (showStatus) {
         setShareStatus("บันทึกตารางแชร์แล้ว");
       }
+      return true;
     } catch (error) {
       setShareStatus(error instanceof Error ? error.message : "บันทึกตารางแชร์ไม่สำเร็จ");
+      return false;
     }
   }, []);
 
@@ -287,10 +418,11 @@ export default function Home() {
 
   useEffect(() => {
     const sharedId = new URLSearchParams(window.location.search).get("share");
+    const editToken = new URLSearchParams(window.location.search).get("edit") ?? "";
 
     if (sharedId) {
       const timeout = window.setTimeout(() => {
-        loadSharedPlan(sharedId);
+        loadSharedPlan(sharedId, true, editToken);
       }, 0);
 
       return () => window.clearTimeout(timeout);
@@ -298,7 +430,7 @@ export default function Home() {
   }, [loadSharedPlan]);
 
   useEffect(() => {
-    if (!sharedPlanId || !activePlan) {
+    if (!sharedPlanId || !sharedEditToken || !activePlan) {
       return;
     }
 
@@ -308,11 +440,11 @@ export default function Home() {
     }
 
     const timeout = window.setTimeout(() => {
-      saveSharedPlan(sharedPlanId, activePlan.name, courses, false);
+      saveSharedPlan(sharedPlanId, sharedEditToken, activePlan.name, courses, false);
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [activePlan, courses, saveSharedPlan, sharedPlanId]);
+  }, [activePlan, courses, saveSharedPlan, sharedEditToken, sharedPlanId]);
 
   useEffect(() => {
     if (!sharedPlanId) {
@@ -488,11 +620,16 @@ export default function Home() {
 
   async function createShareLink() {
     const planId = crypto.randomUUID().slice(0, 8);
+    const editToken = createEditToken();
     const name = activePlan?.name || defaultPlanName;
 
-    await saveSharedPlan(planId, name, courses);
-    setSharedPlan(planId, name, courses, lastSharedUpdatedAtRef.current);
-    window.history.replaceState(null, "", `?share=${planId}`);
+    const saved = await saveSharedPlan(planId, editToken, name, courses);
+    if (!saved) {
+      return;
+    }
+
+    setSharedPlan(planId, name, courses, lastSharedUpdatedAtRef.current, editToken);
+    window.history.replaceState(null, "", `?share=${planId}&edit=${editToken}`);
   }
 
   async function copyShareLink() {
@@ -505,22 +642,24 @@ export default function Home() {
   }
 
   async function exportExcel() {
-    const XLSX = await import("xlsx");
-    const workbook = XLSX.utils.book_new();
-    const coursesSheet = XLSX.utils.json_to_sheet(
-      courses.map((course) => ({
-        "รหัสวิชา": course.code,
-        "ชื่อวิชา": course.name,
-        "หน่วยกิต": course.credits,
-        "วันเรียน": days.find((day) => day.key === course.day)?.label ?? course.day,
-        "เวลาเริ่ม": course.start,
-        "เวลาสิ้นสุด": course.end,
-        "ห้อง": course.room,
-        "อาจารย์": course.teacher,
-        "สอบกลางภาค": examText(course.midterm),
-        "สอบปลายภาค": examText(course.final),
-      })),
-    );
+    const writeXlsxFile = (await import("write-excel-file/browser")).default;
+    const courseHeaders = ["รหัสวิชา", "ชื่อวิชา", "หน่วยกิต", "วันเรียน", "เวลาเริ่ม", "เวลาสิ้นสุด", "ห้อง", "อาจารย์", "สอบกลางภาค", "สอบปลายภาค"];
+    const coursesSheet = [
+      courseHeaders.map((header) => ({ value: header, fontWeight: "bold" as const })),
+      ...courses.map((course) => [
+        course.code,
+        course.name,
+        course.credits,
+        days.find((day) => day.key === course.day)?.label ?? course.day,
+        course.start,
+        course.end,
+        course.room,
+        course.teacher,
+        examText(course.midterm),
+        examText(course.final),
+      ]),
+    ];
+
     const timetableRows = days.map((day) => {
       const row: Record<string, string> = { วัน: day.label };
 
@@ -538,22 +677,106 @@ export default function Home() {
 
       return row;
     });
-    const timetableSheet = XLSX.utils.json_to_sheet(timetableRows);
-    const examsSheet = XLSX.utils.json_to_sheet(
-      courses
-        .filter((course) => course.midterm || course.final)
-        .map((course) => ({
-          "รหัสวิชา": course.code,
-          "ชื่อวิชา": course.name,
-          "สอบกลางภาค": examText(course.midterm),
-          "สอบปลายภาค": examText(course.final),
-        })),
-    );
+    const timetableHeaders = ["วัน", ...hours.map((hour) => `${String(hour).padStart(2, "0")}:00`)];
+    const timetableSheet = [
+      timetableHeaders.map((header) => ({ value: header, fontWeight: "bold" as const })),
+      ...timetableRows.map((row) => timetableHeaders.map((header) => row[header] ?? "")),
+    ];
 
-    XLSX.utils.book_append_sheet(workbook, coursesSheet, "Courses");
-    XLSX.utils.book_append_sheet(workbook, timetableSheet, "Timetable");
-    XLSX.utils.book_append_sheet(workbook, examsSheet, "Exams");
-    XLSX.writeFile(workbook, `${activePlan?.name || "timetable"}.xlsx`);
+    const examHeaders = ["รหัสวิชา", "ชื่อวิชา", "สอบกลางภาค", "สอบปลายภาค"];
+    const examsSheet = [
+      examHeaders.map((header) => ({ value: header, fontWeight: "bold" as const })),
+      ...courses
+        .filter((course) => course.midterm || course.final)
+        .map((course) => [course.code, course.name, examText(course.midterm), examText(course.final)]),
+    ];
+
+    await writeXlsxFile([
+      { sheet: "Courses", data: coursesSheet },
+      { sheet: "Timetable", data: timetableSheet },
+      { sheet: "Exams", data: examsSheet },
+    ]).toFile(`${activePlan?.name || "timetable"}.xlsx`.replace(/[\\/:*?"<>|]/g, "_"));
+  }
+
+  async function importExcel(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setExcelStatus("กำลังนำเข้า Excel...");
+
+    try {
+      if (file.size > maxExcelFileSize) {
+        throw new Error("ไฟล์ Excel ใหญ่เกินไป รองรับสูงสุด 1 MB");
+      }
+
+      const { readSheet } = await import("read-excel-file/browser");
+      let sheetRows = await readSheet(file, "Courses").catch(() => null);
+
+      if (!sheetRows) {
+        sheetRows = await readSheet(file);
+      }
+
+      const [headers = [], ...dataRows] = sheetRows;
+      const headerNames = headers.map(excelCellText);
+      const rows: Record<string, unknown>[] = [];
+
+      dataRows.forEach((row) => {
+        const values: Record<string, unknown> = {};
+        headerNames.forEach((header, index) => {
+          if (header) {
+            values[header] = row[index] ?? "";
+          }
+        });
+        rows.push(values);
+      });
+
+      if (rows.length > maxExcelRows) {
+        throw new Error(`นำเข้าได้สูงสุด ${maxExcelRows} แถวต่อไฟล์`);
+      }
+
+      const importedCourses: Course[] = rows.flatMap((row, index) => {
+        const code = rowValue(row, ["รหัสวิชา", "code", "course code", "coursecode"]);
+        const name = rowValue(row, ["ชื่อวิชา", "name", "course name", "coursename"]);
+        const start = parseImportedTime(rowValue(row, ["เวลาเริ่ม", "เริ่ม", "start", "start time"]), "09:00");
+        const end = parseImportedTime(rowValue(row, ["เวลาสิ้นสุด", "สิ้นสุด", "end", "end time"]), "10:00");
+
+        if (!code && !name) {
+          return [];
+        }
+
+        if (toMinutes(start) >= toMinutes(end)) {
+          return [];
+        }
+
+        return [{
+          id: crypto.randomUUID(),
+          name: name || code,
+          code: code || name,
+          credits: Number(rowValue(row, ["หน่วยกิต", "credits", "credit"])) || 3,
+          day: parseImportedDay(rowValue(row, ["วันเรียน", "วัน", "day"])),
+          start,
+          end,
+          room: rowValue(row, ["ห้อง", "ห้องเรียน", "room"]),
+          teacher: rowValue(row, ["อาจารย์", "ผู้สอน", "teacher", "instructor"]),
+          midterm: parseImportedDateTime(rowValue(row, ["สอบกลางภาค", "กลางภาค", "midterm"])),
+          final: parseImportedDateTime(rowValue(row, ["สอบปลายภาค", "ปลายภาค", "final"])),
+          color: palette[(courses.length + index) % palette.length],
+        }];
+      });
+
+      if (importedCourses.length === 0) {
+        throw new Error("ไม่พบรายวิชาที่นำเข้าได้ในไฟล์นี้");
+      }
+
+      updateActiveCourses((current) => [...current, ...importedCourses]);
+      setExcelStatus(`นำเข้าแล้ว ${importedCourses.length} วิชา`);
+    } catch (error) {
+      setExcelStatus(error instanceof Error ? error.message : "นำเข้า Excel ไม่สำเร็จ");
+    }
   }
 
   async function loadRemoteClasses() {
@@ -716,8 +939,20 @@ export default function Home() {
             <div>
               <h2>{activePlan?.name ?? defaultPlanName}</h2>
               <p>{courses.length} วิชา · {totalCredits} หน่วยกิต</p>
+              {excelStatus && <p className="excel-status">{excelStatus}</p>}
             </div>
-            <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
+            <div className="button-row">
+              <input
+                ref={excelInputRef}
+                className="file-input"
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={importExcel}
+                aria-label="Import Excel"
+              />
+              <button type="button" className="ghost" onClick={() => excelInputRef.current?.click()}>Import Excel</button>
+              <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
+            </div>
           </div>
           {conflicts.length > 0 && (
             <div className="alert">

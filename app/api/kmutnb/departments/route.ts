@@ -1,4 +1,5 @@
 import { fetchCompressedJson, getToken } from "../_utils";
+import { rateLimit } from "../../rate-limit";
 
 type ComboOption = {
   comboid: number | string;
@@ -6,6 +7,9 @@ type ComboOption = {
 };
 
 export async function GET(request: Request) {
+  const limited = rateLimit(request, "kmutnb-departments", 30);
+  if (limited) return limited;
+
   const { searchParams } = new URL(request.url);
   const faculty = searchParams.get("faculty")?.trim();
 

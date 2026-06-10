@@ -1,11 +1,15 @@
 import { fetchCompressedJson, getToken } from "../_utils";
+import { rateLimit } from "../../rate-limit";
 
 type ComboOption = {
   comboid: number | string;
   comboshow: string;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limited = rateLimit(request, "kmutnb-filters", 30);
+  if (limited) return limited;
+
   try {
     const token = await getToken();
     const [campuses, divisions, levels, faculties, classSets] = await Promise.all([
