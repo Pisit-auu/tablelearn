@@ -54,6 +54,14 @@ type FilterOptions = {
   classSets: ComboOption[];
 };
 
+type GeneratedSchedulePlan = {
+  id: string;
+  name: string;
+  courses: Course[];
+  score: number;
+  reasons: string[];
+};
+
 const days: { key: DayKey; label: string; short: string }[] = [
   { key: "mon", label: "จันทร์", short: "จ" },
   { key: "tue", label: "อังคาร", short: "อ" },
@@ -97,6 +105,10 @@ function toMinutes(value: string) {
 
 function overlaps(a: Course, b: Course) {
   return a.day === b.day && toMinutes(a.start) < toMinutes(b.end) && toMinutes(a.end) > toMinutes(b.start);
+}
+
+function coursesHaveConflict(courseList: Course[]) {
+  return courseList.some((course, index) => courseList.slice(index + 1).some((next) => overlaps(course, next)));
 }
 
 function stripHtml(value: string) {
@@ -163,6 +175,25 @@ function parseExam(value: string, type: "MIDTERM" | "FINAL") {
 
 function teacherName(remoteClass: RemoteClass) {
   return remoteClass.instructor?.map((teacher) => `${teacher.prefixname ?? ""}${teacher.officername ?? ""} ${teacher.officersurname ?? ""}`.trim()).join(", ") ?? "";
+}
+
+function remoteClassToCourses(remoteClass: RemoteClass, color: string): Course[] {
+  const meetings = parseClassMeetings(remoteClass.classtime);
+
+  return (meetings.length > 0 ? meetings : [parseClassTime(remoteClass.classtime)]).map((meeting, index, allMeetings) => ({
+    id: crypto.randomUUID(),
+    name: `${remoteClass.coursename} S.${remoteClass.sectioncode}${allMeetings.length > 1 ? ` (${index + 1})` : ""}`,
+    code: remoteClass.coursecode,
+    credits: parseCredits(remoteClass.courseunit),
+    day: meeting.day,
+    start: meeting.start,
+    end: meeting.end,
+    room: meeting.room,
+    teacher: teacherName(remoteClass),
+    midterm: parseExam(remoteClass.classexam, "MIDTERM"),
+    final: parseExam(remoteClass.classexam, "FINAL"),
+    color,
+  }));
 }
 
 function comboValue(option: ComboOption) {
@@ -328,6 +359,152 @@ function createEditToken() {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+function freeSlotsForCourses(courseList: Course[]) {
+  return days.flatMap((day) => {
+    const dayCourses = courseList
+      .filter((course) => course.day === day.key)
+      .sort((a, b) => toMinutes(a.start) - toMinutes(b.start));
+    const slots: { day: DayKey; label: string; start: string; end: string; minutes: number }[] = [];
+    let cursor = hours[0] * 60;
+    const endOfDay = (hours[hours.length - 1] + 1) * 60;
+
+    dayCourses.forEach((course) => {
+      const start = Math.max(hours[0] * 60, toMinutes(course.start));
+
+      if (start - cursor >= 45) {
+        slots.push({
+          day: day.key,
+          label: day.label,
+          start: minutesToTime(cursor),
+          end: minutesToTime(start),
+          minutes: start - cursor,
+        });
+      }
+
+      cursor = Math.max(cursor, toMinutes(course.end));
+    });
+
+    if (endOfDay - cursor >= 45) {
+      slots.push({
+        day: day.key,
+        label: day.label,
+        start: minutesToTime(cursor),
+        end: minutesToTime(endOfDay),
+        minutes: endOfDay - cursor,
+      });
+    }
+
+    return slots;
+  });
+}
+
+function minutesToTime(value: number) {
+  const hour = Math.floor(value / 60);
+  const minute = value % 60;
+
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
+
+function hasLunchBreak(courseList: Course[]) {
+  return days.every((day) => {
+    const dayCourses = courseList.filter((course) => course.day === day.key);
+
+    if (dayCourses.length === 0) {
+      return true;
+    }
+
+    return !dayCourses.some((course) => toMinutes(course.start) < 13 * 60 && toMinutes(course.end) > 12 * 60);
+  });
+}
+
+function examItems(courseList: Course[]) {
+  return courseList.flatMap((course) => [
+    course.midterm ? { course, type: "กลางภาค", value: course.midterm } : null,
+    course.final ? { course, type: "ปลายภาค", value: course.final } : null,
+  ]).filter(Boolean) as { course: Course; type: string; value: string }[];
+}
+
+function examWarningsForCourses(courseList: Course[]) {
+  const items = examItems(courseList);
+
+  return items.flatMap((item, index) =>
+    items.slice(index + 1).flatMap((next) => {
+      const start = new Date(item.value).getTime();
+      const end = new Date(next.value).getTime();
+
+      if (!Number.isFinite(start) || !Number.isFinite(end)) {
+        return [];
+      }
+
+      const diff = Math.abs(start - end);
+      const hoursApart = diff / 36e5;
+      const sameDay = new Date(item.value).toDateString() === new Date(next.value).toDateString();
+
+      if (hoursApart < 2.5) {
+        return [`${item.course.code} ${item.type} ชนหรือใกล้กับ ${next.course.code} ${next.type}`];
+      }
+
+      if (sameDay && hoursApart < 6) {
+        return [`${item.course.code} ${item.type} กับ ${next.course.code} ${next.type} อยู่วันเดียวกันและห่างกันน้อย`];
+      }
+
+      return [];
+    }),
+  );
+}
+
+function scorePlan(courseList: Course[], avoidDays: DayKey[], preferredStart: string, preferredEnd: string, requireLunchBreak: boolean) {
+  let score = 100;
+  const reasons: string[] = [];
+  const startLimit = toMinutes(preferredStart);
+  const endLimit = toMinutes(preferredEnd);
+  const usedDays = new Set(courseList.map((course) => course.day));
+  const freeSlots = freeSlotsForCourses(courseList);
+
+  courseList.forEach((course) => {
+    if (avoidDays.includes(course.day)) {
+      score -= 12;
+    }
+
+    if (toMinutes(course.start) < startLimit) {
+      score -= 8;
+    }
+
+    if (toMinutes(course.end) > endLimit) {
+      score -= 8;
+    }
+  });
+
+  const longGaps = freeSlots.filter((slot) => slot.minutes >= 120 && usedDays.has(slot.day)).length;
+  score -= Math.min(longGaps * 3, 15);
+
+  if (requireLunchBreak && !hasLunchBreak(courseList)) {
+    score -= 12;
+  }
+
+  if (avoidDays.length > 0 && courseList.some((course) => avoidDays.includes(course.day))) {
+    reasons.push("มีเรียนในวันที่ไม่อยากเรียน");
+  }
+
+  if (courseList.some((course) => toMinutes(course.start) < startLimit || toMinutes(course.end) > endLimit)) {
+    reasons.push("มีวิชานอกช่วงเวลาที่ตั้งไว้");
+  }
+
+  if (longGaps > 0) {
+    reasons.push(`มีช่องว่างยาว ${longGaps} ช่วง`);
+  }
+
+  if (requireLunchBreak && !hasLunchBreak(courseList)) {
+    reasons.push("พักเที่ยงไม่ครบทุกวันที่มีเรียน");
+  }
+
+  if (reasons.length === 0) {
+    reasons.push("ไม่ชนและตรงเงื่อนไขหลัก");
+  }
+
+  return { score: Math.max(0, Math.round(score)), reasons };
+}
+
 export default function Home() {
   const [plans, setPlans] = useState<TimetablePlan[]>(() => {
     if (typeof window === "undefined") {
@@ -375,6 +552,13 @@ export default function Home() {
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [excelStatus, setExcelStatus] = useState("");
+  const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
+  const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
+  const [plannerStart, setPlannerStart] = useState("08:00");
+  const [plannerEnd, setPlannerEnd] = useState("17:00");
+  const [plannerLunchBreak, setPlannerLunchBreak] = useState(true);
+  const [generatedPlans, setGeneratedPlans] = useState<GeneratedSchedulePlan[]>([]);
+  const [plannerStatus, setPlannerStatus] = useState("");
   const [lastSharedUpdatedAt, setLastSharedUpdatedAt] = useState("");
   const excelInputRef = useRef<HTMLInputElement | null>(null);
   const lastSharedUpdatedAtRef = useRef("");
@@ -577,6 +761,23 @@ export default function Home() {
 
     return remoteClasses.filter((remoteClass) => remoteClass.coursecode.toLowerCase().includes(keyword));
   }, [courseSearch, remoteClasses]);
+  const remoteCourseGroups = useMemo(() => {
+    const groups = new Map<string, RemoteClass[]>();
+
+    remoteClasses.forEach((remoteClass) => {
+      const group = groups.get(remoteClass.coursecode) ?? [];
+      group.push(remoteClass);
+      groups.set(remoteClass.coursecode, group);
+    });
+
+    return Array.from(groups.entries()).map(([code, classes]) => ({
+      code,
+      name: classes[0]?.coursename ?? code,
+      classes,
+    }));
+  }, [remoteClasses]);
+  const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
+  const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
 
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -660,6 +861,91 @@ export default function Home() {
     setActivePlanId(nextPlans[0].id);
     setEditingId(null);
     setForm(emptyCourse);
+  }
+
+  function togglePlannerCode(code: string) {
+    setPlannerSelectedCodes((current) =>
+      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
+    );
+  }
+
+  function toggleAvoidDay(day: DayKey) {
+    setPlannerAvoidDays((current) =>
+      current.includes(day) ? current.filter((item) => item !== day) : [...current, day],
+    );
+  }
+
+  function generateSchedulePlans() {
+    const selectedGroups = plannerSelectedCodes
+      .map((code) => remoteCourseGroups.find((group) => group.code === code))
+      .filter(Boolean) as typeof remoteCourseGroups;
+
+    if (selectedGroups.length === 0) {
+      setGeneratedPlans([]);
+      setPlannerStatus("เลือกรหัสวิชาจากข้อมูลที่โหลดก่อน");
+      return;
+    }
+
+    if (selectedGroups.length > 7) {
+      setGeneratedPlans([]);
+      setPlannerStatus("เลือกได้สูงสุด 7 วิชาต่อครั้งเพื่อให้คำนวณเร็ว");
+      return;
+    }
+
+    const lockedCourses = courses.filter((course) => !plannerSelectedCodes.includes(course.code));
+    const results: GeneratedSchedulePlan[] = [];
+
+    function walk(groupIndex: number, picked: Course[][]) {
+      if (results.length >= 20) {
+        return;
+      }
+
+      if (groupIndex >= selectedGroups.length) {
+        const candidateCourses = [...lockedCourses, ...picked.flat()];
+
+        if (coursesHaveConflict(candidateCourses)) {
+          return;
+        }
+
+        const { score, reasons } = scorePlan(candidateCourses, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak);
+        results.push({
+          id: crypto.randomUUID(),
+          name: `แผนอัตโนมัติ ${results.length + 1}`,
+          courses: candidateCourses,
+          score,
+          reasons,
+        });
+        return;
+      }
+
+      selectedGroups[groupIndex].classes.slice(0, 12).forEach((remoteClass, optionIndex) => {
+        const color = palette[(lockedCourses.length + groupIndex + optionIndex) % palette.length];
+        const candidate = remoteClassToCourses(remoteClass, color);
+        const partialCourses = [...lockedCourses, ...picked.flat(), ...candidate];
+
+        if (!coursesHaveConflict(partialCourses)) {
+          walk(groupIndex + 1, [...picked, candidate]);
+        }
+      });
+    }
+
+    walk(0, []);
+
+    const sortedResults = results.sort((a, b) => b.score - a.score).slice(0, 6);
+    setGeneratedPlans(sortedResults);
+    setPlannerStatus(sortedResults.length > 0 ? `พบแผนที่ไม่ชน ${sortedResults.length} แบบ` : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");
+  }
+
+  function applyGeneratedPlan(plan: GeneratedSchedulePlan) {
+    const nextPlan: TimetablePlan = {
+      id: crypto.randomUUID(),
+      name: `${activePlan?.name ?? defaultPlanName} · ${plan.name}`,
+      courses: plan.courses.map((course) => ({ ...course, id: crypto.randomUUID() })),
+    };
+
+    setPlans((currentPlans) => [...currentPlans, nextPlan]);
+    setActivePlanId(nextPlan.id);
+    setPlannerStatus(`ใช้ ${plan.name} แล้ว`);
   }
 
   async function createShareLink() {
@@ -1088,6 +1374,96 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="planner panel" aria-label="ตัวช่วยจัดแผนตาราง">
+        <div className="planner-head">
+          <div>
+            <h2>ตัวช่วยจัดแผน</h2>
+            <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
+          </div>
+          <button type="button" className="primary" onClick={generateSchedulePlans} disabled={remoteCourseGroups.length === 0}>
+            สร้างแผนที่เป็นไปได้
+          </button>
+        </div>
+
+        <div className="planner-grid">
+          <div className="planner-box">
+            <h3>รายวิชาที่โหลด</h3>
+            {remoteCourseGroups.length === 0 ? (
+              <p className="empty">โหลดรายวิชา KMUTNB ก่อน แล้วเลือกวิชาที่ต้องการให้ช่วยจัด section</p>
+            ) : (
+              <div className="planner-course-picks">
+                {remoteCourseGroups.slice(0, 18).map((group) => (
+                  <label className="check-row" key={group.code}>
+                    <input
+                      type="checkbox"
+                      checked={plannerSelectedCodes.includes(group.code)}
+                      onChange={() => togglePlannerCode(group.code)}
+                    />
+                    <span>
+                      <strong>{group.code}</strong>
+                      {group.name} · {group.classes.length} section
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="planner-box">
+            <h3>เงื่อนไขเวลา</h3>
+            <div className="planner-times">
+              <label>
+                ไม่ก่อน
+                <input type="time" value={plannerStart} onChange={(event) => setPlannerStart(event.target.value)} />
+              </label>
+              <label>
+                ไม่หลัง
+                <input type="time" value={plannerEnd} onChange={(event) => setPlannerEnd(event.target.value)} />
+              </label>
+            </div>
+            <div className="planner-days">
+              {days.map((day) => (
+                <label className="day-chip" key={day.key}>
+                  <input
+                    type="checkbox"
+                    checked={plannerAvoidDays.includes(day.key)}
+                    onChange={() => toggleAvoidDay(day.key)}
+                  />
+                  <span>{day.short}</span>
+                </label>
+              ))}
+            </div>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={plannerLunchBreak}
+                onChange={(event) => setPlannerLunchBreak(event.target.checked)}
+              />
+              <span>ต้องมีพักเที่ยง 12:00-13:00</span>
+            </label>
+          </div>
+
+          <div className="planner-box planner-results">
+            <h3>แผนแนะนำ</h3>
+            {plannerStatus && <p className="planner-status">{plannerStatus}</p>}
+            {generatedPlans.length === 0 ? (
+              <p className="empty">ยังไม่มีแผนที่สร้าง</p>
+            ) : (
+              generatedPlans.map((plan) => (
+                <article className="generated-plan" key={plan.id}>
+                  <div>
+                    <strong>{plan.name}</strong>
+                    <span>คะแนน {plan.score}/100 · {plan.courses.length} รายการ</span>
+                    <small>{plan.reasons.join(" · ")}</small>
+                  </div>
+                  <button type="button" className="secondary" onClick={() => applyGeneratedPlan(plan)}>ใช้แผนนี้</button>
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+      </section>
+
       <section className="workspace">
         <section className="board">
           <div className="board-head">
@@ -1113,6 +1489,11 @@ export default function Home() {
           {conflicts.length > 0 && (
             <div className="alert">
               พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
+            </div>
+          )}
+          {examWarnings.length > 0 && (
+            <div className="alert danger-alert">
+              พบความเสี่ยงตารางสอบ {examWarnings.length} รายการ
             </div>
           )}
 
@@ -1342,6 +1723,13 @@ export default function Home() {
                       >
                         นำเข้าลงตาราง
                       </button>
+                      <button
+                        type="button"
+                        className="remote-item-select"
+                        onClick={() => togglePlannerCode(remoteClass.coursecode)}
+                      >
+                        {plannerSelectedCodes.includes(remoteClass.coursecode) ? "เอาออกจากตัวช่วยจัดแผน" : "เลือกเข้าตัวช่วยจัดแผน"}
+                      </button>
                     </li>
                   );
                 })}
@@ -1376,7 +1764,31 @@ export default function Home() {
         </div>
 
         <div className="panel">
+          <h2>เวลาว่าง</h2>
+          <div className="free-list">
+            {freeSlots.length === 0 ? (
+              <p className="empty">ยังไม่มีข้อมูลเวลาว่างจากตารางปัจจุบัน</p>
+            ) : (
+              freeSlots.map((slot) => (
+                <div className="free-item" key={`${slot.day}-${slot.start}-${slot.end}`}>
+                  <strong>{slot.label}</strong>
+                  <span>{slot.start}-{slot.end}</span>
+                  <small>{Math.round(slot.minutes / 60 * 10) / 10} ชม.</small>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="panel">
           <h2>ตารางสอบ</h2>
+          {examWarnings.length > 0 && (
+            <div className="exam-warnings">
+              {examWarnings.map((warning) => (
+                <div className="exam-warning" key={warning}>{warning}</div>
+              ))}
+            </div>
+          )}
           <div className="exam-list">
             {courses.filter((course) => course.midterm || course.final).length === 0 ? (
               <p className="empty">ยังไม่ได้กรอกเวลาสอบ</p>

@@ -506,6 +506,148 @@ select:focus {
   font-weight: 850;
 }
 
+.danger-alert {
+  border-color: rgba(180, 35, 24, 0.3);
+  background: #fff0ed;
+  color: var(--danger);
+}
+
+.planner {
+  order: 4;
+  display: grid;
+  gap: 16px;
+}
+
+.planner-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.planner-head h2,
+.planner-head p,
+.planner-box h3 {
+  margin-bottom: 0;
+}
+
+.planner-head p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.planner-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.8fr) minmax(320px, 1fr);
+  gap: 12px;
+}
+
+.planner-box {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 14px;
+  background: rgba(255, 254, 248, 0.72);
+}
+
+.planner-course-picks {
+  display: grid;
+  max-height: 260px;
+  overflow: auto;
+  gap: 8px;
+}
+
+.check-row {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  color: var(--ink-soft);
+  font-weight: 750;
+}
+
+.check-row input,
+.day-chip input {
+  width: 18px;
+  min-height: 18px;
+  margin: 2px 0 0;
+}
+
+.check-row span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.planner-times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.planner-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.day-chip {
+  display: inline-flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  border: 1px solid var(--rule);
+  border-radius: 7px;
+  padding: 6px 8px;
+  background: #fbfbf2;
+}
+
+.day-chip span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 900;
+}
+
+.planner-status {
+  margin: 0;
+  color: var(--teal);
+  font-weight: 850;
+}
+
+.planner-results {
+  max-height: 350px;
+  overflow: auto;
+}
+
+.generated-plan {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 11px;
+  background: #fffef8;
+}
+
+.generated-plan div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.generated-plan span,
+.generated-plan small {
+  color: var(--muted);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
 .timetable {
   min-width: 1380px;
   display: grid;
@@ -582,7 +724,7 @@ select:focus {
 .lower {
   order: 5;
   display: grid;
-  grid-template-columns: 1fr 420px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.62fr) minmax(320px, 0.72fr);
   gap: 18px;
 }
 
@@ -699,7 +841,8 @@ select:focus {
   overflow-wrap: anywhere;
 }
 
-.remote-item-import {
+.remote-item-import,
+.remote-item-select {
   width: 100%;
   min-height: 42px;
   border: 1px solid rgba(36, 87, 255, 0.34);
@@ -708,6 +851,13 @@ select:focus {
   color: #ffffff;
   font-weight: 900;
   padding: 10px 12px;
+}
+
+.remote-item-select {
+  margin-top: 8px;
+  border-color: rgba(0, 140, 122, 0.34);
+  background: rgba(0, 140, 122, 0.1);
+  color: #006d60;
 }
 
 .modal-backdrop {
@@ -736,7 +886,8 @@ select:focus {
 }
 
 .course-list,
-.exam-list {
+.exam-list,
+.free-list {
   display: grid;
   gap: 10px;
 }
@@ -753,13 +904,16 @@ select:focus {
 }
 
 .course-card div:first-child,
-.exam-item {
+.exam-item,
+.free-item {
   display: grid;
   gap: 5px;
 }
 
 .course-card span,
 .exam-item span,
+.free-item span,
+.free-item small,
 .empty {
   color: var(--muted);
   font-size: 0.9rem;
@@ -777,6 +931,30 @@ select:focus {
   padding-bottom: 10px;
 }
 
+.free-item {
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 10px;
+}
+
+.exam-warnings {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exam-warning {
+  border: 1px solid rgba(180, 35, 24, 0.22);
+  border-radius: 7px;
+  padding: 9px 10px;
+  background: #fff0ed;
+  color: var(--danger);
+  font-size: 0.88rem;
+  font-weight: 850;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .primary,
   .secondary,
@@ -791,7 +969,8 @@ select:focus {
   .topbar,
   .workspace,
   .lower,
-  .control-grid {
+  .control-grid,
+  .planner-grid {
     grid-template-columns: 1fr;
   }
 
@@ -823,6 +1002,8 @@ select:focus {
   }
 
   .brand-heading,
+  .planner-head,
+  .generated-plan,
   .remote-head,
   .course-card {
     align-items: stretch;
@@ -862,6 +1043,11 @@ select:focus {
   }
 
   .remote-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-times,
+  .free-item {
     grid-template-columns: 1fr;
   }
 
