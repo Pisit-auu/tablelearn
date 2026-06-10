@@ -686,6 +686,22 @@ select:focus {
   gap: 8px;
 }
 
+.planner-course-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(23, 32, 51, 0.08);
+  border-radius: 7px;
+  background: rgba(255, 254, 248, 0.62);
+}
+
+.planner-course-row .ghost {
+  min-height: 34px;
+  padding: 7px 10px;
+}
+
 .check-row {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
@@ -1237,6 +1253,7 @@ select:focus {
 
   .planner-times,
   .free-item,
+  .planner-course-row,
   .compare-grid {
     grid-template-columns: 1fr;
   }

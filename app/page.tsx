@@ -588,27 +588,28 @@ export default function Home() {
   const excelInputRef = useRef<HTMLInputElement | null>(null);
   const lastSharedUpdatedAtRef = useRef("");
   const sharedEditTokenRef = useRef("");
-  const skipNextSharedSaveRef = useRef(false);
   const hasLocalPlanMutationRef = useRef(false);
   const sharedDirtyRef = useRef(false);
+  const plansRef = useRef<TimetablePlan[]>([]);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
-  const sharedLocalPlanId = sharedPlanId ? `shared-${sharedPlanId}` : "";
-  const sharedLocalPlan = sharedLocalPlanId ? plans.find((plan) => plan.id === sharedLocalPlanId) : null;
+  const sharedLocalPlan = sharedPlanId ? plans.find((plan) => plan.sharedId === sharedPlanId) ?? null : null;
+  const sharedLocalPlanId = sharedLocalPlan?.id ?? (sharedPlanId ? `shared-${sharedPlanId}` : "");
   const isActiveSharedPlan = activePlan?.source === "shared";
   const canEditActivePlan = !isActiveSharedPlan || activePlan?.canEdit === true;
   const isActiveReadOnlySharedPlan = isActiveSharedPlan && !canEditActivePlan;
 
-  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current, activate = true) => {
-    const localId = `shared-${planId}`;
+  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = sharedEditTokenRef.current, activate = true, preferredLocalId = "") => {
     const canEdit = Boolean(editToken);
+    const localId = preferredLocalId || plansRef.current.find((plan) => plan.sharedId === planId)?.id || `shared-${planId}`;
+
     setPlans((currentPlans) => {
       const nextPlan = { id: localId, name: planName, courses: planCourses, source: "shared" as const, sharedId: planId, canEdit };
-      const existing = currentPlans.some((plan) => plan.id === localId);
+      const existing = currentPlans.some((plan) => plan.id === localId || plan.sharedId === planId);
 
-      return existing ? currentPlans.map((plan) => (plan.id === localId ? nextPlan : plan)) : [...currentPlans, nextPlan];
+      return existing ? currentPlans.map((plan) => (plan.id === localId || plan.sharedId === planId ? nextPlan : plan)) : [...currentPlans, nextPlan];
     });
     if (activate) {
       setActivePlanId(localId);
@@ -617,13 +618,16 @@ export default function Home() {
     setSharedEditToken(editToken);
     sharedEditTokenRef.current = editToken;
     if (updatedAt) {
-      skipNextSharedSaveRef.current = true;
       sharedDirtyRef.current = false;
       lastSharedUpdatedAtRef.current = updatedAt;
       setLastSharedUpdatedAt(updatedAt);
     }
     setShareUrl(`${window.location.origin}${window.location.pathname}?share=${planId}${editToken ? `&edit=${editToken}` : ""}`);
   }, []);
+
+  useEffect(() => {
+    plansRef.current = plans;
+  }, [plans]);
 
   const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "") => {
     if (showStatus) {
@@ -736,11 +740,6 @@ export default function Home() {
     }
 
     if (!sharedLocalPlan.canEdit || !sharedDirtyRef.current) {
-      return;
-    }
-
-    if (skipNextSharedSaveRef.current) {
-      skipNextSharedSaveRef.current = false;
       return;
     }
 
@@ -1146,7 +1145,7 @@ export default function Home() {
       return;
     }
 
-    setSharedPlan(planId, name, courses, lastSharedUpdatedAtRef.current, editToken);
+    setSharedPlan(planId, name, courses, lastSharedUpdatedAtRef.current, editToken, true, currentPlanId);
     window.history.replaceState(null, "", `?share=${planId}&edit=${editToken}`);
   }
 
@@ -1516,6 +1515,18 @@ export default function Home() {
     updateActiveCourses((current) => [...current, ...importedCourses]);
   }
 
+  function importRemoteCourseGroup(group: { code: string; name: string; classes: RemoteClass[] }) {
+    const firstClass = group.classes[0];
+
+    if (!firstClass) {
+      setPlannerStatus("ไม่พบ section สำหรับรายวิชานี้");
+      return;
+    }
+
+    importRemoteClass(firstClass);
+    setPlannerStatus(`เพิ่ม ${group.code} เข้าในรายวิชาที่บันทึกแล้ว`);
+  }
+
   return (
     <main className="shell">
       <section className="topbar">
@@ -1584,17 +1595,22 @@ export default function Home() {
             ) : (
               <div className="planner-course-picks">
                 {remoteCourseGroups.slice(0, 18).map((group) => (
-                  <label className="check-row" key={group.code}>
-                    <input
-                      type="checkbox"
-                      checked={plannerSelectedCodes.includes(group.code)}
-                      onChange={() => togglePlannerCode(group.code)}
-                    />
-                    <span>
-                      <strong>{group.code}</strong>
-                      {group.name} · {group.classes.length} section
-                    </span>
-                  </label>
+                  <div className="planner-course-row" key={group.code}>
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={plannerSelectedCodes.includes(group.code)}
+                        onChange={() => togglePlannerCode(group.code)}
+                      />
+                      <span>
+                        <strong>{group.code}</strong>
+                        {group.name} · {group.classes.length} section
+                      </span>
+                    </label>
+                    <button type="button" className="ghost" onClick={() => importRemoteCourseGroup(group)} disabled={!canEditActivePlan}>
+                      เพิ่ม
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
