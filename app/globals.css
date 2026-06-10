@@ -619,7 +619,7 @@ select:focus {
 
 .remote-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 10px;
   max-height: min(48vh, 520px);
   overflow: auto;
@@ -771,9 +771,14 @@ select:focus {
 
   .brand-heading,
   .remote-head,
+  .remote-card,
   .course-card {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .remote-card button {
+    width: 100%;
   }
 
   .summary {
