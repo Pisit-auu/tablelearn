@@ -1,12 +1,12 @@
 "use server";
 
-import { getSharedPlan, saveSharedPlan, type SharedCoursePayload } from "../lib/shared-plans-store";
+import { getSharedPlan, saveSharedPlan, type SharedCoursePayload, type SharedRoomPlanPayload } from "../lib/shared-plans-store";
 
 export async function loadSharedPlanAction(id: string) {
   const plan = await getSharedPlan(id);
 
   if (!plan) {
-    throw new Error("ไม่พบตารางที่แชร์");
+    throw new Error("ไม่พบห้องนี้");
   }
 
   return plan;
@@ -17,6 +17,7 @@ export async function saveSharedPlanAction(
   payload: {
     name: string;
     courses: SharedCoursePayload[];
+    plans?: SharedRoomPlanPayload[];
     editToken: string;
     updatedAt?: string;
   },

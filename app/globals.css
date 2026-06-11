@@ -299,14 +299,25 @@ h2 {
 
 .plan-bar {
   display: grid;
-  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
   align-items: end;
   gap: 12px;
 }
 
+.plan-select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.plan-select-row button {
+  min-height: 42px;
+}
+
 .share-bar {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.1fr) minmax(190px, 0.5fr);
   align-items: center;
   gap: 12px;
 }
@@ -322,6 +333,82 @@ h2 {
   color: var(--muted);
   font-size: 0.9rem;
   overflow-wrap: anywhere;
+}
+
+.room-status {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.room-status h2,
+.room-status p {
+  margin-bottom: 0;
+}
+
+.room-code-card {
+  display: grid;
+  gap: 3px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: min(100%, 230px);
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(23, 32, 51, 0.055) 0 1px, transparent 1px 18px),
+    rgba(255, 254, 248, 0.82);
+}
+
+.room-code-card.active {
+  border-style: solid;
+  border-color: rgba(0, 140, 122, 0.32);
+  background:
+    linear-gradient(90deg, rgba(0, 140, 122, 0.12), rgba(255, 254, 248, 0.9)),
+    rgba(255, 254, 248, 0.82);
+}
+
+.room-code-card span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.room-code-card strong {
+  color: var(--ink);
+  font-size: clamp(1.25rem, 2.2vw, 1.65rem);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+.room-create {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.room-create .primary {
+  min-height: 46px;
+}
+
+.room-create small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.room-join {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.room-join .secondary {
+  min-height: 42px;
 }
 
 .share-conflict {
@@ -858,6 +945,7 @@ select:focus {
 .corner,
 .time-head,
 .day-label,
+.day-timeline,
 .slot {
   border-right: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
@@ -884,6 +972,20 @@ select:focus {
   font-weight: 950;
 }
 
+.day-timeline {
+  position: relative;
+  grid-column: span 14;
+  overflow: hidden;
+  background: #fffef8;
+}
+
+.timeline-slots {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(14, minmax(86px, 1fr));
+}
+
 .slot {
   min-height: 90px;
   padding: 5px;
@@ -893,19 +995,17 @@ select:focus {
 }
 
 .block {
+  position: absolute;
   display: grid;
   gap: 2px;
-  min-height: 76px;
+  height: 76px;
   border-radius: 6px;
   padding: 8px;
   color: white;
+  overflow: hidden;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.2),
     0 8px 18px rgba(23, 32, 51, 0.18);
-}
-
-.block + .block {
-  margin-top: 5px;
 }
 
 .block strong,
@@ -1166,6 +1266,7 @@ select:focus {
   .topbar,
   .workspace,
   .lower,
+  .share-bar,
   .board-controls,
   .planner-grid,
   .compare-selects,
@@ -1178,7 +1279,7 @@ select:focus {
   }
 
   .plan-bar {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .form {
@@ -1233,7 +1334,8 @@ select:focus {
 
   .grid-2,
   .grid-3,
-  .plan-bar {
+  .plan-bar,
+  .plan-select-row {
     grid-template-columns: 1fr;
   }
 
@@ -1254,6 +1356,7 @@ select:focus {
   .planner-times,
   .free-item,
   .planner-course-row,
+  .room-join,
   .compare-grid {
     grid-template-columns: 1fr;
   }

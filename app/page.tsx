@@ -34,10 +34,17 @@ type ShareSession = {
   shareId: string;
   editToken: string;
   localPlanId: string;
+  localPlanIds: string[];
   mode: "view" | "edit";
   status: "idle" | "saving" | "syncing" | "conflict" | "readonly";
   lastServerUpdatedAt: string;
   dirty: boolean;
+};
+
+type SharedRoomPlan = {
+  id: string;
+  name: string;
+  courses: Course[];
 };
 
 type RemoteClass = {
@@ -366,11 +373,24 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
-function createEditToken() {
-  const bytes = new Uint8Array(24);
+function createRoomCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = new Uint8Array(6);
   crypto.getRandomValues(bytes);
 
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+function normalizeRoomCode(value: string) {
+  return value.trim().toUpperCase().replace(/\s+/g, "");
+}
+
+function localRoomPlanId(roomId: string, planId: string) {
+  return `shared-${roomId}-${planId}`;
+}
+
+function roomPlanIdFromLocal(roomId: string, localId: string) {
+  return localId.startsWith(`shared-${roomId}-`) ? localId.slice(`shared-${roomId}-`.length) : localId;
 }
 
 function freeSlotsForCourses(courseList: Course[]) {
@@ -438,11 +458,19 @@ function examItems(courseList: Course[]) {
   ]).filter(Boolean) as { course: Course; type: string; value: string }[];
 }
 
+function examCourseIdentity(course: Course) {
+  return `${course.code}|${course.name.replace(/\s+\(\d+\)$/, "")}`;
+}
+
 function examWarningsForCourses(courseList: Course[]) {
   const items = examItems(courseList);
 
   return items.flatMap((item, index) =>
     items.slice(index + 1).flatMap((next) => {
+      if (examCourseIdentity(item.course) === examCourseIdentity(next.course)) {
+        return [];
+      }
+
       const start = new Date(item.value).getTime();
       const end = new Date(next.value).getTime();
 
@@ -580,6 +608,7 @@ export default function Home() {
   const [isManualCourseOpen, setIsManualCourseOpen] = useState(false);
   const [shareSession, setShareSession] = useState<ShareSession | null>(null);
   const [shareStatus, setShareStatus] = useState("");
+  const [roomCodeInput, setRoomCodeInput] = useState("");
   const [excelStatus, setExcelStatus] = useState("");
   const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
@@ -598,29 +627,41 @@ export default function Home() {
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
   const courses = activePlan?.courses ?? noCourses;
-  const shareSessionPlan = shareSession ? plans.find((plan) => plan.id === shareSession.localPlanId) ?? null : null;
-  const isActiveSharedPlan = Boolean(shareSession && currentPlanId === shareSession.localPlanId);
+  const shareSessionPlans = shareSession ? plans.filter((plan) => plan.sharedId === shareSession.shareId) : [];
+  const isActiveSharedPlan = Boolean(shareSession && activePlan?.sharedId === shareSession.shareId);
   const canEditActivePlan = !isActiveSharedPlan || shareSession?.mode === "edit";
   const isActiveReadOnlySharedPlan = isActiveSharedPlan && !canEditActivePlan;
-  const shareUrl = shareSession && typeof window !== "undefined" ? `${window.location.origin}${window.location.pathname}?share=${shareSession.shareId}${shareSession.editToken ? `&edit=${shareSession.editToken}` : ""}` : "";
+  const canRemoveCurrentPlan = isActiveSharedPlan ? shareSessionPlans.length > 1 : plans.length > 1;
+  const visiblePlans = shareSession ? shareSessionPlans : plans;
 
-  const setSharedPlan = useCallback((planId: string, planName: string, planCourses: Course[], updatedAt = "", editToken = "", activate = true, preferredLocalId = "") => {
+  const setSharedRoom = useCallback((roomId: string, roomName: string, roomPlans: SharedRoomPlan[], updatedAt = "", editToken = "", activate = true, preferredLocalId = "") => {
     const canEdit = Boolean(editToken);
-    const localId = preferredLocalId || plansRef.current.find((plan) => plan.sharedId === planId)?.id || `shared-${planId}`;
+    const safeRoomPlans = roomPlans.length > 0 ? roomPlans : [{ id: "main", name: roomName || defaultPlanName, courses: [] }];
+    const localPlanIds = safeRoomPlans.map((plan) => localRoomPlanId(roomId, plan.id));
+    const activeLocalId = preferredLocalId && localPlanIds.includes(preferredLocalId) ? preferredLocalId : localPlanIds[0];
 
     setPlans((currentPlans) => {
-      const nextPlan = { id: localId, name: planName, courses: planCourses, source: "shared" as const, sharedId: planId, canEdit };
-      const existing = currentPlans.some((plan) => plan.id === localId || plan.sharedId === planId);
+      const localPlanIdSet = new Set(localPlanIds);
+      const nonRoomPlans = currentPlans.filter((plan) => !plan.sharedId && !localPlanIdSet.has(plan.id));
+      const nextRoomPlans = safeRoomPlans.map((plan) => ({
+        id: localRoomPlanId(roomId, plan.id),
+        name: plan.name,
+        courses: plan.courses,
+        source: "shared" as const,
+        sharedId: roomId,
+        canEdit,
+      }));
 
-      return existing ? currentPlans.map((plan) => (plan.id === localId || plan.sharedId === planId ? nextPlan : plan)) : [...currentPlans, nextPlan];
+      return [...nonRoomPlans, ...nextRoomPlans];
     });
     if (activate) {
-      setActivePlanId(localId);
+      setActivePlanId(activeLocalId);
     }
     setShareSession({
-      shareId: planId,
+      shareId: roomId,
       editToken,
-      localPlanId: localId,
+      localPlanId: activeLocalId,
+      localPlanIds,
       mode: canEdit ? "edit" : "view",
       status: canEdit ? "idle" : "readonly",
       lastServerUpdatedAt: updatedAt,
@@ -632,47 +673,62 @@ export default function Home() {
     plansRef.current = plans;
   }, [plans]);
 
-  const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "") => {
+  const roomPlansForSession = useCallback((session: ShareSession, planList = plansRef.current): SharedRoomPlan[] =>
+    planList
+      .filter((plan) => plan.sharedId === session.shareId)
+      .map((plan) => ({
+        id: roomPlanIdFromLocal(session.shareId, plan.id),
+        name: plan.name,
+        courses: plan.courses,
+      })),
+  []);
+
+  const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "", updateUrl = false) => {
     if (showStatus) {
-      setShareStatus("กำลังโหลดตารางแชร์...");
+      setShareStatus("กำลังเข้าห้อง...");
     }
 
     try {
       const data = await loadSharedPlanAction(planId);
 
-      setSharedPlan(planId, data.name, data.courses, data.updatedAt, editToken);
+      setSharedRoom(planId, data.name, data.plans ?? [{ id: "main", name: data.name, courses: data.courses }], data.updatedAt, editToken);
+      setRoomCodeInput(planId);
+      if (updateUrl) {
+        window.history.replaceState(null, "", `?room=${planId}`);
+      }
       if (showStatus) {
-        setShareStatus(editToken ? "โหลดตารางแชร์แล้ว" : "โหลดตารางแชร์แล้ว โหมดดูอย่างเดียว");
+        setShareStatus(editToken ? `เข้าห้อง ${planId} แล้ว` : `เข้าห้อง ${planId} แล้ว โหมดดูอย่างเดียว`);
       }
     } catch (error) {
-      setShareStatus(error instanceof Error ? error.message : "โหลดตารางแชร์ไม่สำเร็จ");
+      setShareStatus(error instanceof Error ? error.message : "เข้าห้องไม่สำเร็จ");
     }
-  }, [setSharedPlan]);
+  }, [setSharedRoom]);
 
-  const saveSharedPlan = useCallback(async (planId: string, editToken: string, name: string, planCourses: Course[], updatedAt = "", showStatus = true) => {
+  const saveSharedPlan = useCallback(async (planId: string, editToken: string, name: string, roomPlans: SharedRoomPlan[], updatedAt = "", showStatus = true) => {
     if (!editToken) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อบันทึก");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว ไม่สามารถบันทึกได้");
       return false;
     }
 
     if (showStatus) {
-      setShareStatus("กำลังบันทึกตารางแชร์...");
+      setShareStatus("กำลังบันทึกห้อง...");
     }
 
     try {
       const data = await saveSharedPlanAction(planId, {
         name,
-        courses: planCourses,
+        courses: roomPlans[0]?.courses ?? [],
+        plans: roomPlans,
         editToken,
         updatedAt,
       });
 
       if (showStatus) {
-        setShareStatus("บันทึกตารางแชร์แล้ว");
+        setShareStatus("บันทึกห้องแล้ว");
       }
       return data;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "บันทึกตารางแชร์ไม่สำเร็จ";
+      const message = error instanceof Error ? error.message : "บันทึกห้องไม่สำเร็จ";
       setShareStatus(message);
       return null;
     }
@@ -718,8 +774,20 @@ export default function Home() {
   }, [currentPlanId, hasLoadedLocalData]);
 
   useEffect(() => {
-    const sharedId = new URLSearchParams(window.location.search).get("share");
-    const editToken = new URLSearchParams(window.location.search).get("edit") ?? "";
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("room");
+    const sharedId = params.get("share");
+    const editToken = params.get("edit") ?? "";
+
+    if (roomId) {
+      const normalizedRoomId = normalizeRoomCode(roomId);
+      const timeout = window.setTimeout(() => {
+        setRoomCodeInput(normalizedRoomId);
+        loadSharedPlan(normalizedRoomId, true, normalizedRoomId);
+      }, 0);
+
+      return () => window.clearTimeout(timeout);
+    }
 
     if (sharedId) {
       const timeout = window.setTimeout(() => {
@@ -731,7 +799,7 @@ export default function Home() {
   }, [loadSharedPlan]);
 
   useEffect(() => {
-    if (!shareSession || !shareSessionPlan) {
+    if (!shareSession || shareSessionPlans.length === 0) {
       return;
     }
 
@@ -744,8 +812,8 @@ export default function Home() {
       const data = await saveSharedPlan(
         shareSession.shareId,
         shareSession.editToken,
-        shareSessionPlan.name,
-        shareSessionPlan.courses,
+        `ห้อง ${shareSession.shareId}`,
+        roomPlansForSession(shareSession),
         shareSession.lastServerUpdatedAt,
         false,
       );
@@ -766,7 +834,7 @@ export default function Home() {
     }, 700);
 
     return () => window.clearTimeout(timeout);
-  }, [saveSharedPlan, shareSession, shareSessionPlan]);
+  }, [roomPlansForSession, saveSharedPlan, shareSession, shareSessionPlans.length]);
 
   useEffect(() => {
     if (!shareSession) {
@@ -775,7 +843,7 @@ export default function Home() {
 
     const interval = window.setInterval(async () => {
       try {
-        if (shareSession.dirty || shareSession.status === "saving" || shareSession.status === "conflict" || (isManualCourseOpen && activePlanId === shareSession.localPlanId)) {
+        if (shareSession.dirty || shareSession.status === "saving" || shareSession.status === "conflict" || (isManualCourseOpen && shareSession.localPlanIds.includes(activePlanId))) {
           return;
         }
 
@@ -783,7 +851,15 @@ export default function Home() {
         const data = await loadSharedPlanAction(shareSession.shareId);
 
         if (data.updatedAt && data.updatedAt !== shareSession.lastServerUpdatedAt) {
-          setSharedPlan(shareSession.shareId, data.name, data.courses, data.updatedAt, shareSession.editToken, false, shareSession.localPlanId);
+          setSharedRoom(
+            shareSession.shareId,
+            data.name,
+            data.plans ?? [{ id: "main", name: data.name, courses: data.courses }],
+            data.updatedAt,
+            shareSession.editToken,
+            false,
+            activePlan?.sharedId === shareSession.shareId ? activePlanId : shareSession.localPlanId,
+          );
           setShareStatus("อัปเดตตารางล่าสุดแล้ว");
         } else {
           setShareSession((current) =>
@@ -793,12 +869,12 @@ export default function Home() {
           );
         }
       } catch (error) {
-        setShareStatus(error instanceof Error ? error.message : "ซิงก์ตารางแชร์ไม่สำเร็จ");
+        setShareStatus(error instanceof Error ? error.message : "ซิงก์ห้องไม่สำเร็จ");
       }
     }, 2000);
 
     return () => window.clearInterval(interval);
-  }, [activePlanId, isManualCourseOpen, setSharedPlan, shareSession]);
+  }, [activePlan?.sharedId, activePlanId, isManualCourseOpen, setSharedRoom, shareSession]);
 
   useEffect(() => {
     async function loadFilters() {
@@ -883,8 +959,8 @@ export default function Home() {
   }, [remoteClasses]);
   const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
   const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
-  const comparePlanA = plans.find((plan) => plan.id === comparePlanAId) ?? plans[0];
-  const comparePlanB = plans.find((plan) => plan.id === comparePlanBId) ?? plans[1] ?? plans[0];
+  const comparePlanA = visiblePlans.find((plan) => plan.id === comparePlanAId) ?? visiblePlans[0];
+  const comparePlanB = visiblePlans.find((plan) => plan.id === comparePlanBId) ?? visiblePlans[1] ?? visiblePlans[0];
   const comparison = useMemo(() => {
     if (!comparePlanA || !comparePlanB) {
       return null;
@@ -914,7 +990,7 @@ export default function Home() {
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
@@ -939,7 +1015,7 @@ export default function Home() {
 
   function editCourse(course: Course) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
@@ -961,7 +1037,7 @@ export default function Home() {
 
   function removeCourse(id: string) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
@@ -974,7 +1050,7 @@ export default function Home() {
 
   function removeAllCourses() {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
@@ -985,13 +1061,13 @@ export default function Home() {
 
   function updateActiveCourses(updater: (current: Course[]) => Course[]) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
     hasLocalPlanMutationRef.current = true;
     if (isActiveSharedPlan) {
-      setShareSession((current) => current && current.localPlanId === currentPlanId ? { ...current, dirty: true, status: "idle" } : current);
+      setShareSession((current) => current && current.shareId === activePlan?.sharedId ? { ...current, dirty: true, status: "idle" } : current);
     }
     setPlans((currentPlans) =>
       currentPlans.map((plan) => (plan.id === currentPlanId ? { ...plan, courses: updater(plan.courses) } : plan)),
@@ -1002,15 +1078,40 @@ export default function Home() {
     hasLocalPlanMutationRef.current = true;
     const nextPlanId = crypto.randomUUID();
 
-    setPlans((currentPlans) => [
-      ...currentPlans,
-      {
-        id: nextPlanId,
-        name: nextTableName(currentPlans),
-        courses: [],
-      },
-    ]);
-    setActivePlanId(nextPlanId);
+    if (shareSession) {
+      const localId = localRoomPlanId(shareSession.shareId, nextPlanId);
+      setPlans((currentPlans) => {
+        const roomPlans = currentPlans.filter((plan) => plan.sharedId === shareSession.shareId);
+
+        return [
+          ...currentPlans,
+          {
+            id: localId,
+            name: nextTableName(roomPlans),
+            courses: [],
+            source: "shared" as const,
+            sharedId: shareSession.shareId,
+            canEdit: shareSession.mode === "edit",
+          },
+        ];
+      });
+      setShareSession((current) =>
+        current && current.shareId === shareSession.shareId
+          ? { ...current, localPlanId: localId, localPlanIds: [...current.localPlanIds, localId], dirty: true, status: "idle" }
+          : current,
+      );
+      setActivePlanId(localId);
+    } else {
+      setPlans((currentPlans) => [
+        ...currentPlans,
+        {
+          id: nextPlanId,
+          name: nextTableName(currentPlans),
+          courses: [],
+        },
+      ]);
+      setActivePlanId(nextPlanId);
+    }
     setEditingId(null);
     setForm(emptyCourse);
     setIsManualCourseOpen(false);
@@ -1018,13 +1119,13 @@ export default function Home() {
 
   function renamePlan(name: string) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
     hasLocalPlanMutationRef.current = true;
     if (isActiveSharedPlan) {
-      setShareSession((current) => current && current.localPlanId === currentPlanId ? { ...current, dirty: true, status: "idle" } : current);
+      setShareSession((current) => current && current.shareId === activePlan?.sharedId ? { ...current, dirty: true, status: "idle" } : current);
     }
     setPlans((currentPlans) =>
       currentPlans.map((plan) => (plan.id === currentPlanId ? { ...plan, name } : plan)),
@@ -1032,16 +1133,29 @@ export default function Home() {
   }
 
   function removePlan() {
-    if (plans.length <= 1) {
+    const currentRoomPlanIds = shareSession ? plans.filter((plan) => plan.sharedId === shareSession.shareId).map((plan) => plan.id) : [];
+
+    if ((!shareSession && plans.length <= 1) || (shareSession && (!isActiveSharedPlan || currentRoomPlanIds.length <= 1))) {
       return;
     }
 
-    const nextPlans = plans.filter((plan) => plan.id !== currentPlanId);
     hasLocalPlanMutationRef.current = true;
-    setPlans(nextPlans);
-    setActivePlanId(nextPlans[0].id);
-    if (shareSession?.localPlanId === currentPlanId) {
-      leaveSharedMode(false);
+
+    if (shareSession && isActiveSharedPlan) {
+      const nextRoomPlanIds = currentRoomPlanIds.filter((id) => id !== currentPlanId);
+      const nextActivePlanId = nextRoomPlanIds[0];
+
+      setPlans((currentPlans) => currentPlans.filter((plan) => plan.id !== currentPlanId));
+      setActivePlanId(nextActivePlanId);
+      setShareSession((current) =>
+        current && current.shareId === shareSession.shareId
+          ? { ...current, localPlanId: nextActivePlanId, localPlanIds: nextRoomPlanIds, dirty: true, status: "idle" }
+          : current,
+      );
+    } else {
+      const nextPlans = plans.filter((plan) => plan.id !== currentPlanId);
+      setPlans(nextPlans);
+      setActivePlanId(nextPlans[0].id);
     }
     setEditingId(null);
     setForm(emptyCourse);
@@ -1049,7 +1163,7 @@ export default function Home() {
 
   function toggleCourseLocked(id: string) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
@@ -1160,34 +1274,43 @@ export default function Home() {
     setPlannerStatus(`ใช้ ${plan.name} แล้ว`);
   }
 
-  async function createShareLink() {
-    const planId = crypto.randomUUID().slice(0, 8);
-    const editToken = createEditToken();
-    const name = activePlan?.name || defaultPlanName;
+  async function createSharedRoom() {
+    const planId = createRoomCode();
+    const editToken = planId;
+    const name = `ห้อง ${planId}`;
+    const roomPlans: SharedRoomPlan[] = [{ id: crypto.randomUUID(), name: "ตาราง1", courses: [] }];
 
-    const saved = await saveSharedPlan(planId, editToken, name, courses);
+    const saved = await saveSharedPlan(planId, editToken, name, roomPlans);
     if (!saved) {
       return;
     }
 
-    setSharedPlan(planId, name, courses, saved.updatedAt, editToken, true, currentPlanId);
-    window.history.replaceState(null, "", `?share=${planId}&edit=${editToken}`);
+    setSharedRoom(planId, name, saved.plans ?? roomPlans, saved.updatedAt, editToken);
+    setRoomCodeInput(planId);
+    window.history.replaceState(null, "", `?room=${planId}`);
+    setShareStatus(`สร้างห้อง ${planId} แล้ว`);
   }
 
-  async function copySharedPlanLink(mode: "view" | "edit") {
+  async function enterSharedRoom(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    const roomCode = normalizeRoomCode(roomCodeInput);
+
+    if (!roomCode) {
+      setShareStatus("กรอกรหัสห้องก่อน");
+      return;
+    }
+
+    setRoomCodeInput(roomCode);
+    await loadSharedPlan(roomCode, true, roomCode, true);
+  }
+
+  async function copyRoomCode() {
     if (!shareSession) {
       return;
     }
 
-    if (mode === "edit" && !shareSession.editToken) {
-      setShareStatus("ยังไม่มีลิงก์แก้ไข");
-      return;
-    }
-
-    const link = `${window.location.origin}${window.location.pathname}?share=${shareSession.shareId}${mode === "edit" ? `&edit=${shareSession.editToken}` : ""}`;
-
-    await navigator.clipboard.writeText(link);
-    setShareStatus(mode === "edit" ? "คัดลอกลิงก์แก้ไขแล้ว" : "คัดลอกลิงก์ดูอย่างเดียวแล้ว");
+    await navigator.clipboard.writeText(shareSession.shareId);
+    setShareStatus("คัดลอกรหัสห้องแล้ว");
   }
 
   function copyActivePlanToLocal() {
@@ -1214,13 +1337,23 @@ export default function Home() {
     setShareStatus("คัดลอกเป็นตารางใหม่แล้ว");
   }
 
-  function leaveSharedMode(copyCurrentPlan = true) {
-    if (copyCurrentPlan && isActiveSharedPlan) {
-      copyActivePlanToLocal();
-    }
+  function leaveSharedMode() {
+    const roomPlanIds = shareSession?.localPlanIds ?? [];
+    const nextActivePlan = plans.find((plan) => !roomPlanIds.includes(plan.id));
 
+    if (shareSession) {
+      const fallbackPlan: TimetablePlan = { id: crypto.randomUUID(), name: defaultPlanName, courses: [] };
+      setPlans((currentPlans) => {
+        const nextPlans = currentPlans.filter((plan) => !roomPlanIds.includes(plan.id));
+
+        return nextPlans.length > 0 ? nextPlans : [fallbackPlan];
+      });
+      setActivePlanId(nextActivePlan?.id ?? fallbackPlan.id);
+    }
     setShareSession(null);
-    setShareStatus("ออกจากโหมดแชร์แล้ว");
+    setRoomCodeInput("");
+    setShareStatus("ออกจากห้องแล้ว");
+    window.history.replaceState(null, "", window.location.pathname);
   }
 
   async function exportExcel() {
@@ -1385,6 +1518,7 @@ export default function Home() {
       context.font = '700 13px "Noto Sans Thai", "Segoe UI", sans-serif';
       drawWrappedText(context, course.name, x + 10, y + 46, blockWidth - 20, 17, 2);
       context.font = '700 12px "Noto Sans Thai", "Segoe UI", sans-serif';
+      drawWrappedText(context, course.teacher, x + 10, y + blockHeight - 30, blockWidth - 20, 16, 1);
       drawWrappedText(context, `${course.start}-${course.end} ${course.room}`, x + 10, y + blockHeight - 14, blockWidth - 20, 16, 1);
     });
 
@@ -1393,7 +1527,7 @@ export default function Home() {
 
   async function importExcel(event: ChangeEvent<HTMLInputElement>) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       event.currentTarget.value = "";
       return;
     }
@@ -1523,7 +1657,7 @@ export default function Home() {
 
   function importRemoteClass(remoteClass: RemoteClass) {
     if (!canEditActivePlan) {
-      setShareStatus("ลิงก์นี้ดูได้อย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อแก้ตาราง");
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
@@ -1704,7 +1838,7 @@ export default function Home() {
           <label>
             แผน A
             <select value={comparePlanA?.id ?? ""} onChange={(event) => setComparePlanAId(event.target.value)}>
-              {plans.map((plan) => (
+              {visiblePlans.map((plan) => (
                 <option key={plan.id} value={plan.id}>{plan.name}</option>
               ))}
             </select>
@@ -1712,7 +1846,7 @@ export default function Home() {
           <label>
             แผน B
             <select value={comparePlanB?.id ?? ""} onChange={(event) => setComparePlanBId(event.target.value)}>
-              {plans.map((plan) => (
+              {visiblePlans.map((plan) => (
                 <option key={plan.id} value={plan.id}>{plan.name}</option>
               ))}
             </select>
@@ -1755,7 +1889,7 @@ export default function Home() {
               <h2>{activePlan?.name ?? defaultPlanName}</h2>
               <p>
                 {courses.length} วิชา · {totalCredits} หน่วยกิต
-                {isActiveSharedPlan ? ` · ${canEditActivePlan ? "ตารางแชร์แบบแก้ไข" : "ตารางแชร์แบบดูอย่างเดียว"}` : ""}
+                {isActiveSharedPlan ? ` · ${canEditActivePlan ? "ห้องร่วมกัน" : "ห้องดูอย่างเดียว"}` : ""}
               </p>
               {excelStatus && <p className="excel-status">{excelStatus}</p>}
             </div>
@@ -1778,41 +1912,62 @@ export default function Home() {
           </div>
           <div className="board-controls">
             <div className="plan-bar">
-              <label>
-                เลือกตาราง
-                <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>{plan.name}</option>
-                  ))}
-                </select>
-              </label>
+              <div className="plan-select-row">
+                <label>
+                  เลือกตาราง
+                  <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
+                    {visiblePlans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>{plan.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
+                <button type="button" className="ghost danger" onClick={removePlan} disabled={!canRemoveCurrentPlan}>ลบตาราง</button>
+              </div>
               <label>
                 ชื่อตาราง
                 <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} disabled={!canEditActivePlan} />
               </label>
-              <div className="button-row">
-                <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
-                <button type="button" className="ghost danger" onClick={removePlan} disabled={plans.length <= 1}>ลบตาราง</button>
-              </div>
             </div>
 
             <div className="share-bar">
-              <div>
-                <h2>แชร์ตารางร่วมกัน</h2>
-                <p>{shareUrl || "สร้างลิงก์ให้เพื่อนร่วมแผนเปิดและแก้ตารางเดียวกันได้"}</p>
-                <small className="sync-note">ลิงก์แชร์จะถูกลบหากไม่มีการอัปเดตเกิน 30 วัน</small>
+              <div className="room-status">
+                <h2>ห้องตารางร่วมกัน</h2>
+                <div className={shareSession ? "room-code-card active" : "room-code-card"}>
+                  <span>{shareSession ? "รหัสห้องปัจจุบัน" : "ยังไม่ได้เข้าห้อง"}</span>
+                  <strong>{shareSession?.shareId ?? "สร้างหรือเข้าห้อง"}</strong>
+                </div>
+                <p>{shareSession ? "ส่งรหัสนี้ให้เพื่อนเพื่อเข้ามาแก้ตารางเดียวกัน" : "สร้างห้องใหม่จะได้ตารางว่างสำหรับเริ่มจัดร่วมกัน"}</p>
+                <small className="sync-note">ห้องจะถูกลบหากไม่มีการอัปเดตเกิน 30 วัน</small>
                 {shareSession && (
                   <small className="sync-note">
                     อัปเดตอัตโนมัติทุก 2 วินาที{shareSession.lastServerUpdatedAt ? ` · ล่าสุด ${new Date(shareSession.lastServerUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
                   </small>
                 )}
               </div>
+
+              <div className="room-create">
+                <button type="button" className="primary" onClick={createSharedRoom}>สร้างห้องว่าง</button>
+                <small>สร้างรหัสใหม่และพาไปตารางห้องเปล่า ไม่ดึงวิชาจากตารางนี้</small>
+              </div>
+
+              <form className="room-join" onSubmit={enterSharedRoom}>
+                <label>
+                  รหัสห้อง
+                  <input
+                    value={roomCodeInput}
+                    onChange={(event) => setRoomCodeInput(normalizeRoomCode(event.target.value))}
+                    placeholder="เช่น A7K2QD"
+                    maxLength={64}
+                  />
+                </label>
+                <button type="submit" className="secondary">เข้าห้อง</button>
+              </form>
+
               <div className="button-row">
-                <button type="button" className="primary" onClick={createShareLink}>สร้างลิงก์แชร์</button>
-                <button type="button" className="ghost" onClick={() => copySharedPlanLink("view")} disabled={!shareSession}>คัดลอกลิงก์ดู</button>
-                <button type="button" className="ghost" onClick={() => copySharedPlanLink("edit")} disabled={!shareSession?.editToken}>คัดลอกลิงก์แก้ไข</button>
+                <button type="button" className="ghost" onClick={copyRoomCode} disabled={!shareSession}>คัดลอกรหัสห้อง</button>
                 <button type="button" className="ghost" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
-                <button type="button" className="ghost" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากโหมดแชร์</button>
+                <button type="button" className="ghost" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
               </div>
               {shareSession?.status === "conflict" && (
                 <div className="share-conflict">
@@ -1826,7 +1981,7 @@ export default function Home() {
           </div>
           {isActiveReadOnlySharedPlan && (
             <div className="alert">
-              ลิงก์นี้เป็นโหมดดูอย่างเดียว ต้องใช้ลิงก์แก้ไขเพื่อเพิ่ม ลบ หรือแก้รายวิชา
+              ห้องนี้เป็นโหมดดูอย่างเดียว จึงเพิ่ม ลบ หรือแก้รายวิชาไม่ได้
             </div>
           )}
           {conflicts.length > 0 && (
@@ -2172,27 +2327,64 @@ export default function Home() {
 }
 
 function DayRow({ day, courses }: { day: (typeof days)[number]; courses: Course[] }) {
+  const dayStart = hours[0] * 60;
+  const dayEnd = (hours[hours.length - 1] + 1) * 60;
+  const dayMinutes = dayEnd - dayStart;
+  const laneHeight = 76;
+  const laneGap = 5;
+  const lanes: number[] = [];
+  const positionedCourses = courses
+    .filter((course) => course.day === day.key && toMinutes(course.start) < dayEnd && toMinutes(course.end) > dayStart)
+    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start) || toMinutes(a.end) - toMinutes(b.end))
+    .map((course) => {
+      const start = Math.max(dayStart, toMinutes(course.start));
+      const end = Math.min(dayEnd, toMinutes(course.end));
+      let lane = lanes.findIndex((laneEnd) => laneEnd <= start);
+
+      if (lane === -1) {
+        lane = lanes.length;
+        lanes.push(end);
+      } else {
+        lanes[lane] = end;
+      }
+
+      return {
+        course,
+        lane,
+        left: ((start - dayStart) / dayMinutes) * 100,
+        width: ((end - start) / dayMinutes) * 100,
+      };
+    });
+  const laneCount = Math.max(1, lanes.length);
+  const rowHeight = Math.max(90, 12 + laneCount * laneHeight + (laneCount - 1) * laneGap);
+
   return (
     <>
       <div className="day-label">{day.label}</div>
-      {hours.map((hour) => {
-        const rowStart = hour * 60;
-        const rowEnd = rowStart + 60;
-        const matches = courses.filter(
-          (course) => course.day === day.key && toMinutes(course.start) < rowEnd && toMinutes(course.end) > rowStart,
-        );
-        return (
-          <div className="slot" key={`${day.key}-${hour}`}>
-            {matches.map((course) => (
-              <div className="block" key={course.id} style={{ backgroundColor: course.color }}>
-                <strong>{course.code}</strong>
-                <span>{course.name}</span>
-                <small>{course.start}-{course.end}</small>
-              </div>
-            ))}
+      <div className="day-timeline" style={{ minHeight: rowHeight }}>
+        <div className="timeline-slots" aria-hidden="true">
+          {hours.map((hour) => (
+            <div className="slot" key={`${day.key}-${hour}`} />
+          ))}
+        </div>
+        {positionedCourses.map(({ course, lane, left, width }) => (
+          <div
+            className="block"
+            key={course.id}
+            style={{
+              backgroundColor: course.color,
+              left: `${left}%`,
+              top: 6 + lane * (laneHeight + laneGap),
+              width: `${width}%`,
+            }}
+          >
+            <strong>{course.code}</strong>
+            <span>{course.name}</span>
+            {course.teacher && <span>{course.teacher}</span>}
+            <small>{course.start}-{course.end}</small>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </>
   );
 }

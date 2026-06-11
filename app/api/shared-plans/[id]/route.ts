@@ -10,13 +10,13 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const plan = await getSharedPlan(id);
 
     if (!plan) {
-      return Response.json({ error: "ไม่พบตารางที่แชร์" }, { status: 404 });
+      return Response.json({ error: "ไม่พบห้องนี้" }, { status: 404 });
     }
 
     return Response.json(plan);
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "โหลดตารางแชร์ไม่สำเร็จ" },
+      { error: error instanceof Error ? error.message : "โหลดห้องไม่สำเร็จ" },
       { status: 500 },
     );
   }
@@ -35,7 +35,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     return Response.json(plan);
   } catch (error) {
     return Response.json(
-      { error: error instanceof Error ? error.message : "บันทึกตารางแชร์ไม่สำเร็จ" },
+      { error: error instanceof Error ? error.message : "บันทึกห้องไม่สำเร็จ" },
       { status: 500 },
     );
   }
