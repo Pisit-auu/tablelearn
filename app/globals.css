@@ -33,7 +33,7 @@ body {
   max-width: 100%;
   overflow-x: hidden;
   color: var(--ink);
-  font-family: "Noto Sans Thai", "Leelawadee UI", "Segoe UI", Tahoma, sans-serif;
+  font-family: var(--font-itim), "Leelawadee UI", "Segoe UI", Tahoma, sans-serif;
   font-size: 15px;
   line-height: 1.55;
   background:
@@ -156,7 +156,7 @@ button:disabled {
 .eyebrow {
   margin: 0 0 8px;
   color: var(--teal);
-  font-family: "Segoe UI", "Noto Sans Thai", sans-serif;
+  font-family: var(--font-itim), "Segoe UI", sans-serif;
   font-size: 0.78rem;
   font-weight: 900;
   text-transform: uppercase;
@@ -299,16 +299,17 @@ h2 {
 
 .plan-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.1fr) auto;
   align-items: end;
   gap: 12px;
 }
 
 .plan-select-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  display: flex;
   align-items: end;
+  justify-content: flex-end;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .plan-select-row button {
@@ -412,20 +413,78 @@ h2 {
 }
 
 .share-conflict {
+  grid-column: 1 / -1;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+  padding: 13px 14px;
+  border: 1px solid rgba(216, 52, 95, 0.24);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(90deg, rgba(216, 52, 95, 0.11), rgba(255, 254, 248, 0.94) 32%),
+    repeating-linear-gradient(90deg, rgba(23, 32, 51, 0.045) 0 1px, transparent 1px 42px),
+    #fffef8;
+}
+
+.share-conflict::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--rose) 0 16px,
+    var(--amber) 16px 32px
+  );
+}
+
+.share-conflict-mark {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(216, 52, 95, 0.22);
+  border-radius: 50%;
+  background: rgba(216, 52, 95, 0.1);
+  color: var(--rose);
+  font-weight: 950;
+}
+
+.share-conflict-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.share-conflict-copy strong {
+  color: var(--ink);
+  font-size: 0.98rem;
+  font-weight: 950;
+}
+
+.share-conflict-copy span {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.share-conflict-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 10px;
-  border: 1px solid rgba(180, 35, 24, 0.22);
-  border-radius: var(--radius);
-  background: #fff0ed;
+}
+
+.share-conflict-actions button {
+  min-height: 38px;
 }
 
 .share-conflict span {
   margin: 0;
-  color: var(--danger);
-  font-weight: 850;
 }
 
 .sync-note {
@@ -1267,6 +1326,7 @@ select:focus {
   .workspace,
   .lower,
   .share-bar,
+  .share-conflict,
   .board-controls,
   .planner-grid,
   .compare-selects,
@@ -1279,7 +1339,12 @@ select:focus {
   }
 
   .plan-bar {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .plan-select-row {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
   }
 
   .form {
@@ -1339,6 +1404,10 @@ select:focus {
     grid-template-columns: 1fr;
   }
 
+  .plan-select-row {
+    display: grid;
+  }
+
   .board-head,
   .button-row {
     align-items: stretch;
@@ -1347,6 +1416,14 @@ select:focus {
 
   .actions {
     width: 100%;
+  }
+
+  .share-conflict-actions {
+    justify-content: stretch;
+  }
+
+  .share-conflict-actions button {
+    flex: 1;
   }
 
   .remote-tools {

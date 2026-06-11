@@ -1437,10 +1437,10 @@ export default function Home() {
     context.fillRect(0, 0, width, height);
 
     context.fillStyle = "#172033";
-    context.font = '900 32px "Noto Sans Thai", "Segoe UI", sans-serif';
+    context.font = '900 32px "Itim", "Segoe UI", sans-serif';
     context.fillText(activePlan?.name || defaultPlanName, padding, padding + 34);
     context.fillStyle = "#465064";
-    context.font = '700 17px "Noto Sans Thai", "Segoe UI", sans-serif';
+    context.font = '700 17px "Itim", "Segoe UI", sans-serif';
     context.fillText(`${courses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 66);
 
     const gridX = padding;
@@ -1459,7 +1459,7 @@ export default function Home() {
     context.fillRect(gridX, gridY, leftWidth, gridHeight);
 
     context.fillStyle = "#364056";
-    context.font = '900 15px "Noto Sans Thai", "Segoe UI", sans-serif';
+    context.font = '900 15px "Itim", "Segoe UI", sans-serif';
     context.textAlign = "center";
     context.textBaseline = "middle";
     context.fillText("วัน / เวลา", gridX + leftWidth / 2, gridY + headerHeight / 2);
@@ -1513,11 +1513,11 @@ export default function Home() {
       context.fillStyle = "#ffffff";
       context.textAlign = "left";
       context.textBaseline = "alphabetic";
-      context.font = '900 15px "Noto Sans Thai", "Segoe UI", sans-serif';
+      context.font = '900 15px "Itim", "Segoe UI", sans-serif';
       drawWrappedText(context, course.code, x + 10, y + 24, blockWidth - 20, 18, 1);
-      context.font = '700 13px "Noto Sans Thai", "Segoe UI", sans-serif';
+      context.font = '700 13px "Itim", "Segoe UI", sans-serif';
       drawWrappedText(context, course.name, x + 10, y + 46, blockWidth - 20, 17, 2);
-      context.font = '700 12px "Noto Sans Thai", "Segoe UI", sans-serif';
+      context.font = '700 12px "Itim", "Segoe UI", sans-serif';
       drawWrappedText(context, course.teacher, x + 10, y + blockHeight - 30, blockWidth - 20, 16, 1);
       drawWrappedText(context, `${course.start}-${course.end} ${course.room}`, x + 10, y + blockHeight - 14, blockWidth - 20, 16, 1);
     });
@@ -1912,22 +1912,22 @@ export default function Home() {
           </div>
           <div className="board-controls">
             <div className="plan-bar">
-              <div className="plan-select-row">
-                <label>
-                  เลือกตาราง
-                  <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
-                    {visiblePlans.map((plan) => (
-                      <option key={plan.id} value={plan.id}>{plan.name}</option>
-                    ))}
-                  </select>
-                </label>
-                <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
-                <button type="button" className="ghost danger" onClick={removePlan} disabled={!canRemoveCurrentPlan}>ลบตาราง</button>
-              </div>
               <label>
+                เลือกตาราง
+                <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
+                  {visiblePlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>{plan.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="plan-name-field">
                 ชื่อตาราง
                 <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} disabled={!canEditActivePlan} />
               </label>
+              <div className="plan-select-row">
+                <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
+                <button type="button" className="ghost danger" onClick={removePlan} disabled={!canRemoveCurrentPlan}>ลบตาราง</button>
+              </div>
             </div>
 
             <div className="share-bar">
@@ -1971,9 +1971,15 @@ export default function Home() {
               </div>
               {shareSession?.status === "conflict" && (
                 <div className="share-conflict">
-                  <span>ตารางกลางมีข้อมูลใหม่กว่า</span>
-                  <button type="button" className="ghost" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
-                  <button type="button" className="secondary" onClick={copyActivePlanToLocal}>คัดลอกเป็นตารางใหม่</button>
+                  <div className="share-conflict-mark" aria-hidden="true">!</div>
+                  <div className="share-conflict-copy">
+                    <strong>ห้องมีข้อมูลใหม่กว่า</strong>
+                    <span>โหลดข้อมูลล่าสุดก่อนบันทึกต่อ หรือเก็บงานที่แก้ไว้เป็นตารางส่วนตัว</span>
+                  </div>
+                  <div className="share-conflict-actions">
+                    <button type="button" className="secondary" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
+                    <button type="button" className="ghost" onClick={copyActivePlanToLocal}>เก็บเป็นตารางส่วนตัว</button>
+                  </div>
                 </div>
               )}
               {shareStatus && <span>{shareStatus}</span>}

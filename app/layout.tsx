@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
+import { Itim } from "next/font/google";
 import "./globals.css";
+
+const itim = Itim({
+  subsets: ["latin", "thai"],
+  weight: "400",
+  variable: "--font-itim",
+});
 
 export const metadata: Metadata = {
   title: "TableLearn",
@@ -13,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body>{children}</body>
+      <body className={itim.variable}>{children}</body>
     </html>
   );
 }
