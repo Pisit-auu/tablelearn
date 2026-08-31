@@ -93,7 +93,7 @@ const days: { key: DayKey; label: string; short: string }[] = [
   { key: "sun", label: "อาทิตย์", short: "อา" },
 ];
 
-const palette = ["#2457ff", "#008c7a", "#d36b00", "#d8345f", "#7357ff", "#25935f", "#b84a1b"];
+const palette = ["#1d5aa8", "#14746a", "#a8471d", "#5b3fa8", "#0f6ba8", "#7a6a1f", "#a83d63"];
 const hours = Array.from({ length: 14 }, (_, index) => 7 + index);
 const fallbackFilters: FilterOptions = {
   campuses: [{ comboid: 10, comboshow: "10 : มจพ. กรุงเทพฯ" }],
@@ -515,6 +515,16 @@ function nextTableName(planList: TimetablePlan[]) {
   return `ตาราง${nextNumber}`;
 }
 
+function localPlansOnly(planList: TimetablePlan[]) {
+  return planList.filter((plan) => !plan.sharedId);
+}
+
+function ensureLocalPlans(planList: TimetablePlan[]) {
+  const localPlans = localPlansOnly(planList);
+
+  return localPlans.length > 0 ? localPlans : [{ id: "default", name: defaultPlanName, courses: [] }];
+}
+
 function planStats(courseList: Course[]) {
   const usedDays = new Set(courseList.map((course) => course.day));
   const freeMinutes = freeSlotsForCourses(courseList)
@@ -581,6 +591,164 @@ function scorePlan(courseList: Course[], avoidDays: DayKey[], preferredStart: st
   return { score: Math.max(0, Math.round(score)), reasons };
 }
 
+type IconProps = { className?: string };
+
+function Svg({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <svg
+      className={className ? `ico ${className}` : "ico"}
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function IconBlock({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 3 20.5 7.5v9L12 21l-8.5-4.5v-9Z" />
+      <path d="M3.5 7.5 12 12l8.5-4.5" />
+      <path d="M12 12v9" />
+    </Svg>
+  );
+}
+
+function IconFace({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M3 4h18v16H3Z" />
+      <path d="M3 9h18" />
+      <path d="M9 9v11" />
+      <path d="M15 9v11" />
+    </Svg>
+  );
+}
+
+function IconCrane({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M6 21V4" />
+      <path d="M3 21h6" />
+      <path d="M6 4h13" />
+      <path d="M17 4v5" />
+      <path d="M14 9h6v3h-6Z" />
+    </Svg>
+  );
+}
+
+function IconCompare({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 5h7v14H4Z" />
+      <path d="M13 9h7v10h-7Z" />
+      <path d="M13 5h7" />
+    </Svg>
+  );
+}
+
+function IconVoid({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4 4h6M14 4h6M20 4v6M20 14v6M20 20h-6M10 20H4M4 20v-6M4 10V4" />
+      <path d="M9 12h6" />
+    </Svg>
+  );
+}
+
+function IconStorm({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.4 1.3A3.4 3.4 0 0 1 17 15Z" />
+      <path d="M8 18.5 7 21" />
+      <path d="M12 18.5 11 21" />
+      <path d="M16 18.5 15 21" />
+    </Svg>
+  );
+}
+
+function IconRail({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M8 3v18M16 3v18" />
+      <path d="M8 7h8M8 12h8M8 17h8" />
+    </Svg>
+  );
+}
+
+function IconNote({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 3.5 21 20H3Z" />
+      <path d="M12 10v4" />
+      <path d="M12 16.6v.2" />
+    </Svg>
+  );
+}
+
+function IconArrow({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M5 12h13" />
+      <path d="m13 7 5 5-5 5" />
+    </Svg>
+  );
+}
+
+function IconClose({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Svg>
+  );
+}
+
+function IconAnchor({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 7v13" />
+      <path d="M5 13a7 7 0 0 0 14 0" />
+      <path d="M9 4h6v3H9Z" />
+    </Svg>
+  );
+}
+
+function IconPlus({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </Svg>
+  );
+}
+
+function IconCopy({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M8 8h12v12H8Z" />
+      <path d="M16 8V4H4v12h4" />
+    </Svg>
+  );
+}
+
+const zones: { id: string; label: string; short: string; Icon: (props: IconProps) => React.JSX.Element }[] = [
+  { id: "face", label: "หน้าตัด", short: "ตาราง", Icon: IconFace },
+  { id: "blocks", label: "รายวิชา", short: "วิชา", Icon: IconBlock },
+  { id: "planner", label: "ตัวช่วยจัดแผน", short: "จัดแผน", Icon: IconCrane },
+  { id: "compare", label: "เปรียบเทียบ", short: "เทียบ", Icon: IconCompare },
+  { id: "voids", label: "เวลาว่าง", short: "ว่าง", Icon: IconVoid },
+  { id: "exams", label: "ตารางสอบ", short: "สอบ", Icon: IconStorm },
+  { id: "room", label: "ห้องร่วมกัน", short: "ห้อง", Icon: IconRail },
+];
+
 export default function Home() {
   const [plans, setPlans] = useState<TimetablePlan[]>([{ id: "default", name: defaultPlanName, courses: [] }]);
   const [activePlanId, setActivePlanId] = useState("default");
@@ -620,9 +788,11 @@ export default function Home() {
   const [comparePlanAId, setComparePlanAId] = useState("");
   const [comparePlanBId, setComparePlanBId] = useState("");
   const [timetableView, setTimetableView] = useState<"grid" | "list">("grid");
+  const [activeZone, setActiveZone] = useState<string>("face");
   const excelInputRef = useRef<HTMLInputElement | null>(null);
   const hasLocalPlanMutationRef = useRef(false);
   const plansRef = useRef<TimetablePlan[]>([]);
+  const sharedRoomLoadRequestRef = useRef(0);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
@@ -632,7 +802,7 @@ export default function Home() {
   const canEditActivePlan = !isActiveSharedPlan || shareSession?.mode === "edit";
   const isActiveReadOnlySharedPlan = isActiveSharedPlan && !canEditActivePlan;
   const canRemoveCurrentPlan = isActiveSharedPlan ? shareSessionPlans.length > 1 : plans.length > 1;
-  const visiblePlans = shareSession ? shareSessionPlans : plans;
+  const visiblePlans = shareSession ? shareSessionPlans : localPlansOnly(plans);
 
   const setSharedRoom = useCallback((roomId: string, roomName: string, roomPlans: SharedRoomPlan[], updatedAt = "", editToken = "", activate = true, preferredLocalId = "") => {
     const canEdit = Boolean(editToken);
@@ -684,12 +854,19 @@ export default function Home() {
   []);
 
   const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "", updateUrl = false) => {
+    const requestId = sharedRoomLoadRequestRef.current + 1;
+    sharedRoomLoadRequestRef.current = requestId;
+
     if (showStatus) {
       setShareStatus("กำลังเข้าห้อง...");
     }
 
     try {
       const data = await loadSharedPlanAction(planId);
+
+      if (requestId !== sharedRoomLoadRequestRef.current) {
+        return;
+      }
 
       setSharedRoom(planId, data.name, data.plans ?? [{ id: "main", name: data.name, courses: data.courses }], data.updatedAt, editToken);
       setRoomCodeInput(planId);
@@ -700,6 +877,10 @@ export default function Home() {
         setShareStatus(editToken ? `เข้าห้อง ${planId} แล้ว` : `เข้าห้อง ${planId} แล้ว โหมดดูอย่างเดียว`);
       }
     } catch (error) {
+      if (requestId !== sharedRoomLoadRequestRef.current) {
+        return;
+      }
+
       setShareStatus(error instanceof Error ? error.message : "เข้าห้องไม่สำเร็จ");
     }
   }, [setSharedRoom]);
@@ -744,13 +925,17 @@ export default function Home() {
       const savedPlans = readJson<TimetablePlan[] | null>("student-timetable-plans", null);
 
       if (savedPlans) {
-        setPlans(savedPlans);
+        const nextPlans = ensureLocalPlans(savedPlans);
+        const savedActivePlanId = window.localStorage.getItem("student-timetable-active-plan") ?? "default";
+
+        setPlans(nextPlans);
+        setActivePlanId(nextPlans.some((plan) => plan.id === savedActivePlanId) ? savedActivePlanId : nextPlans[0].id);
       } else {
         const saved = readJson<Course[]>("student-timetable", []);
         setPlans([{ id: "default", name: defaultPlanName, courses: saved }]);
+        setActivePlanId("default");
       }
 
-      setActivePlanId(window.localStorage.getItem("student-timetable-active-plan") ?? "default");
       setHasLoadedLocalData(true);
     }, 0);
 
@@ -762,7 +947,7 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem("student-timetable-plans", JSON.stringify(plans));
+    window.localStorage.setItem("student-timetable-plans", JSON.stringify(ensureLocalPlans(plans)));
   }, [hasLoadedLocalData, plans]);
 
   useEffect(() => {
@@ -770,8 +955,10 @@ export default function Home() {
       return;
     }
 
-    window.localStorage.setItem("student-timetable-active-plan", currentPlanId);
-  }, [currentPlanId, hasLoadedLocalData]);
+    if (!activePlan?.sharedId) {
+      window.localStorage.setItem("student-timetable-active-plan", currentPlanId);
+    }
+  }, [activePlan?.sharedId, currentPlanId, hasLoadedLocalData]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -959,9 +1146,10 @@ export default function Home() {
   }, [remoteClasses]);
   const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
   const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
-  const comparePlanA = visiblePlans.find((plan) => plan.id === comparePlanAId) ?? visiblePlans[0];
-  const comparePlanB = visiblePlans.find((plan) => plan.id === comparePlanBId) ?? visiblePlans[1] ?? visiblePlans[0];
   const comparison = useMemo(() => {
+    const comparePlanA = visiblePlans.find((plan) => plan.id === comparePlanAId) ?? visiblePlans[0];
+    const comparePlanB = visiblePlans.find((plan) => plan.id === comparePlanBId) ?? visiblePlans[1] ?? visiblePlans[0];
+
     if (!comparePlanA || !comparePlanB) {
       return null;
     }
@@ -977,7 +1165,9 @@ export default function Home() {
       onlyA,
       onlyB,
     };
-  }, [comparePlanA, comparePlanB]);
+  }, [comparePlanAId, comparePlanBId, visiblePlans]);
+  const comparePlanA = visiblePlans.find((plan) => plan.id === comparePlanAId) ?? visiblePlans[0];
+  const comparePlanB = visiblePlans.find((plan) => plan.id === comparePlanBId) ?? visiblePlans[1] ?? visiblePlans[0];
   const dailyCourses = useMemo(
     () =>
       days.map((day) => ({
@@ -986,6 +1176,89 @@ export default function Home() {
       })),
     [courses],
   );
+  const conflictIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    courses.forEach((course, index) => {
+      courses.slice(index + 1).forEach((next) => {
+        if (overlaps(course, next)) {
+          ids.add(course.id);
+          ids.add(next.id);
+        }
+      });
+    });
+
+    return ids;
+  }, [courses]);
+
+  useEffect(() => {
+    if (!isManualCourseOpen && !isCourseBrowserOpen) {
+      return;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      if (isCourseBrowserOpen) {
+        setIsCourseBrowserOpen(false);
+        return;
+      }
+
+      setIsManualCourseOpen(false);
+      setEditingId(null);
+      setForm(emptyCourse);
+    }
+
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isCourseBrowserOpen, isManualCourseOpen]);
+
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      setTimetableView("list");
+    }
+  }, []);
+
+  useEffect(() => {
+    const sections = zones
+      .map((zone) => document.getElementById(zone.id))
+      .filter((element): element is HTMLElement => Boolean(element));
+
+    if (sections.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+
+        if (visible) {
+          setActiveZone(visible.target.id);
+        }
+      },
+      { rootMargin: "-96px 0px -60% 0px", threshold: 0 },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+
+    return () => observer.disconnect();
+  }, [timetableView]);
+
+  useEffect(() => {
+    const nav = document.querySelector(".rail-nav");
+    const tab = nav?.querySelector<HTMLElement>(".rail-tab.is-active");
+
+    if (!nav || !tab || nav.scrollWidth <= nav.clientWidth) {
+      return;
+    }
+
+    nav.scrollTo({ left: tab.offsetLeft - nav.clientWidth / 2 + tab.offsetWidth / 2, behavior: "smooth" });
+  }, [activeZone]);
 
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1433,14 +1706,14 @@ export default function Home() {
     canvas.width = width * scale;
     canvas.height = height * scale;
     context.scale(scale, scale);
-    context.fillStyle = "#f7f8f2";
+    context.fillStyle = "#0d2e5e";
     context.fillRect(0, 0, width, height);
 
-    context.fillStyle = "#172033";
-    context.font = '900 32px "Itim", "Segoe UI", sans-serif';
+    context.fillStyle = "#ffffff";
+    context.font = '700 32px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
     context.fillText(activePlan?.name || defaultPlanName, padding, padding + 34);
-    context.fillStyle = "#465064";
-    context.font = '700 17px "Itim", "Segoe UI", sans-serif';
+    context.fillStyle = "#4da7e6";
+    context.font = '500 17px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
     context.fillText(`${courses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 66);
 
     const gridX = padding;
@@ -1448,45 +1721,64 @@ export default function Home() {
     const gridWidth = leftWidth + hours.length * hourWidth;
     const gridHeight = headerHeight + days.length * rowHeight;
 
-    context.fillStyle = "#fffef8";
+    context.fillStyle = "#f5f7f9";
     context.fillRect(gridX, gridY, gridWidth, gridHeight);
-    context.strokeStyle = "#bdc7b1";
+    context.strokeStyle = "#c3cad2";
     context.lineWidth = 1;
     context.strokeRect(gridX, gridY, gridWidth, gridHeight);
 
-    context.fillStyle = "#edf1e8";
-    context.fillRect(gridX, gridY, gridWidth, headerHeight);
-    context.fillRect(gridX, gridY, leftWidth, gridHeight);
+    const skyX = gridX + leftWidth;
+    const skyY = gridY + headerHeight;
+    const skyHeight = gridHeight - headerHeight;
+    const sky = context.createLinearGradient(0, skyY, 0, skyY + skyHeight);
+    sky.addColorStop(0, "#5fb2e9");
+    sky.addColorStop(0.45, "#4da7e6");
+    sky.addColorStop(1, "#3d97d8");
+    context.fillStyle = sky;
+    context.fillRect(skyX, skyY, gridWidth - leftWidth, skyHeight);
 
-    context.fillStyle = "#364056";
-    context.font = '900 15px "Itim", "Segoe UI", sans-serif';
+    context.fillStyle = "#0d2e5e";
+    context.fillRect(gridX, gridY, gridWidth, headerHeight);
+    context.fillStyle = "#e9edf1";
+    context.fillRect(gridX, gridY + headerHeight, leftWidth, gridHeight - headerHeight);
+
+    context.font = '600 14px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
     context.textAlign = "center";
     context.textBaseline = "middle";
+    context.fillStyle = "#4da7e6";
     context.fillText("วัน / เวลา", gridX + leftWidth / 2, gridY + headerHeight / 2);
+    context.fillStyle = "#e6edf6";
 
     hours.forEach((hour, index) => {
       const x = gridX + leftWidth + index * hourWidth;
       context.fillText(`${String(hour).padStart(2, "0")}:00`, x + hourWidth / 2, gridY + headerHeight / 2);
     });
 
+    context.fillStyle = "#0d2e5e";
     days.forEach((day, index) => {
       const y = gridY + headerHeight + index * rowHeight;
       context.fillText(day.label, gridX + leftWidth / 2, y + rowHeight / 2);
     });
 
-    context.strokeStyle = "#d9dece";
     for (let index = 0; index <= hours.length; index += 1) {
       const x = gridX + leftWidth + index * hourWidth;
+      context.strokeStyle = "rgba(255, 255, 255, 0.4)";
       context.beginPath();
-      context.moveTo(x, gridY);
+      context.moveTo(x, skyY);
       context.lineTo(x, gridY + gridHeight);
       context.stroke();
     }
 
     for (let index = 0; index <= days.length; index += 1) {
       const y = gridY + headerHeight + index * rowHeight;
+      context.strokeStyle = "#c3cad2";
       context.beginPath();
       context.moveTo(gridX, y);
+      context.lineTo(gridX + leftWidth, y);
+      context.stroke();
+      context.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      context.beginPath();
+      context.moveTo(skyX, y);
       context.lineTo(gridX + gridWidth, y);
       context.stroke();
     }
@@ -1505,21 +1797,46 @@ export default function Home() {
       const blockWidth = Math.max(48, (Math.min(hours.length, endOffset) - Math.max(0, startOffset)) * hourWidth - 10);
       const blockHeight = rowHeight - 16;
 
-      context.fillStyle = course.color;
-      context.beginPath();
-      context.roundRect(x, y, blockWidth, blockHeight, 8);
-      context.fill();
+      const notch = 10;
 
+      context.beginPath();
+      context.moveTo(x, y);
+      context.lineTo(x + blockWidth - notch, y);
+      context.lineTo(x + blockWidth, y + notch);
+      context.lineTo(x + blockWidth, y + blockHeight);
+      context.lineTo(x, y + blockHeight);
+      context.closePath();
+      context.save();
+      context.shadowColor = "rgba(6, 32, 63, 0.34)";
+      context.shadowBlur = 6;
+      context.shadowOffsetY = 2;
       context.fillStyle = "#ffffff";
+      context.fill();
+      context.restore();
+      context.save();
+      context.clip();
+      const stone = context.createLinearGradient(0, y, 0, y + blockHeight);
+      stone.addColorStop(0, "#ffffff");
+      stone.addColorStop(1, "#e7ecf1");
+      context.fillStyle = stone;
+      context.fillRect(x, y, blockWidth, blockHeight);
+      context.fillStyle = course.color;
+      context.fillRect(x, y, 7, blockHeight);
+      context.restore();
+
+      context.fillStyle = course.color;
       context.textAlign = "left";
       context.textBaseline = "alphabetic";
-      context.font = '900 15px "Itim", "Segoe UI", sans-serif';
-      drawWrappedText(context, course.code, x + 10, y + 24, blockWidth - 20, 18, 1);
-      context.font = '700 13px "Itim", "Segoe UI", sans-serif';
-      drawWrappedText(context, course.name, x + 10, y + 46, blockWidth - 20, 17, 2);
-      context.font = '700 12px "Itim", "Segoe UI", sans-serif';
-      drawWrappedText(context, course.teacher, x + 10, y + blockHeight - 30, blockWidth - 20, 16, 1);
-      drawWrappedText(context, `${course.start}-${course.end} ${course.room}`, x + 10, y + blockHeight - 14, blockWidth - 20, 16, 1);
+      context.font = '700 15px "Azeret Mono", ui-monospace, monospace';
+      drawWrappedText(context, course.code, x + 16, y + 24, blockWidth - 26, 18, 1);
+      context.fillStyle = "#0d2e5e";
+      context.font = '600 13px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
+      drawWrappedText(context, course.name, x + 16, y + 46, blockWidth - 26, 17, 2);
+      context.fillStyle = "#4a5f7d";
+      context.font = '500 12px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
+      drawWrappedText(context, course.teacher, x + 16, y + blockHeight - 30, blockWidth - 26, 16, 1);
+      context.font = '500 12px "Azeret Mono", ui-monospace, monospace';
+      drawWrappedText(context, `${course.start}-${course.end} ${course.room}`, x + 16, y + blockHeight - 14, blockWidth - 26, 16, 1);
     });
 
     downloadCanvas(canvas, `${activePlan?.name || "timetable"}.png`);
@@ -1680,220 +1997,106 @@ export default function Home() {
   }
 
   return (
-    <main className="shell">
-      <section className="topbar">
-        <div className="brand-heading">
-          <div className="logo-mark" aria-hidden="true">
-            <span>TL</span>
-          </div>
-          <div>
-            <p className="eyebrow">KMUTNB study planner</p>
-            <h1>TableLearn</h1>
-            <p className="hero-copy">จัดตารางเรียน ตารางสอบ และแผนสำรองให้อยู่ในหน้าเดียว พร้อมนำเข้ารายวิชาจากระบบมหาวิทยาลัย</p>
-          </div>
-        </div>
-        <div className="summary" aria-label="สรุปตารางเรียน">
-          <div>
-            <span>รายวิชา</span>
-            <strong>{courses.length}</strong>
-          </div>
-          <div>
-            <span>หน่วยกิต</span>
-            <strong>{totalCredits}</strong>
-          </div>
-          <div>
-            <span>เวลาชน</span>
-            <strong>{conflicts.length}</strong>
-          </div>
-          <div>
-            <span>ตารางสอบ</span>
-            <strong>{examCount}</strong>
-          </div>
-        </div>
-      </section>
+    <div className="quarry">
+      <div className="grain" aria-hidden="true" />
 
-      <section className="notice panel" aria-label="หมายเหตุการใช้งาน">
-        <div className="notice-mark" aria-hidden="true">!</div>
-        <div className="notice-content">
-          <strong>หมายเหตุการใช้งาน</strong>
-          <ul>
-            <li>เว็บนี้ทำขึ้นเพื่อช่วยอำนวยความสะดวกสำหรับวางแผนการลงทะเบียนการศึกษาเท่านั้น ไม่ได้เป็นระบบของมหาวิทยาลัย</li>
-            <li>
-              ข้อมูลรายวิชานำมาจากเว็บ <a href="https://reg.kmutnb.ac.th/" target="_blank" rel="noreferrer">reg.kmutnb.ac.th</a>
-              หากข้อมูลผิดพลาดหรือไม่ตรงกัน ให้ตรวจสอบข้อมูลล่าสุดจากเว็บ
-              <a href="https://reg.kmutnb.ac.th/" target="_blank" rel="noreferrer"> reg.kmutnb.ac.th</a>
-            </li>
-            <li>เว็บไซต์นี้ไม่มีการเก็บข้อมูลผู้ใช้ใด ๆ และจัดทำขึ้นโดยนักศึกษาเพื่ออำนวยความสะดวกให้นักศึกษา มจพ. โดยไม่มีส่วนเกี่ยวข้องกับมหาวิทยาลัยอย่างเป็นทางการ</li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="planner panel" aria-label="ตัวช่วยจัดแผนตาราง">
-        <div className="planner-head">
-          <div>
-            <h2>ตัวช่วยจัดแผน</h2>
-            <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
-          </div>
-          <button type="button" className="primary" onClick={generateSchedulePlans} disabled={remoteCourseGroups.length === 0}>
-            สร้างแผนที่เป็นไปได้
-          </button>
+      <aside className="rail">
+        <div className="rail-mark">
+          <span className="mark-glyph" aria-hidden="true"><IconBlock /></span>
+          <span className="mark-words">
+            <span className="mark-name">TableLearn</span>
+            <span className="mark-sub">ผู้ช่วยจัดตารางเรียน มจพ.</span>
+          </span>
         </div>
 
-        <div className="planner-grid">
-          <div className="planner-box">
-            <h3>รายวิชาที่โหลด</h3>
-            {remoteCourseGroups.length === 0 ? (
-              <p className="empty">โหลดรายวิชา KMUTNB ก่อน แล้วเลือกวิชาที่ต้องการให้ช่วยจัด section</p>
-            ) : (
-              <div className="planner-course-picks">
-                {remoteCourseGroups.slice(0, 18).map((group) => (
-                  <div className="planner-course-row" key={group.code}>
-                    <label className="check-row">
-                      <input
-                        type="checkbox"
-                        checked={plannerSelectedCodes.includes(group.code)}
-                        onChange={() => togglePlannerCode(group.code)}
-                      />
-                      <span>
-                        <strong>{group.code}</strong>
-                        {group.name} · {group.classes.length} section
-                      </span>
-                    </label>
-                    <button type="button" className="ghost" onClick={() => importRemoteCourseGroup(group)} disabled={!canEditActivePlan}>
-                      เพิ่ม
-                    </button>
-                  </div>
+        <button type="button" className="btn btn-primary rail-cta" onClick={() => setIsCourseBrowserOpen(true)}>
+          ดึงรายวิชาจากเว็บ
+          <IconArrow />
+        </button>
+
+        <nav className="rail-nav" aria-label="ส่วนของหน้า">
+          {zones.map((zone) => (
+            <a
+              key={zone.id}
+              href={`#${zone.id}`}
+              className={activeZone === zone.id ? "rail-tab is-active" : "rail-tab"}
+              aria-current={activeZone === zone.id ? "true" : undefined}
+            >
+              <zone.Icon />
+              <span className="tab-long">{zone.label}</span>
+              <span className="tab-short">{zone.short}</span>
+            </a>
+          ))}
+        </nav>
+
+        <div className="readout" aria-label="สรุปตารางเรียน">
+          <p className="readout-head">แผ่นงานปัจจุบัน</p>
+          <p className="readout-plan">{activePlan?.name ?? defaultPlanName}</p>
+          <dl className="measures">
+            <div>
+              <dt>รายวิชา</dt>
+              <dd>{courses.length}<i>วิชา</i></dd>
+            </div>
+            <div>
+              <dt>หน่วยกิต</dt>
+              <dd>{totalCredits}<i>นก.</i></dd>
+            </div>
+            <div className={conflicts.length > 0 ? "is-fracture" : undefined}>
+              <dt>เวลาชน</dt>
+              <dd>{conflicts.length}<i>คู่</i></dd>
+            </div>
+            <div>
+              <dt>ตารางสอบ</dt>
+              <dd>{examCount}<i>วิชา</i></dd>
+            </div>
+          </dl>
+          <p className="readout-room">
+            <span>{shareSession ? "ห้องร่วมกัน" : "ตารางส่วนตัว"}</span>
+            <b className={shareSession ? "is-code" : undefined}>{shareSession ? shareSession.shareId : "เก็บในเครื่องนี้"}</b>
+          </p>
+        </div>
+      </aside>
+
+      <main className="works">
+        <section className="zone zone-face" id="face" aria-labelledby="face-title">
+          <div className="zone-head">
+            <h1 id="face-title">หน้าตัดสัปดาห์</h1>
+            <p>ทุกวิชาที่ลงคือบล็อกที่ตัดออกจากสัปดาห์ ช่องฟ้าที่เหลือคือเวลาว่างของคุณ</p>
+          </div>
+
+          <div className="strip strip-plan">
+            <label className="field field-select">
+              <span>เลือกตาราง</span>
+              <select
+                value={currentPlanId}
+                onChange={(event) => {
+                  setActivePlanId(event.target.value);
+                  setEditingId(null);
+                  setForm(emptyCourse);
+                }}
+              >
+                {visiblePlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.name}</option>
                 ))}
-              </div>
-            )}
-          </div>
-
-          <div className="planner-box">
-            <h3>เงื่อนไขเวลา</h3>
-            <div className="planner-times">
-              <label>
-                ไม่ก่อน
-                <input type="time" value={plannerStart} onChange={(event) => setPlannerStart(event.target.value)} />
-              </label>
-              <label>
-                ไม่หลัง
-                <input type="time" value={plannerEnd} onChange={(event) => setPlannerEnd(event.target.value)} />
-              </label>
-            </div>
-            <div className="planner-days">
-              {days.map((day) => (
-                <label className="day-chip" key={day.key}>
-                  <input
-                    type="checkbox"
-                    checked={plannerAvoidDays.includes(day.key)}
-                    onChange={() => toggleAvoidDay(day.key)}
-                  />
-                  <span>{day.short}</span>
-                </label>
-              ))}
-            </div>
-            <label className="check-row">
-              <input
-                type="checkbox"
-                checked={plannerLunchBreak}
-                onChange={(event) => setPlannerLunchBreak(event.target.checked)}
-              />
-              <span>ต้องมีพักเที่ยง 12:00-13:00</span>
+              </select>
             </label>
-          </div>
-
-          <div className="planner-box planner-results">
-            <h3>แผนแนะนำ</h3>
-            {plannerStatus && <p className="planner-status">{plannerStatus}</p>}
-            {generatedPlans.length === 0 ? (
-              <p className="empty">ยังไม่มีแผนที่สร้าง</p>
-            ) : (
-              generatedPlans.map((plan) => (
-                <article className="generated-plan" key={plan.id}>
-                  <div>
-                    <strong>{plan.name}</strong>
-                    <span>คะแนน {plan.score}/100 · {plan.courses.length} รายการ</span>
-                    <small>{plan.reasons.join(" · ")}</small>
-                  </div>
-                  <button type="button" className="secondary" onClick={() => applyGeneratedPlan(plan)}>ใช้แผนนี้</button>
-                </article>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="compare panel" aria-label="เปรียบเทียบตาราง">
-        <div className="compare-head">
-          <div>
-            <h2>เปรียบเทียบ 2 แผน</h2>
-            <p>ดูคะแนนพื้นฐาน วันเรียน หน่วยกิต เวลาว่าง และรายวิชาที่ต่างกัน</p>
-          </div>
-          <div className="button-row">
-            <button type="button" className="ghost" onClick={() => comparePlanA && setActivePlanId(comparePlanA.id)} disabled={!comparePlanA}>ใช้แผน A</button>
-            <button type="button" className="ghost" onClick={() => comparePlanB && setActivePlanId(comparePlanB.id)} disabled={!comparePlanB}>ใช้แผน B</button>
-          </div>
-        </div>
-        <div className="compare-selects">
-          <label>
-            แผน A
-            <select value={comparePlanA?.id ?? ""} onChange={(event) => setComparePlanAId(event.target.value)}>
-              {visiblePlans.map((plan) => (
-                <option key={plan.id} value={plan.id}>{plan.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            แผน B
-            <select value={comparePlanB?.id ?? ""} onChange={(event) => setComparePlanBId(event.target.value)}>
-              {visiblePlans.map((plan) => (
-                <option key={plan.id} value={plan.id}>{plan.name}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {comparison && (
-          <div className="compare-grid">
-            {[
-              ["หน่วยกิต", comparison.aStats.credits, comparison.bStats.credits],
-              ["วันเรียน", comparison.aStats.usedDays, comparison.bStats.usedDays],
-              ["เวลาว่าง", `${comparison.aStats.freeHours} ชม.`, `${comparison.bStats.freeHours} ชม.`],
-              ["เวลาชน", comparison.aStats.conflicts, comparison.bStats.conflicts],
-            ].map(([label, aValue, bValue]) => (
-              <div className="compare-stat" key={label}>
-                <span>{label}</span>
-                <strong>{aValue}</strong>
-                <strong>{bValue}</strong>
-              </div>
-            ))}
-          </div>
-        )}
-        {comparison && (
-          <div className="compare-diff">
-            <div>
-              <h3>มีเฉพาะแผน A</h3>
-              {comparison.onlyA.length === 0 ? <p className="empty">ไม่ต่างจากแผน B</p> : comparison.onlyA.map((course) => <CourseDifference key={course.id} course={course} />)}
-            </div>
-            <div>
-              <h3>มีเฉพาะแผน B</h3>
-              {comparison.onlyB.length === 0 ? <p className="empty">ไม่ต่างจากแผน A</p> : comparison.onlyB.map((course) => <CourseDifference key={course.id} course={course} />)}
+            <label className="field">
+              <span>ชื่อตาราง</span>
+              <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} disabled={!canEditActivePlan} />
+            </label>
+            <div className="strip-actions">
+              <button type="button" className="btn btn-line" onClick={addPlan}>
+                <IconPlus />
+                เพิ่มตาราง
+              </button>
+              <button type="button" className="btn btn-line btn-fracture" onClick={removePlan} disabled={!canRemoveCurrentPlan}>
+                ลบตาราง
+              </button>
             </div>
           </div>
-        )}
-      </section>
 
-      <section className="workspace">
-        <section className="board">
-          <div className="board-head">
-            <div>
-              <h2>{activePlan?.name ?? defaultPlanName}</h2>
-              <p>
-                {courses.length} วิชา · {totalCredits} หน่วยกิต
-                {isActiveSharedPlan ? ` · ${canEditActivePlan ? "ห้องร่วมกัน" : "ห้องดูอย่างเดียว"}` : ""}
-              </p>
-              {excelStatus && <p className="excel-status">{excelStatus}</p>}
-            </div>
-            <div className="button-row">
+          <div className="strip strip-tools">
+            <div className="tool-group">
               <input
                 ref={excelInputRef}
                 className="file-input"
@@ -1902,58 +2105,418 @@ export default function Home() {
                 onChange={importExcel}
                 aria-label="Import Excel"
               />
-              <button type="button" className="ghost" onClick={() => excelInputRef.current?.click()} disabled={!canEditActivePlan}>Import Excel</button>
-              <button type="button" className="ghost" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
-              <button type="button" className="ghost" onClick={exportExcel} disabled={courses.length === 0}>Export Excel</button>
-              <button type="button" className="ghost" onClick={() => setTimetableView((view) => (view === "grid" ? "list" : "grid"))}>
-                {timetableView === "grid" ? "มุมมองรายการ" : "มุมมองตาราง"}
+              <button type="button" className="btn btn-line" onClick={() => excelInputRef.current?.click()} disabled={!canEditActivePlan}>นำเข้า Excel</button>
+              <button type="button" className="btn btn-line" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
+              <button type="button" className="btn btn-line" onClick={exportExcel} disabled={courses.length === 0}>ส่งออก Excel</button>
+            </div>
+            <div className="view-toggle" role="group" aria-label="มุมมองตาราง">
+              <button
+                type="button"
+                className={timetableView === "grid" ? "is-on" : undefined}
+                onClick={() => setTimetableView("grid")}
+                aria-pressed={timetableView === "grid"}
+              >
+                หน้าตัด
+              </button>
+              <button
+                type="button"
+                className={timetableView === "list" ? "is-on" : undefined}
+                onClick={() => setTimetableView("list")}
+                aria-pressed={timetableView === "list"}
+              >
+                รายวัน
               </button>
             </div>
           </div>
-          <div className="board-controls">
-            <div className="plan-bar">
-              <label>
-                เลือกตาราง
-                <select value={currentPlanId} onChange={(event) => { setActivePlanId(event.target.value); setEditingId(null); setForm(emptyCourse); }}>
-                  {visiblePlans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>{plan.name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="plan-name-field">
-                ชื่อตาราง
-                <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} disabled={!canEditActivePlan} />
-              </label>
-              <div className="plan-select-row">
-                <button type="button" className="secondary" onClick={addPlan}>เพิ่มตาราง</button>
-                <button type="button" className="ghost danger" onClick={removePlan} disabled={!canRemoveCurrentPlan}>ลบตาราง</button>
+
+          {excelStatus && <p className="status-line">{excelStatus}</p>}
+
+          {(isActiveReadOnlySharedPlan || conflicts.length > 0 || examWarnings.length > 0) && (
+            <div className="weather" role="status">
+              {isActiveReadOnlySharedPlan && (
+                <p className="weather-row">
+                  <IconAnchor />
+                  ห้องนี้เป็นโหมดดูอย่างเดียว จึงเพิ่ม ลบ หรือแก้รายวิชาไม่ได้
+                </p>
+              )}
+              {conflicts.length > 0 && (
+                <p className="weather-row is-fracture">
+                  <IconNote />
+                  พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
+                </p>
+              )}
+              {examWarnings.length > 0 && (
+                <p className="weather-row is-storm">
+                  <IconStorm />
+                  พบความเสี่ยงตารางสอบ {examWarnings.length} รายการ
+                </p>
+              )}
+            </div>
+          )}
+
+          {timetableView === "grid" ? (
+            <div className="face-scroll">
+              <div className="timetable">
+                <div className="corner">วัน / เวลา</div>
+                {hours.map((hour) => (
+                  <div className="time-head" key={hour}>{String(hour).padStart(2, "0")}:00</div>
+                ))}
+                {days.map((day) => (
+                  <DayRow key={day.key} day={day} courses={courses} conflictIds={conflictIds} />
+                ))}
               </div>
             </div>
+          ) : (
+            <div className="day-list">
+              {dailyCourses.map((day) => (
+                <DayList key={day.key} day={day} conflictIds={conflictIds} />
+              ))}
+            </div>
+          )}
+        </section>
 
-            <div className="share-bar">
-              <div className="room-status">
-                <h2>ห้องตารางร่วมกัน</h2>
-                <div className={shareSession ? "room-code-card active" : "room-code-card"}>
-                  <span>{shareSession ? "รหัสห้องปัจจุบัน" : "ยังไม่ได้เข้าห้อง"}</span>
-                  <strong>{shareSession?.shareId ?? "สร้างหรือเข้าห้อง"}</strong>
+        <section className="zone" id="blocks" aria-labelledby="blocks-title">
+          <div className="zone-head">
+            <h2 id="blocks-title">รายวิชาที่บันทึก</h2>
+            <p>บล็อกทั้งหมดที่ตัดไว้ในแผ่นงานนี้ ล็อกไว้เพื่อกันไม่ให้ตัวช่วยจัดแผนสลับ section</p>
+            <div className="zone-actions">
+              <button
+                type="button"
+                className="btn btn-line"
+                onClick={() => {
+                  setEditingId(null);
+                  setForm(emptyCourse);
+                  setIsManualCourseOpen(true);
+                }}
+                disabled={!canEditActivePlan}
+              >
+                <IconPlus />
+                เพิ่มด้วยตนเอง
+              </button>
+              <button type="button" className="btn btn-line btn-fracture" onClick={removeAllCourses} disabled={courses.length === 0 || !canEditActivePlan}>
+                ลบทั้งหมด
+              </button>
+            </div>
+          </div>
+
+          {courses.length === 0 ? (
+            <p className="empty">ยังไม่มีรายวิชา ดึงรายวิชาจากเว็บหรือเพิ่มด้วยตนเองเพื่อเริ่มจัดตาราง</p>
+          ) : (
+            <div className="block-list">
+              {courses.map((course) => (
+                <article
+                  className={conflictIds.has(course.id) ? "cut-block is-fracture" : "cut-block"}
+                  key={course.id}
+                  style={{ ["--cut" as string]: course.color }}
+                >
+                  <header>
+                    <span className="cut-code">{course.code}</span>
+                    {course.locked && <span className="tag tag-anchor"><IconAnchor />ล็อก</span>}
+                    {conflictIds.has(course.id) && <span className="tag tag-fracture">ชนกัน</span>}
+                  </header>
+                  <p className="cut-name">{course.name}</p>
+                  <dl className="cut-measures">
+                    <div>
+                      <dt>เวลา</dt>
+                      <dd>{days.find((day) => day.key === course.day)?.label} {course.start}-{course.end}</dd>
+                    </div>
+                    <div>
+                      <dt>ห้อง</dt>
+                      <dd>{course.room || "-"}</dd>
+                    </div>
+                    <div>
+                      <dt>อาจารย์</dt>
+                      <dd>{course.teacher || "-"}</dd>
+                    </div>
+                    <div>
+                      <dt>หน่วยกิต</dt>
+                      <dd>{course.credits}</dd>
+                    </div>
+                  </dl>
+                  <footer>
+                    <button type="button" onClick={() => toggleCourseLocked(course.id)} disabled={!canEditActivePlan}>
+                      {course.locked ? "ปลดล็อก" : "ล็อก"}
+                    </button>
+                    <button type="button" onClick={() => editCourse(course)} disabled={!canEditActivePlan}>แก้ไข</button>
+                    <button type="button" className="is-fracture" onClick={() => removeCourse(course.id)} disabled={!canEditActivePlan}>ลบ</button>
+                  </footer>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="zone" id="planner" aria-labelledby="planner-title">
+          <div className="zone-head">
+            <h2 id="planner-title">ตัวช่วยจัดแผน</h2>
+            <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
+            <div className="zone-actions">
+              <button type="button" className="btn btn-primary" onClick={generateSchedulePlans} disabled={remoteCourseGroups.length === 0}>
+                สร้างแผนที่เป็นไปได้
+                <IconArrow />
+              </button>
+            </div>
+          </div>
+
+          <div className="bench-grid">
+            <div className="bench">
+              <h3>รายวิชาที่โหลด</h3>
+              {remoteCourseGroups.length === 0 ? (
+                <p className="empty">โหลดรายวิชา KMUTNB ก่อน แล้วเลือกวิชาที่ต้องการให้ช่วยจัด section</p>
+              ) : (
+                <div className="pick-list">
+                  {remoteCourseGroups.slice(0, 18).map((group) => (
+                    <div className="pick-row" key={group.code}>
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={plannerSelectedCodes.includes(group.code)}
+                          onChange={() => togglePlannerCode(group.code)}
+                        />
+                        <span className="check-box" aria-hidden="true" />
+                        <span className="check-text">
+                          <b>{group.code}</b>
+                          {group.name} · {group.classes.length} section
+                        </span>
+                      </label>
+                      <button type="button" className="btn btn-quiet" onClick={() => importRemoteCourseGroup(group)} disabled={!canEditActivePlan}>
+                        เพิ่ม
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <p>{shareSession ? "ส่งรหัสนี้ให้เพื่อนเพื่อเข้ามาแก้ตารางเดียวกัน" : "สร้างห้องใหม่จะได้ตารางว่างสำหรับเริ่มจัดร่วมกัน"}</p>
-                <small className="sync-note">ห้องจะถูกลบหากไม่มีการอัปเดตเกิน 30 วัน</small>
-                {shareSession && (
-                  <small className="sync-note">
-                    อัปเดตอัตโนมัติทุก 2 วินาที{shareSession.lastServerUpdatedAt ? ` · ล่าสุด ${new Date(shareSession.lastServerUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
-                  </small>
-                )}
-              </div>
+              )}
+            </div>
 
-              <div className="room-create">
-                <button type="button" className="primary" onClick={createSharedRoom}>สร้างห้องว่าง</button>
-                <small>สร้างรหัสใหม่และพาไปตารางห้องเปล่า ไม่ดึงวิชาจากตารางนี้</small>
+            <div className="bench">
+              <h3>เงื่อนไขเวลา</h3>
+              <div className="field-pair">
+                <label className="field">
+                  <span>ไม่ก่อน</span>
+                  <input type="time" value={plannerStart} onChange={(event) => setPlannerStart(event.target.value)} />
+                </label>
+                <label className="field">
+                  <span>ไม่หลัง</span>
+                  <input type="time" value={plannerEnd} onChange={(event) => setPlannerEnd(event.target.value)} />
+                </label>
               </div>
+              <p className="bench-label">เลี่ยงวัน</p>
+              <div className="day-chips">
+                {days.map((day) => (
+                  <label className="day-chip" key={day.key}>
+                    <input
+                      type="checkbox"
+                      checked={plannerAvoidDays.includes(day.key)}
+                      onChange={() => toggleAvoidDay(day.key)}
+                    />
+                    <span>{day.short}</span>
+                  </label>
+                ))}
+              </div>
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={plannerLunchBreak}
+                  onChange={(event) => setPlannerLunchBreak(event.target.checked)}
+                />
+                <span className="check-box" aria-hidden="true" />
+                <span className="check-text">ต้องมีพักเที่ยง 12:00-13:00</span>
+              </label>
+            </div>
 
+            <div className="bench">
+              <h3>แผนแนะนำ</h3>
+              {plannerStatus && <p className="status-line">{plannerStatus}</p>}
+              {generatedPlans.length === 0 ? (
+                <p className="empty">ยังไม่มีแผนที่สร้าง</p>
+              ) : (
+                <div className="plan-results">
+                  {generatedPlans.map((plan) => (
+                    <article className="plan-result" key={plan.id}>
+                      <div className="plan-score">
+                        <b>{plan.score}</b>
+                        <i>/100</i>
+                      </div>
+                      <div className="plan-body">
+                        <strong>{plan.name}</strong>
+                        <span><b>{plan.courses.length}</b> รายการ</span>
+                        <small>{plan.reasons.join(" · ")}</small>
+                      </div>
+                      <button type="button" className="btn btn-line" onClick={() => applyGeneratedPlan(plan)}>ใช้แผนนี้</button>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="zone" id="compare" aria-labelledby="compare-title">
+          <div className="zone-head">
+            <h2 id="compare-title">เปรียบเทียบ 2 แผน</h2>
+            <p>ดูคะแนนพื้นฐาน วันเรียน หน่วยกิต เวลาว่าง และรายวิชาที่ต่างกัน</p>
+          </div>
+
+          <div className="compare-bar">
+            <label className="field field-select">
+              <span>แผน A</span>
+              <select value={comparePlanA?.id ?? ""} onChange={(event) => setComparePlanAId(event.target.value)}>
+                {visiblePlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="field field-select">
+              <span>แผน B</span>
+              <select value={comparePlanB?.id ?? ""} onChange={(event) => setComparePlanBId(event.target.value)}>
+                {visiblePlans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>{plan.name}</option>
+                ))}
+              </select>
+            </label>
+            <div className="strip-actions">
+              <button type="button" className="btn btn-line" onClick={() => comparePlanA && setActivePlanId(comparePlanA.id)} disabled={!comparePlanA}>ใช้แผน A</button>
+              <button type="button" className="btn btn-line" onClick={() => comparePlanB && setActivePlanId(comparePlanB.id)} disabled={!comparePlanB}>ใช้แผน B</button>
+            </div>
+          </div>
+
+          {comparison && (
+            <table className="compare-table">
+              <caption className="sr-only">ตารางเปรียบเทียบแผน A และแผน B</caption>
+              <thead>
+                <tr>
+                  <th scope="col">ค่าที่วัด</th>
+                  <th scope="col">แผน A</th>
+                  <th scope="col">แผน B</th>
+                </tr>
+              </thead>
+              <tbody>
+                {([
+                  ["หน่วยกิต", comparison.aStats.credits, comparison.bStats.credits, "นก."],
+                  ["วันเรียน", comparison.aStats.usedDays, comparison.bStats.usedDays, "วัน"],
+                  ["เวลาว่าง", comparison.aStats.freeHours, comparison.bStats.freeHours, "ชม."],
+                  ["เวลาชน", comparison.aStats.conflicts, comparison.bStats.conflicts, "คู่"],
+                ] as [string, number, number, string][]).map(([label, aValue, bValue, unit]) => (
+                  <tr key={label}>
+                    <th scope="row">{label}</th>
+                    <td>{aValue}<i>{unit}</i></td>
+                    <td>{bValue}<i>{unit}</i></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {comparison && (
+            <div className="diff-grid">
+              <div className="bench">
+                <h3>มีเฉพาะแผน A</h3>
+                {comparison.onlyA.length === 0 ? <p className="empty">ไม่ต่างจากแผน B</p> : comparison.onlyA.map((course) => <CourseDifference key={course.id} course={course} />)}
+              </div>
+              <div className="bench">
+                <h3>มีเฉพาะแผน B</h3>
+                {comparison.onlyB.length === 0 ? <p className="empty">ไม่ต่างจากแผน A</p> : comparison.onlyB.map((course) => <CourseDifference key={course.id} course={course} />)}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <div className="zone-pair">
+          <section className="zone" id="voids" aria-labelledby="voids-title">
+            <div className="zone-head">
+              <h2 id="voids-title">เวลาว่าง</h2>
+              <p>ช่องฟ้าที่เหลือหลังตัดบล็อกในแต่ละวัน</p>
+            </div>
+            {freeSlots.length === 0 ? (
+              <p className="empty">ยังไม่มีข้อมูลเวลาว่างจากตารางปัจจุบัน</p>
+            ) : (
+              <ul className="void-list">
+                {freeSlots.map((slot) => (
+                  <li className="void-item" key={`${slot.day}-${slot.start}-${slot.end}`}>
+                    <span className="void-day">{slot.label}</span>
+                    <span className="void-span">{slot.start}–{slot.end}</span>
+                    <span className="void-len">{Math.round(slot.minutes / 60 * 10) / 10}<i>ชม.</i></span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="zone" id="exams" aria-labelledby="exams-title">
+            <div className="zone-head">
+              <h2 id="exams-title">ตารางสอบ</h2>
+              <p>วันสอบกลางภาคและปลายภาคของทุกวิชาในแผ่นงานนี้</p>
+            </div>
+            {examWarnings.length > 0 && (
+              <ul className="storm-list">
+                {examWarnings.map((warning) => (
+                  <li key={warning}>
+                    <IconStorm />
+                    {warning}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {courses.filter((course) => course.midterm || course.final).length === 0 ? (
+              <p className="empty">ยังไม่ได้กรอกเวลาสอบ</p>
+            ) : (
+              <ul className="exam-list">
+                {courses.filter((course) => course.midterm || course.final).map((course) => (
+                  <li className="exam-item" key={course.id} style={{ ["--cut" as string]: course.color }}>
+                    <span className="exam-code">{course.code}</span>
+                    <span className="exam-name">{course.name}</span>
+                    <span className="exam-when">
+                      <i>กลางภาค</i>
+                      {course.midterm ? examText(course.midterm) : "-"}
+                    </span>
+                    <span className="exam-when">
+                      <i>ปลายภาค</i>
+                      {course.final ? examText(course.final) : "-"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        <section className="zone" id="room" aria-labelledby="room-title">
+          <div className="zone-head">
+            <h2 id="room-title">ห้องตารางร่วมกัน</h2>
+            <p>ส่งรหัสห้องให้เพื่อน แล้วแก้ตารางเดียวกันจากคนละเครื่อง</p>
+          </div>
+
+          <div className="room-grid">
+            <div className={shareSession ? "room-code is-live" : "room-code"}>
+              <span className="room-code-label">{shareSession ? "รหัสห้องปัจจุบัน" : "ยังไม่ได้เข้าห้อง"}</span>
+              {shareSession ? (
+                <strong className="room-code-value">{shareSession.shareId}</strong>
+              ) : (
+                <span className="room-code-slots" aria-hidden="true">
+                  {Array.from({ length: 6 }, (_, index) => (
+                    <i key={index} />
+                  ))}
+                </span>
+              )}
+              <p>{shareSession ? "ส่งรหัสนี้ให้เพื่อนเพื่อเข้ามาแก้ตารางเดียวกัน" : "สร้างห้องใหม่จะได้ตารางว่างสำหรับเริ่มจัดร่วมกัน"}</p>
+              <p className="room-note">ห้องจะถูกลบหากไม่มีการอัปเดตเกิน 30 วัน</p>
+              {shareSession && (
+                <p className="room-note">
+                  อัปเดตอัตโนมัติทุก 2 วินาที{shareSession.lastServerUpdatedAt ? ` · ล่าสุด ${new Date(shareSession.lastServerUpdatedAt).toLocaleTimeString("th-TH")}` : ""}
+                </p>
+              )}
+            </div>
+
+            <div className="bench">
+              <h3>เข้าห้อง</h3>
+              <button type="button" className="btn btn-primary room-create" onClick={createSharedRoom}>
+                สร้างห้องว่าง
+                <IconArrow />
+              </button>
+              <p className="bench-note">สร้างรหัสใหม่และพาไปตารางห้องเปล่า ไม่ดึงวิชาจากตารางนี้</p>
               <form className="room-join" onSubmit={enterSharedRoom}>
-                <label>
-                  รหัสห้อง
+                <label className="field">
+                  <span>รหัสห้อง</span>
                   <input
                     value={roomCodeInput}
                     onChange={(event) => setRoomCodeInput(normalizeRoomCode(event.target.value))}
@@ -1961,382 +2524,345 @@ export default function Home() {
                     maxLength={64}
                   />
                 </label>
-                <button type="submit" className="secondary">เข้าห้อง</button>
+                <button type="submit" className="btn btn-line">เข้าห้อง</button>
               </form>
+            </div>
 
-              <div className="button-row">
-                <button type="button" className="ghost" onClick={copyRoomCode} disabled={!shareSession}>คัดลอกรหัสห้อง</button>
-                <button type="button" className="ghost" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
-                <button type="button" className="ghost" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
+            <div className="bench">
+              <h3>จัดการห้อง</h3>
+              <div className="room-actions">
+                <button type="button" className="btn btn-line" onClick={copyRoomCode} disabled={!shareSession}>
+                  <IconCopy />
+                  คัดลอกรหัสห้อง
+                </button>
+                <button type="button" className="btn btn-line" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
+                <button type="button" className="btn btn-line" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
               </div>
-              {shareSession?.status === "conflict" && (
-                <div className="share-conflict">
-                  <div className="share-conflict-mark" aria-hidden="true">!</div>
-                  <div className="share-conflict-copy">
-                    <strong>ห้องมีข้อมูลใหม่กว่า</strong>
-                    <span>โหลดข้อมูลล่าสุดก่อนบันทึกต่อ หรือเก็บงานที่แก้ไว้เป็นตารางส่วนตัว</span>
-                  </div>
-                  <div className="share-conflict-actions">
-                    <button type="button" className="secondary" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
-                    <button type="button" className="ghost" onClick={copyActivePlanToLocal}>เก็บเป็นตารางส่วนตัว</button>
-                  </div>
-                </div>
-              )}
-              {shareStatus && <span>{shareStatus}</span>}
+              {shareStatus && <p className="status-line">{shareStatus}</p>}
             </div>
           </div>
-          {isActiveReadOnlySharedPlan && (
-            <div className="alert">
-              ห้องนี้เป็นโหมดดูอย่างเดียว จึงเพิ่ม ลบ หรือแก้รายวิชาไม่ได้
-            </div>
-          )}
-          {conflicts.length > 0 && (
-            <div className="alert">
-              พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
-            </div>
-          )}
-          {examWarnings.length > 0 && (
-            <div className="alert danger-alert">
-              พบความเสี่ยงตารางสอบ {examWarnings.length} รายการ
-            </div>
-          )}
 
-          {timetableView === "grid" ? (
-            <div className="timetable">
-              <div className="corner">วัน / เวลา</div>
-              {hours.map((hour) => (
-                <div className="time-head" key={hour}>{String(hour).padStart(2, "0")}:00</div>
-              ))}
-              {days.map((day) => (
-                <DayRow key={day.key} day={day} courses={courses} />
-              ))}
-            </div>
-          ) : (
-            <div className="mobile-day-list">
-              {dailyCourses.map((day) => (
-                <DayList key={day.key} day={day} />
-              ))}
+          {shareSession?.status === "conflict" && (
+            <div className="room-conflict">
+              <p>
+                <IconNote />
+                <b>ห้องมีข้อมูลใหม่กว่า</b>
+                โหลดข้อมูลล่าสุดก่อนบันทึกต่อ หรือเก็บงานที่แก้ไว้เป็นตารางส่วนตัว
+              </p>
+              <div className="strip-actions">
+                <button type="button" className="btn btn-primary" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
+                <button type="button" className="btn btn-line" onClick={copyActivePlanToLocal}>เก็บเป็นตารางส่วนตัว</button>
+              </div>
             </div>
           )}
         </section>
-      </section>
+
+        <footer className="site-note">
+          <h2>หมายเหตุการใช้งาน</h2>
+          <ul>
+            <li>เว็บนี้ทำขึ้นเพื่อช่วยอำนวยความสะดวกสำหรับวางแผนการลงทะเบียนการศึกษาเท่านั้น ไม่ได้เป็นระบบของมหาวิทยาลัย</li>
+            <li>
+              ข้อมูลรายวิชานำมาจากเว็บ <a href="https://reg.kmutnb.ac.th/" target="_blank" rel="noreferrer">reg.kmutnb.ac.th</a>
+              {" "}หากข้อมูลผิดพลาดหรือไม่ตรงกัน ให้ตรวจสอบข้อมูลล่าสุดจากเว็บ
+            </li>
+          </ul>
+        </footer>
+      </main>
 
       {isManualCourseOpen && (
-        <div className="modal-backdrop" role="presentation" onClick={() => { setIsManualCourseOpen(false); setEditingId(null); setForm(emptyCourse); }}>
-          <form className="panel form modal-panel course-modal" role="dialog" aria-modal="true" aria-labelledby="manual-course-title" onSubmit={submitCourse} onClick={(event) => event.stopPropagation()}>
-            <div className="panel-title">
+        <div
+          className="scrim"
+          role="presentation"
+          onClick={() => {
+            setIsManualCourseOpen(false);
+            setEditingId(null);
+            setForm(emptyCourse);
+          }}
+        >
+          <form
+            className="dialog dialog-form"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manual-course-title"
+            onSubmit={submitCourse}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="dialog-head">
               <h2 id="manual-course-title">{editingId ? "แก้ไขรายวิชา" : "เพิ่มรายวิชาด้วยตนเอง"}</h2>
-              <button type="button" className="ghost" onClick={() => { setIsManualCourseOpen(false); setEditingId(null); setForm(emptyCourse); }}>
-                ปิด
+              <button
+                type="button"
+                className="btn btn-icon"
+                aria-label="ปิด"
+                onClick={() => {
+                  setIsManualCourseOpen(false);
+                  setEditingId(null);
+                  setForm(emptyCourse);
+                }}
+              >
+                <IconClose />
               </button>
             </div>
 
-            <label>
-              ชื่อวิชา
-              <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="เช่น การเขียนโปรแกรมเว็บ" />
-            </label>
+            <div className="dialog-body">
+              <label className="field">
+                <span>ชื่อวิชา</span>
+                <input required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="เช่น การเขียนโปรแกรมเว็บ" />
+              </label>
 
-            <div className="grid-2">
-              <label>
-                รหัสวิชา
-                <input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} placeholder="CS101" />
-              </label>
-              <label>
-                หน่วยกิต
-                <input required min="1" max="9" type="number" value={form.credits} onChange={(event) => setForm({ ...form, credits: Number(event.target.value) })} />
-              </label>
+              <div className="field-pair">
+                <label className="field">
+                  <span>รหัสวิชา</span>
+                  <input required value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} placeholder="CS101" />
+                </label>
+                <label className="field">
+                  <span>หน่วยกิต</span>
+                  <input required min="1" max="9" type="number" value={form.credits} onChange={(event) => setForm({ ...form, credits: Number(event.target.value) })} />
+                </label>
+              </div>
+
+              <div className="field-trio">
+                <label className="field field-select">
+                  <span>วันเรียน</span>
+                  <select value={form.day} onChange={(event) => setForm({ ...form, day: event.target.value as DayKey })}>
+                    {days.map((day) => (
+                      <option key={day.key} value={day.key}>{day.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>เริ่ม</span>
+                  <input required type="time" value={form.start} onChange={(event) => setForm({ ...form, start: event.target.value })} />
+                </label>
+                <label className="field">
+                  <span>สิ้นสุด</span>
+                  <input required type="time" value={form.end} onChange={(event) => setForm({ ...form, end: event.target.value })} />
+                </label>
+              </div>
+
+              <div className="field-pair">
+                <label className="field">
+                  <span>ห้องเรียน</span>
+                  <input required value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} placeholder="อาคาร 5 ห้อง 301" />
+                </label>
+                <label className="field">
+                  <span>อาจารย์</span>
+                  <input required value={form.teacher} onChange={(event) => setForm({ ...form, teacher: event.target.value })} placeholder="อ. สมชาย" />
+                </label>
+              </div>
+
+              <div className="field-pair">
+                <label className="field">
+                  <span>สอบกลางภาค</span>
+                  <input type="datetime-local" value={form.midterm} onChange={(event) => setForm({ ...form, midterm: event.target.value })} />
+                </label>
+                <label className="field">
+                  <span>สอบปลายภาค</span>
+                  <input type="datetime-local" value={form.final} onChange={(event) => setForm({ ...form, final: event.target.value })} />
+                </label>
+              </div>
+              <p className="field-hint">ช่องวันสอบใช้ตัวเลือกวันที่ของเบราว์เซอร์ ลำดับวัน/เดือน/ปีจึงเป็นไปตามภาษาของเครื่อง เว้นว่างได้ถ้ายังไม่ประกาศตารางสอบ</p>
             </div>
 
-            <div className="grid-3">
-              <label>
-                วันเรียน
-                <select value={form.day} onChange={(event) => setForm({ ...form, day: event.target.value as DayKey })}>
-                  {days.map((day) => (
-                    <option key={day.key} value={day.key}>{day.label}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                เริ่ม
-                <input required type="time" value={form.start} onChange={(event) => setForm({ ...form, start: event.target.value })} />
-              </label>
-              <label>
-                สิ้นสุด
-                <input required type="time" value={form.end} onChange={(event) => setForm({ ...form, end: event.target.value })} />
-              </label>
+            <div className="dialog-foot">
+              <button className="btn btn-primary" type="submit">
+                {editingId ? "บันทึกการแก้ไข" : "เพิ่มลงตาราง"}
+                <IconArrow />
+              </button>
             </div>
-
-            <div className="grid-2">
-              <label>
-                ห้องเรียน
-                <input required value={form.room} onChange={(event) => setForm({ ...form, room: event.target.value })} placeholder="อาคาร 5 ห้อง 301" />
-              </label>
-              <label>
-                อาจารย์
-                <input required value={form.teacher} onChange={(event) => setForm({ ...form, teacher: event.target.value })} placeholder="อ. สมชาย" />
-              </label>
-            </div>
-
-            <label>
-              สอบกลางภาค
-              <input type="datetime-local" value={form.midterm} onChange={(event) => setForm({ ...form, midterm: event.target.value })} />
-            </label>
-            <label>
-              สอบปลายภาค
-              <input type="datetime-local" value={form.final} onChange={(event) => setForm({ ...form, final: event.target.value })} />
-            </label>
-
-            <button className="primary" type="submit">{editingId ? "บันทึกการแก้ไข" : "เพิ่มลงตาราง"}</button>
           </form>
         </div>
       )}
 
       {isCourseBrowserOpen && (
-        <div className="modal-backdrop" role="presentation" onClick={() => setIsCourseBrowserOpen(false)}>
-          <section className="remote modal-panel" role="dialog" aria-modal="true" aria-labelledby="course-browser-title" onClick={(event) => event.stopPropagation()}>
-            <div className="remote-head">
+        <div className="scrim" role="presentation" onClick={() => setIsCourseBrowserOpen(false)}>
+          <section
+            className="dialog dialog-wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="course-browser-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="dialog-head">
               <div>
                 <h2 id="course-browser-title">ข้อมูลรายวิชา KMUTNB</h2>
                 <p>เลือกตัวกรองแล้วกดโหลด ระบบจะดึงข้อมูลจาก regapi ตามค่าที่กำหนด</p>
               </div>
-              <button type="button" className="ghost" onClick={() => setIsCourseBrowserOpen(false)}>ปิด</button>
-            </div>
-            <div className="remote-tools">
-              <label>
-                ปีการศึกษา
-                <input
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={academicYear}
-                  onChange={(event) => setAcademicYear(event.target.value.replace(/\D/g, ""))}
-                  placeholder="2569"
-                />
-              </label>
-              <label>
-                ภาคเรียน
-                <select value={semester} onChange={(event) => setSemester(event.target.value)}>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                </select>
-              </label>
-              <label>
-                วิทยาเขต
-                <select value={campusId} onChange={(event) => setCampusId(event.target.value)}>
-                  {filterOptions.campuses.map((option) => (
-                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                ประเภทนักศึกษา
-                <select value={divisionCode} onChange={(event) => setDivisionCode(event.target.value)}>
-                  <option value="">ทั้งหมด</option>
-                  {filterOptions.divisions.map((option) => (
-                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                ระดับการศึกษา
-                <select value={levelId} onChange={(event) => setLevelId(event.target.value)}>
-                  {filterOptions.levels.map((option) => (
-                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                คณะ
-                <select value={facultyId} onChange={(event) => setFacultyId(event.target.value)}>
-                  <option value="">ทั้งหมด</option>
-                  {filterOptions.faculties.map((option) => (
-                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                ภาควิชา
-                <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} disabled={!facultyId}>
-                  <option value="">ทั้งหมด</option>
-                  {departmentOptions.map((option) => (
-                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                กลุ่มเรียน
-                <select value={classSet} onChange={(event) => setClassSet(event.target.value)}>
-                  <option value="">ทั้งหมด</option>
-                  {filterOptions.classSets.map((option) => (
-                    <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                รหัสวิชา
-                <input
-                  value={courseSearch}
-                  onChange={(event) => setCourseSearch(event.target.value)}
-                  placeholder="เช่น 040613100"
-                />
-              </label>
-              <button className="primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
-                {isLoadingClasses ? "กำลังโหลด..." : "โหลดรายวิชา KMUTNB"}
+              <button type="button" className="btn btn-icon" aria-label="ปิด" onClick={() => setIsCourseBrowserOpen(false)}>
+                <IconClose />
               </button>
             </div>
-            {filterError && <div className="alert">{filterError}</div>}
-            {classError && <div className="alert">{classError}</div>}
-            <div ref={remoteResultsRef}>
-              {remoteClasses.length > 0 && (
-                <p className="remote-count">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
-              )}
+
+            <div className="dialog-body">
+              <div className="filter-grid">
+                <label className="field">
+                  <span>ปีการศึกษา</span>
+                  <input
+                    inputMode="numeric"
+                    maxLength={4}
+                    value={academicYear}
+                    onChange={(event) => setAcademicYear(event.target.value.replace(/\D/g, ""))}
+                    placeholder="2569"
+                  />
+                </label>
+                <label className="field field-select">
+                  <span>ภาคเรียน</span>
+                  <select value={semester} onChange={(event) => setSemester(event.target.value)}>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </label>
+                <label className="field field-select">
+                  <span>วิทยาเขต</span>
+                  <select value={campusId} onChange={(event) => setCampusId(event.target.value)}>
+                    {filterOptions.campuses.map((option) => (
+                      <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field field-select">
+                  <span>ประเภทนักศึกษา</span>
+                  <select value={divisionCode} onChange={(event) => setDivisionCode(event.target.value)}>
+                    <option value="">ทั้งหมด</option>
+                    {filterOptions.divisions.map((option) => (
+                      <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field field-select">
+                  <span>ระดับการศึกษา</span>
+                  <select value={levelId} onChange={(event) => setLevelId(event.target.value)}>
+                    {filterOptions.levels.map((option) => (
+                      <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field field-select">
+                  <span>คณะ</span>
+                  <select value={facultyId} onChange={(event) => setFacultyId(event.target.value)}>
+                    <option value="">ทั้งหมด</option>
+                    {filterOptions.faculties.map((option) => (
+                      <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field field-select">
+                  <span>ภาควิชา</span>
+                  <select value={departmentId} onChange={(event) => setDepartmentId(event.target.value)} disabled={!facultyId}>
+                    <option value="">ทั้งหมด</option>
+                    {departmentOptions.map((option) => (
+                      <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field field-select">
+                  <span>กลุ่มเรียน</span>
+                  <select value={classSet} onChange={(event) => setClassSet(event.target.value)}>
+                    <option value="">ทั้งหมด</option>
+                    {filterOptions.classSets.map((option) => (
+                      <option key={comboValue(option)} value={comboValue(option)}>{option.comboshow}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>รหัสวิชา</span>
+                  <input
+                    value={courseSearch}
+                    onChange={(event) => setCourseSearch(event.target.value)}
+                    placeholder="เช่น 040613100"
+                  />
+                </label>
+              </div>
+
+              <div className="dialog-run">
+                <button className="btn btn-primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
+                  {isLoadingClasses ? "กำลังโหลด..." : "โหลดรายวิชา KMUTNB"}
+                  <IconArrow />
+                </button>
+                <div ref={remoteResultsRef} className="dialog-run-status">
+                  {remoteClasses.length > 0 && (
+                    <p className="status-line">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
+                  )}
+                </div>
+              </div>
+
+              {filterError && <p className="status-line is-fracture">{filterError}</p>}
+              {classError && <p className="status-line is-fracture">{classError}</p>}
               {hasLoadedClasses && !classError && remoteClasses.length === 0 && (
                 <p className="empty">ไม่พบรายวิชาตามเงื่อนไขที่เลือก ลองปรับคณะ ภาควิชา หรือรหัสวิชาแล้วโหลดอีกครั้ง</p>
               )}
               {remoteClasses.length > 0 && filteredRemoteClasses.length === 0 && (
                 <p className="empty">ไม่พบรายวิชาที่ตรงกับรหัสวิชา “{courseSearch}”</p>
               )}
-            </div>
-            {filteredRemoteClasses.length > 0 && (
-              <ul className="remote-list">
-                {filteredRemoteClasses.map((remoteClass) => {
-                  const parsedTime = parseClassTime(remoteClass.classtime);
-                  const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
 
-                  return (
-                    <li className="remote-item" key={remoteClass.classid}>
-                      <div className="remote-item-title">
-                        <span className="remote-item-code">{remoteClass.coursecode}</span>
-                        <span className="remote-item-section">S.{remoteClass.sectioncode}</span>
-                      </div>
-                      <div className="remote-item-name">{remoteClass.coursename}</div>
-                      <dl className="remote-item-meta">
-                        <div>
-                          <dt>เวลา</dt>
-                          <dd>{dayLabel} {parsedTime.start}-{parsedTime.end}</dd>
+              {filteredRemoteClasses.length > 0 && (
+                <ul className="quarry-face-list">
+                  {filteredRemoteClasses.map((remoteClass) => {
+                    const parsedTime = parseClassTime(remoteClass.classtime);
+                    const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
+                    const isPicked = plannerSelectedCodes.includes(remoteClass.coursecode);
+
+                    return (
+                      <li className="raw-block" key={remoteClass.classid}>
+                        <div className="raw-head">
+                          <span className="raw-code">{remoteClass.coursecode}</span>
+                          <span className="raw-section">S.{remoteClass.sectioncode}</span>
                         </div>
-                        <div>
-                          <dt>ห้อง</dt>
-                          <dd>{parsedTime.room || "-"}</dd>
+                        <p className="raw-name">{remoteClass.coursename}</p>
+                        <dl className="cut-measures">
+                          <div>
+                            <dt>เวลา</dt>
+                            <dd>{dayLabel} {parsedTime.start}-{parsedTime.end}</dd>
+                          </div>
+                          <div>
+                            <dt>ห้อง</dt>
+                            <dd>{parsedTime.room || "-"}</dd>
+                          </div>
+                          <div>
+                            <dt>อาจารย์</dt>
+                            <dd>{teacherName(remoteClass) || "-"}</dd>
+                          </div>
+                          <div>
+                            <dt>หน่วยกิต</dt>
+                            <dd>{remoteClass.courseunit}</dd>
+                          </div>
+                        </dl>
+                        <div className="raw-actions">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={() => importRemoteClass(remoteClass)}
+                            disabled={!canEditActivePlan}
+                          >
+                            นำเข้าลงตาราง
+                          </button>
+                          <button
+                            type="button"
+                            className={isPicked ? "btn btn-line is-on" : "btn btn-line"}
+                            onClick={() => togglePlannerCode(remoteClass.coursecode)}
+                          >
+                            {isPicked ? "เอาออกจากตัวช่วยจัดแผน" : "เลือกเข้าตัวช่วยจัดแผน"}
+                          </button>
                         </div>
-                        <div>
-                          <dt>อาจารย์</dt>
-                          <dd>{teacherName(remoteClass) || "-"}</dd>
-                        </div>
-                        <div>
-                          <dt>หน่วยกิต</dt>
-                          <dd>{remoteClass.courseunit}</dd>
-                        </div>
-                      </dl>
-                      <button
-                        type="button"
-                        className="remote-item-import"
-                        onClick={() => importRemoteClass(remoteClass)}
-                        disabled={!canEditActivePlan}
-                      >
-                        นำเข้าลงตาราง
-                      </button>
-                      <button
-                        type="button"
-                        className="remote-item-select"
-                        onClick={() => togglePlannerCode(remoteClass.coursecode)}
-                      >
-                        {plannerSelectedCodes.includes(remoteClass.coursecode) ? "เอาออกจากตัวช่วยจัดแผน" : "เลือกเข้าตัวช่วยจัดแผน"}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           </section>
         </div>
       )}
-
-      <section className="lower">
-        <div className="panel">
-          <div className="panel-title course-list-head">
-            <h2>รายวิชาที่บันทึก</h2>
-            <div className="button-row">
-              <button type="button" className="primary" onClick={() => setIsCourseBrowserOpen(true)}>ดึงรายวิชาจากเว็บ</button>
-              <button type="button" className="secondary" onClick={() => { setEditingId(null); setForm(emptyCourse); setIsManualCourseOpen(true); }} disabled={!canEditActivePlan}>เพิ่มด้วยตนเอง</button>
-              <button type="button" className="ghost danger" onClick={removeAllCourses} disabled={courses.length === 0 || !canEditActivePlan}>ลบทั้งหมด</button>
-            </div>
-          </div>
-          <div className="course-list">
-            {courses.length === 0 ? (
-              <p className="empty">ยังไม่มีรายวิชา ดึงรายวิชาจากเว็บหรือเพิ่มด้วยตนเองเพื่อเริ่มจัดตาราง</p>
-            ) : (
-              courses.map((course) => (
-                <article className="course-card" key={course.id} style={{ borderColor: course.color }}>
-                  <div>
-                    <strong>{course.code} · {course.name}</strong>
-                    <span>{days.find((day) => day.key === course.day)?.label} {course.start}-{course.end} · {course.room}</span>
-                    <span>{course.teacher} · {course.credits} หน่วยกิต</span>
-                  </div>
-                  <div className="actions">
-                    <button type="button" className={course.locked ? "secondary" : ""} onClick={() => toggleCourseLocked(course.id)} disabled={!canEditActivePlan}>
-                      {course.locked ? "ปลดล็อก" : "ล็อก"}
-                    </button>
-                    <button type="button" onClick={() => editCourse(course)} disabled={!canEditActivePlan}>แก้ไข</button>
-                    <button type="button" className="danger" onClick={() => removeCourse(course.id)} disabled={!canEditActivePlan}>ลบ</button>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="panel">
-          <h2>เวลาว่าง</h2>
-          <div className="free-list">
-            {freeSlots.length === 0 ? (
-              <p className="empty">ยังไม่มีข้อมูลเวลาว่างจากตารางปัจจุบัน</p>
-            ) : (
-              freeSlots.map((slot) => (
-                <div className="free-item" key={`${slot.day}-${slot.start}-${slot.end}`}>
-                  <strong>{slot.label}</strong>
-                  <span>{slot.start}-{slot.end}</span>
-                  <small>{Math.round(slot.minutes / 60 * 10) / 10} ชม.</small>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="panel">
-          <h2>ตารางสอบ</h2>
-          {examWarnings.length > 0 && (
-            <div className="exam-warnings">
-              {examWarnings.map((warning) => (
-                <div className="exam-warning" key={warning}>{warning}</div>
-              ))}
-            </div>
-          )}
-          <div className="exam-list">
-            {courses.filter((course) => course.midterm || course.final).length === 0 ? (
-              <p className="empty">ยังไม่ได้กรอกเวลาสอบ</p>
-            ) : (
-              courses.map((course) => (
-                <div className="exam-item" key={course.id}>
-                  <strong>{course.code}</strong>
-                  <span>{course.name}</span>
-                  <span>กลางภาค: {course.midterm ? new Date(course.midterm).toLocaleString("th-TH") : "-"}</span>
-                  <span>ปลายภาค: {course.final ? new Date(course.final).toLocaleString("th-TH") : "-"}</span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-    </main>
+    </div>
   );
 }
 
-function DayRow({ day, courses }: { day: (typeof days)[number]; courses: Course[] }) {
+
+function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; courses: Course[]; conflictIds: Set<string> }) {
   const dayStart = hours[0] * 60;
   const dayEnd = (hours[hours.length - 1] + 1) * 60;
   const dayMinutes = dayEnd - dayStart;
-  const laneHeight = 76;
+  const laneHeight = 88;
   const laneGap = 5;
   const lanes: number[] = [];
   const positionedCourses = courses
@@ -2362,11 +2888,14 @@ function DayRow({ day, courses }: { day: (typeof days)[number]; courses: Course[
       };
     });
   const laneCount = Math.max(1, lanes.length);
-  const rowHeight = Math.max(90, 12 + laneCount * laneHeight + (laneCount - 1) * laneGap);
+  const rowHeight = positionedCourses.length === 0 ? 62 : 12 + laneCount * laneHeight + (laneCount - 1) * laneGap;
 
   return (
     <>
-      <div className="day-label">{day.label}</div>
+      <div className="day-label">
+        <b>{day.short}</b>
+        <span>{day.label}</span>
+      </div>
       <div className="day-timeline" style={{ minHeight: rowHeight }}>
         <div className="timeline-slots" aria-hidden="true">
           {hours.map((hour) => (
@@ -2374,21 +2903,27 @@ function DayRow({ day, courses }: { day: (typeof days)[number]; courses: Course[
           ))}
         </div>
         {positionedCourses.map(({ course, lane, left, width }) => (
-          <div
-            className="block"
+          <article
+            className={conflictIds.has(course.id) ? "block is-fracture" : "block"}
             key={course.id}
             style={{
-              backgroundColor: course.color,
+              ["--cut" as string]: course.color,
               left: `${left}%`,
               top: 6 + lane * (laneHeight + laneGap),
               width: `${width}%`,
             }}
           >
-            <strong>{course.code}</strong>
-            <span>{course.name}</span>
-            {course.teacher && <span>{course.teacher}</span>}
-            <small>{course.start}-{course.end}</small>
-          </div>
+            <span className="block-code">
+              {course.code}
+              {course.locked && <IconAnchor className="ico-sm" />}
+            </span>
+            <span className="block-name">{course.name}</span>
+            {course.teacher && <span className="block-teacher">{course.teacher}</span>}
+            <span className="block-time">
+              <time>{course.start}–{course.end}</time>
+              {course.room && <em>{course.room}</em>}
+            </span>
+          </article>
         ))}
       </div>
     </>
@@ -2397,39 +2932,49 @@ function DayRow({ day, courses }: { day: (typeof days)[number]; courses: Course[
 
 function CourseDifference({ course }: { course: Course }) {
   return (
-    <div className="diff-course" style={{ borderColor: course.color }}>
-      <strong>{course.code}</strong>
-      <span>{course.name}</span>
-      <small>{days.find((day) => day.key === course.day)?.label} {course.start}-{course.end}</small>
+    <div className="diff-block" style={{ ["--cut" as string]: course.color }}>
+      <span className="diff-code">{course.code}</span>
+      <span className="diff-name">{course.name}</span>
+      <span className="diff-when">
+        <b>{days.find((day) => day.key === course.day)?.label}</b>
+        <time>{course.start}–{course.end}</time>
+      </span>
     </div>
   );
 }
 
-function DayList({ day }: { day: (typeof days)[number] & { courses: Course[] } }) {
+function DayList({ day, conflictIds }: { day: (typeof days)[number] & { courses: Course[] }; conflictIds: Set<string> }) {
   return (
-    <section className="day-list-section">
-      <h3>{day.label}</h3>
+    <section className="day-strata">
+      <h3>
+        <b>{day.short}</b>
+        {day.label}
+      </h3>
       {day.courses.length === 0 ? (
-        <p className="empty">ไม่มีเรียน</p>
+        <p className="day-void">ไม่มีเรียน · ว่างทั้งวัน</p>
       ) : (
-        <div className="day-list-courses">
+        <div className="day-strata-body">
           {day.courses.map((course, index) => {
             const nextCourse = day.courses[index + 1];
             const gapMinutes = nextCourse ? toMinutes(nextCourse.start) - toMinutes(course.end) : 0;
 
             return (
               <div key={course.id}>
-                <article className="day-list-card" style={{ borderColor: course.color }}>
-                  <div>
-                    <strong>{course.code} · {course.name}</strong>
-                    <span>{course.start}-{course.end} · {course.room || "-"}</span>
-                    <small>{course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}</small>
-                  </div>
+                <article
+                  className={conflictIds.has(course.id) ? "strata-block is-fracture" : "strata-block"}
+                  style={{ ["--cut" as string]: course.color }}
+                >
+                  <span className="strata-time">{course.start}<i>{course.end}</i></span>
+                  <span className="strata-body">
+                    <b>{course.code}</b>
+                    <span>{course.name}</span>
+                    <small>{course.room || "-"} · {course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}</small>
+                  </span>
                 </article>
                 {gapMinutes > 0 && (
-                  <div className="day-gap">
-                    ว่าง {minutesToTime(toMinutes(course.end))}-{minutesToTime(toMinutes(nextCourse.start))} · {Math.round((gapMinutes / 60) * 10) / 10} ชม.
-                  </div>
+                  <p className="strata-gap">
+                    ว่าง <time>{minutesToTime(toMinutes(course.end))}–{minutesToTime(toMinutes(nextCourse.start))}</time> · <time>{Math.round((gapMinutes / 60) * 10) / 10}</time> ชม.
+                  </p>
                 )}
               </div>
             );

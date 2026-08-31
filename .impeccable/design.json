@@ -1,0 +1,560 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-31T12:00:00.000Z",
+  "title": "Design System: TableLearn",
+  "extensions": {
+    "colorMeta": {
+      "depth": {
+        "role": "neutral",
+        "displayName": "Depth Blue",
+        "canonical": "oklch(31.5% 0.093 259)",
+        "tonalRamp": ["oklch(15% 0.05 259)", "oklch(24% 0.075 259)", "oklch(33% 0.095 259)", "oklch(44% 0.1 259)", "oklch(55% 0.095 259)", "oklch(67% 0.075 259)", "oklch(81% 0.045 259)", "oklch(94% 0.018 259)"]
+      },
+      "depth-deep": {
+        "role": "neutral",
+        "displayName": "Quarry Floor",
+        "canonical": "oklch(23.5% 0.078 262)",
+        "tonalRamp": ["oklch(13% 0.045 262)", "oklch(22% 0.07 262)", "oklch(31% 0.09 262)", "oklch(42% 0.095 262)", "oklch(54% 0.09 262)", "oklch(67% 0.07 262)", "oklch(81% 0.042 262)", "oklch(94% 0.016 262)"]
+      },
+      "sky": {
+        "role": "secondary",
+        "displayName": "Sky Void",
+        "canonical": "oklch(69.5% 0.113 240)",
+        "tonalRamp": ["oklch(20% 0.055 240)", "oklch(31% 0.08 240)", "oklch(42% 0.095 240)", "oklch(53% 0.105 240)", "oklch(63% 0.112 240)", "oklch(74% 0.1 240)", "oklch(85% 0.065 240)", "oklch(95% 0.028 240)"]
+      },
+      "sky-lift": {
+        "role": "secondary",
+        "displayName": "Sky Lift (void gradient, top stop)",
+        "canonical": "oklch(73.5% 0.104 240)",
+        "tonalRamp": ["oklch(21% 0.05 240)", "oklch(32% 0.075 240)", "oklch(43% 0.09 240)", "oklch(54% 0.1 240)", "oklch(64% 0.105 240)", "oklch(75% 0.094 240)", "oklch(86% 0.06 240)", "oklch(95% 0.026 240)"]
+      },
+      "sky-deep": {
+        "role": "secondary",
+        "displayName": "Sky Deep (void gradient, bottom stop)",
+        "canonical": "oklch(65% 0.113 242)",
+        "tonalRamp": ["oklch(19% 0.055 242)", "oklch(30% 0.08 242)", "oklch(41% 0.096 242)", "oklch(52% 0.107 242)", "oklch(63% 0.113 242)", "oklch(74% 0.1 242)", "oklch(85% 0.064 242)", "oklch(95% 0.027 242)"]
+      },
+      "sky-soft": {
+        "role": "secondary",
+        "displayName": "Sky Soft (free-time gradient, open stop)",
+        "canonical": "oklch(79% 0.087 236)",
+        "tonalRamp": ["oklch(22% 0.045 236)", "oklch(33% 0.065 236)", "oklch(44% 0.078 236)", "oklch(55% 0.086 236)", "oklch(66% 0.09 236)", "oklch(77% 0.088 236)", "oklch(87% 0.058 236)", "oklch(96% 0.024 236)"]
+      },
+      "sky-pale": {
+        "role": "secondary",
+        "displayName": "Pale Air",
+        "canonical": "oklch(93.5% 0.031 240)",
+        "tonalRamp": ["oklch(22% 0.03 240)", "oklch(33% 0.032 240)", "oklch(45% 0.033 240)", "oklch(57% 0.033 240)", "oklch(68% 0.033 240)", "oklch(79% 0.032 240)", "oklch(88% 0.031 240)", "oklch(96% 0.02 240)"]
+      },
+      "quarry": {
+        "role": "primary",
+        "displayName": "Quarry Blue",
+        "canonical": "oklch(45.5% 0.132 258)",
+        "tonalRamp": ["oklch(17% 0.06 258)", "oklch(26% 0.09 258)", "oklch(35% 0.115 258)", "oklch(45% 0.132 258)", "oklch(56% 0.125 258)", "oklch(68% 0.1 258)", "oklch(81% 0.062 258)", "oklch(94% 0.024 258)"]
+      },
+      "cumulus": {
+        "role": "neutral",
+        "displayName": "Cumulus Stone",
+        "canonical": "oklch(97% 0.004 250)",
+        "tonalRamp": ["oklch(18% 0.006 250)", "oklch(30% 0.006 250)", "oklch(42% 0.006 250)", "oklch(54% 0.006 250)", "oklch(66% 0.005 250)", "oklch(78% 0.005 250)", "oklch(89% 0.004 250)", "oklch(97% 0.004 250)"]
+      },
+      "mist": {
+        "role": "neutral",
+        "displayName": "Mist Recess",
+        "canonical": "oklch(93.5% 0.006 250)",
+        "tonalRamp": ["oklch(18% 0.008 250)", "oklch(30% 0.008 250)", "oklch(42% 0.008 250)", "oklch(54% 0.007 250)", "oklch(66% 0.007 250)", "oklch(78% 0.006 250)", "oklch(88% 0.006 250)", "oklch(96% 0.005 250)"]
+      },
+      "white": {
+        "role": "neutral",
+        "displayName": "White",
+        "canonical": "oklch(100% 0 0)",
+        "tonalRamp": ["oklch(18% 0 0)", "oklch(30% 0 0)", "oklch(42% 0 0)", "oklch(54% 0 0)", "oklch(66% 0 0)", "oklch(78% 0 0)", "oklch(90% 0 0)", "oklch(100% 0 0)"],
+        "note": "The one colour deliberately left as a literal in the stylesheet rather than routed through a custom property: pure white is self-describing, and the two `inset 0 1px 0 #ffffff` cut highlights read as exact CSS that way. Every other colour in globals.css is a :root token."
+      },
+      "stone-base": {
+        "role": "neutral",
+        "displayName": "Stone Base (cut-block gradient, bottom stop)",
+        "canonical": "oklch(95% 0.005 260)",
+        "tonalRamp": ["oklch(18% 0.007 260)", "oklch(30% 0.007 260)", "oklch(42% 0.007 260)", "oklch(54% 0.006 260)", "oklch(66% 0.006 260)", "oklch(78% 0.006 260)", "oklch(89% 0.005 260)", "oklch(97% 0.004 260)"]
+      },
+      "stone-face": {
+        "role": "neutral",
+        "displayName": "Stone Face (week-block gradient, bottom stop)",
+        "canonical": "oklch(93.5% 0.008 253)",
+        "tonalRamp": ["oklch(18% 0.01 253)", "oklch(30% 0.011 253)", "oklch(42% 0.011 253)", "oklch(54% 0.01 253)", "oklch(66% 0.009 253)", "oklch(78% 0.009 253)", "oklch(88% 0.008 253)", "oklch(96% 0.005 253)"]
+      },
+      "placeholder-ink": {
+        "role": "neutral",
+        "displayName": "Placeholder Ink",
+        "canonical": "oklch(52% 0.049 265)",
+        "tonalRamp": ["oklch(17% 0.03 265)", "oklch(27% 0.042 265)", "oklch(38% 0.048 265)", "oklch(52% 0.049 265)", "oklch(64% 0.045 265)", "oklch(75% 0.038 265)", "oklch(86% 0.026 265)", "oklch(95% 0.012 265)"]
+      },
+      "saw-line": {
+        "role": "neutral",
+        "displayName": "Saw Silver",
+        "canonical": "oklch(83% 0.011 253)",
+        "tonalRamp": ["oklch(18% 0.012 253)", "oklch(30% 0.013 253)", "oklch(42% 0.013 253)", "oklch(54% 0.013 253)", "oklch(66% 0.012 253)", "oklch(78% 0.012 253)", "oklch(88% 0.01 253)", "oklch(96% 0.006 253)"]
+      },
+      "thunder": {
+        "role": "neutral",
+        "displayName": "Thunder Gray",
+        "canonical": "oklch(58% 0.014 253)",
+        "tonalRamp": ["oklch(18% 0.015 253)", "oklch(29% 0.016 253)", "oklch(40% 0.016 253)", "oklch(51% 0.015 253)", "oklch(63% 0.014 253)", "oklch(75% 0.013 253)", "oklch(86% 0.011 253)", "oklch(95% 0.007 253)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Depth Ink",
+        "canonical": "oklch(31.5% 0.093 259)",
+        "tonalRamp": ["oklch(15% 0.05 259)", "oklch(24% 0.075 259)", "oklch(33% 0.095 259)", "oklch(44% 0.1 259)", "oklch(55% 0.095 259)", "oklch(67% 0.075 259)", "oklch(81% 0.045 259)", "oklch(94% 0.018 259)"]
+      },
+      "fracture": {
+        "role": "tertiary",
+        "displayName": "Fracture Red",
+        "canonical": "oklch(51% 0.166 33)",
+        "tonalRamp": ["oklch(18% 0.07 33)", "oklch(28% 0.105 33)", "oklch(39% 0.14 33)", "oklch(51% 0.166 33)", "oklch(62% 0.15 33)", "oklch(74% 0.115 33)", "oklch(85% 0.07 33)", "oklch(95% 0.028 33)"]
+      },
+      "fracture-ink": {
+        "role": "tertiary",
+        "displayName": "Fracture Ink",
+        "canonical": "oklch(42% 0.135 34)",
+        "tonalRamp": ["oklch(16% 0.06 34)", "oklch(25% 0.095 34)", "oklch(34% 0.12 34)", "oklch(42% 0.135 34)", "oklch(55% 0.14 34)", "oklch(69% 0.115 34)", "oklch(83% 0.07 34)", "oklch(94% 0.028 34)"]
+      },
+      "fracture-ink-soft": {
+        "role": "tertiary",
+        "displayName": "Fracture Ink Soft",
+        "canonical": "oklch(44.5% 0.115 35)",
+        "tonalRamp": ["oklch(17% 0.052 35)", "oklch(26% 0.082 35)", "oklch(35% 0.103 35)", "oklch(44.5% 0.115 35)", "oklch(57% 0.118 35)", "oklch(70% 0.098 35)", "oklch(84% 0.06 35)", "oklch(95% 0.024 35)"]
+      },
+      "fracture-ink-deep": {
+        "role": "tertiary",
+        "displayName": "Fracture Ink Deep",
+        "canonical": "oklch(38.5% 0.122 34)",
+        "tonalRamp": ["oklch(15% 0.055 34)", "oklch(23% 0.088 34)", "oklch(31% 0.11 34)", "oklch(38.5% 0.122 34)", "oklch(52% 0.13 34)", "oklch(67% 0.108 34)", "oklch(82% 0.066 34)", "oklch(94% 0.026 34)"]
+      },
+      "storm-ink": {
+        "role": "tertiary",
+        "displayName": "Storm Ink",
+        "canonical": "oklch(33% 0.031 247)",
+        "tonalRamp": ["oklch(15% 0.026 247)", "oklch(24% 0.03 247)", "oklch(33% 0.031 247)", "oklch(45% 0.031 247)", "oklch(57% 0.03 247)", "oklch(70% 0.028 247)", "oklch(83% 0.022 247)", "oklch(94% 0.012 247)"]
+      },
+      "on-depth-soft": {
+        "role": "neutral",
+        "displayName": "On Depth Soft",
+        "canonical": "oklch(82% 0.045 250)",
+        "tonalRamp": ["oklch(20% 0.03 250)", "oklch(31% 0.042 250)", "oklch(43% 0.05 250)", "oklch(54% 0.052 250)", "oklch(65% 0.052 250)", "oklch(76% 0.05 250)", "oklch(86% 0.042 250)", "oklch(95% 0.02 250)"]
+      },
+      "on-depth-quiet": {
+        "role": "neutral",
+        "displayName": "On Depth Quiet",
+        "canonical": "oklch(70% 0.045 253)",
+        "tonalRamp": ["oklch(19% 0.03 253)", "oklch(30% 0.042 253)", "oklch(41% 0.05 253)", "oklch(52% 0.052 253)", "oklch(63% 0.05 253)", "oklch(74% 0.044 253)", "oklch(85% 0.034 253)", "oklch(95% 0.016 253)"]
+      },
+      "on-depth-note": {
+        "role": "neutral",
+        "displayName": "On Depth Note",
+        "canonical": "oklch(85% 0.033 250)",
+        "tonalRamp": ["oklch(21% 0.022 250)", "oklch(32% 0.03 250)", "oklch(44% 0.036 250)", "oklch(55% 0.038 250)", "oklch(66% 0.038 250)", "oklch(77% 0.036 250)", "oklch(87% 0.031 250)", "oklch(96% 0.015 250)"]
+      },
+      "cut-ink": {
+        "role": "neutral",
+        "displayName": "Cut Ink (pigment darkening partner)",
+        "canonical": "oklch(23% 0.062 253)",
+        "tonalRamp": ["oklch(13% 0.036 253)", "oklch(23% 0.062 253)", "oklch(33% 0.076 253)", "oklch(44% 0.08 253)", "oklch(56% 0.075 253)", "oklch(68% 0.06 253)", "oklch(82% 0.036 253)", "oklch(94% 0.014 253)"]
+      },
+      "on-depth-off": {
+        "role": "neutral",
+        "displayName": "On Depth Off (disabled on the dark ground)",
+        "canonical": "oklch(74% 0.036 253)",
+        "tonalRamp": ["oklch(20% 0.024 253)", "oklch(31% 0.033 253)", "oklch(43% 0.04 253)", "oklch(54% 0.042 253)", "oklch(65% 0.04 253)", "oklch(76% 0.036 253)", "oklch(87% 0.027 253)", "oklch(96% 0.013 253)"]
+      },
+      "storm": {
+        "role": "tertiary",
+        "displayName": "Thunder Slate",
+        "canonical": "oklch(39% 0.032 250)",
+        "tonalRamp": ["oklch(16% 0.028 250)", "oklch(27% 0.032 250)", "oklch(39% 0.032 250)", "oklch(50% 0.031 250)", "oklch(62% 0.03 250)", "oklch(74% 0.028 250)", "oklch(85% 0.022 250)", "oklch(95% 0.012 250)"]
+      },
+      "cut-verdigris": {
+        "role": "tertiary",
+        "displayName": "Verdigris (course pigment 2 of 7)",
+        "canonical": "oklch(45% 0.088 178)",
+        "tonalRamp": ["oklch(17% 0.04 178)", "oklch(26% 0.06 178)", "oklch(35% 0.075 178)", "oklch(45% 0.088 178)", "oklch(56% 0.085 178)", "oklch(68% 0.07 178)", "oklch(81% 0.045 178)", "oklch(94% 0.018 178)"]
+      },
+      "cut-oxide": {
+        "role": "tertiary",
+        "displayName": "Oxide Rust (course pigment 3 of 7)",
+        "canonical": "oklch(48% 0.132 42)",
+        "tonalRamp": ["oklch(17% 0.055 42)", "oklch(27% 0.085 42)", "oklch(37% 0.115 42)", "oklch(48% 0.132 42)", "oklch(60% 0.12 42)", "oklch(72% 0.092 42)", "oklch(84% 0.056 42)", "oklch(95% 0.022 42)"]
+      },
+      "cut-amethyst": {
+        "role": "tertiary",
+        "displayName": "Amethyst Seam (course pigment 4 of 7)",
+        "canonical": "oklch(43% 0.163 294)",
+        "tonalRamp": ["oklch(17% 0.07 294)", "oklch(26% 0.11 294)", "oklch(34% 0.14 294)", "oklch(43% 0.163 294)", "oklch(55% 0.15 294)", "oklch(68% 0.115 294)", "oklch(81% 0.07 294)", "oklch(94% 0.028 294)"]
+      },
+      "cut-cobalt": {
+        "role": "tertiary",
+        "displayName": "Cobalt Face (course pigment 5 of 7)",
+        "canonical": "oklch(48% 0.111 243)",
+        "tonalRamp": ["oklch(18% 0.05 243)", "oklch(27% 0.075 243)", "oklch(37% 0.096 243)", "oklch(48% 0.111 243)", "oklch(59% 0.105 243)", "oklch(71% 0.085 243)", "oklch(83% 0.052 243)", "oklch(94% 0.021 243)"]
+      },
+      "cut-brass": {
+        "role": "tertiary",
+        "displayName": "Brass Strata (course pigment 6 of 7)",
+        "canonical": "oklch(48% 0.083 96)",
+        "tonalRamp": ["oklch(17% 0.036 96)", "oklch(27% 0.055 96)", "oklch(37% 0.072 96)", "oklch(48% 0.083 96)", "oklch(60% 0.08 96)", "oklch(72% 0.065 96)", "oklch(84% 0.04 96)", "oklch(95% 0.016 96)"]
+      },
+      "cut-garnet": {
+        "role": "tertiary",
+        "displayName": "Garnet Vein (course pigment 7 of 7)",
+        "canonical": "oklch(48% 0.142 5)",
+        "tonalRamp": ["oklch(18% 0.06 5)", "oklch(27% 0.095 5)", "oklch(37% 0.125 5)", "oklch(48% 0.142 5)", "oklch(60% 0.13 5)", "oklch(72% 0.1 5)", "oklch(84% 0.06 5)", "oklch(95% 0.024 5)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Quarry Stencil",
+        "purpose": "Saira Stencil One at 30px. The wordmark and nothing else. Latin-only, so it can never carry Thai copy."
+      },
+      "mark-mobile": {
+        "displayName": "Quarry Stencil (mobile)",
+        "purpose": "The same wordmark at 26px below 900px. The only responsive step in the type ramp."
+      },
+      "headline": {
+        "displayName": "Zone Head",
+        "purpose": "Chakra Petch 700. Zone titles at clamp(19px, 1.5vw, 24px)."
+      },
+      "dialog-title": {
+        "displayName": "Dialog Head",
+        "purpose": "Chakra Petch 700 at 18px. The head of a modal -- heavier than a zone title at a smaller size, because a dialog has no rail to anchor it."
+      },
+      "title": {
+        "displayName": "Block Name",
+        "purpose": "Chakra Petch 600 at 14.5px. Course names on cut blocks; the readout plan name runs 17px/600 and week-grid block names 12.5px/600."
+      },
+      "body": {
+        "displayName": "Anuphan Text",
+        "purpose": "Anuphan 400 at 15px. The base for all Thai prose."
+      },
+      "body-small": {
+        "displayName": "Anuphan Note",
+        "purpose": "Anuphan 400 at 13.5px. Descriptive prose under a zone title, capped at 68ch."
+      },
+      "meta": {
+        "displayName": "Anuphan Meta",
+        "purpose": "Anuphan 400 at 12.5px. Measures, hints, and footnotes -- the floor for Thai prose; below this the ramp is labels only."
+      },
+      "label": {
+        "displayName": "Industrial Label",
+        "purpose": "Chakra Petch 600 at 11px / 0.12em. Field and bench labels."
+      },
+      "section-label": {
+        "displayName": "Section Eyebrow",
+        "purpose": "Chakra Petch 600 at 12px / 0.14em. The eyebrow over a subsection, in quarry blue on stone or sky on depth; its 10.5px sibling runs the same tracking inside cards and the readout."
+      },
+      "numeric": {
+        "displayName": "Measure Mono",
+        "purpose": "Azeret Mono with tabular figures. Numerals, times, course codes, room codes ONLY -- Azeret carries no Thai glyphs."
+      },
+      "numeric-lead": {
+        "displayName": "Lead Numeral",
+        "purpose": "Azeret Mono 700 at clamp(22px, 3vw, 30px) / 0.12em. The one numeral that is a headline: the shared-room code, tracked out so it can be read aloud and typed by a friend. Two 19px/700 steps stay off-ramp on purpose -- the plan score (mono) and the week grid's day numeral (Chakra Petch) -- as single-instance display figures inside their own components."
+      }
+    },
+    "shadows": [
+      {
+        "name": "cut-relief",
+        "value": "drop-shadow(0 2px 5px rgba(6, 32, 63, 0.32))",
+        "purpose": "The only cast shadow in the system. A filter, not a box-shadow, so it follows the block's notched silhouette. Course blocks on the sky void only."
+      },
+      {
+        "name": "cut-highlight",
+        "value": "inset 0 1px 0 #ffffff",
+        "purpose": "Lit top edge of a block or cut-block card; makes the stone read as standing proud."
+      },
+      {
+        "name": "hairline-stroke",
+        "value": "inset 0 0 0 1px #c3cad2",
+        "purpose": "Universal edge for fields, plan results, and raw blocks. Replaces borders, which would leave a chamfered corner open."
+      },
+      {
+        "name": "focus-stroke",
+        "value": "inset 0 0 0 2px #1d5aa8",
+        "purpose": "Field focus. Doubles the hairline and drops the native outline."
+      },
+      {
+        "name": "fracture-ring",
+        "value": "inset 0 0 0 1px #c2381f",
+        "purpose": "Ring around a colliding block and the shared-room conflict panel."
+      },
+      {
+        "name": "canvas-cut-relief",
+        "value": "shadowColor rgba(6, 32, 63, 0.34) / blur 6 / offsetY 2",
+        "purpose": "The exported PNG's equivalent of cut-relief, painted on canvas. Keep in sync with the CSS."
+      }
+    ],
+    "motion": [
+      {
+        "name": "cut-in",
+        "value": "0.42s cubic-bezier(0.16, 1, 0.3, 1) both — from { opacity: 0; transform: translateY(-3px) }",
+        "purpose": "The cut. Fires on mount for every course block, so switching plans visibly re-cuts the whole week face."
+      },
+      {
+        "name": "saw-pass",
+        "value": "0.52s cubic-bezier(0.5, 0, 0.2, 1) both — a saw-silver light band sweeping translateX(-100%) to translateX(100%)",
+        "purpose": "The blade. Paired with cut-in on the block's ::after. Removed entirely under prefers-reduced-motion."
+      },
+      {
+        "name": "dialog-in",
+        "value": "0.24s cubic-bezier(0.16, 1, 0.3, 1) both — 10px rise and fade",
+        "purpose": "Snap-and-settle entrance for dialogs, on the same easing as the cut."
+      },
+      {
+        "name": "scrim-in",
+        "value": "0.18s ease-out both — opacity fade",
+        "purpose": "Dialog scrim only."
+      },
+      {
+        "name": "state-change",
+        "value": "0.14s linear",
+        "purpose": "The system default and its only other motion: background-color and color transitions on every control. Never transform, never a lift."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce) { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important } + .block::after { display: none }",
+        "purpose": "Every animation and transition collapses; the saw sweep is removed, not merely shortened."
+      }
+    ],
+    "breakpoints": [
+      { "name": "rail-narrow", "value": "1180px" },
+      { "name": "dock", "value": "900px" },
+      { "name": "stack", "value": "560px" }
+    ],
+    "shape": [
+      {
+        "name": "chamfer",
+        "value": "clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c))",
+        "purpose": "The only corner language. Cuts the top-left and bottom-right at 45 degrees. --c scales with the element: 16px zones/dialogs, 14px default, 12px cards, 10px readout, 9px controls, 8px fields, 4-6px small controls, 0 on icon buttons. There is no shared .chamfer class -- it was declared, applied nowhere, and deleted; this recipe is the canonical source, and every component re-declares the polygon with its own --c rather than threading a class through the markup."
+      },
+      {
+        "name": "notch",
+        "value": "clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, 0 100%)",
+        "purpose": "A single top-right cut. Reserved for anything that represents a course cut off the face: week block, strata row, saved-course card, and the active rail tab."
+      },
+      {
+        "name": "ring",
+        "value": "clip-path: polygon(evenodd, var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c), calc(var(--c) + 1px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) calc(100% - var(--c) - 1px), calc(100% - var(--c) - 1px) calc(100% - 1px), 1px calc(100% - 1px), 1px calc(var(--c) + 1px))",
+        "purpose": "A 1px outline that follows the diagonal, drawn as a filled pseudo-element with an evenodd hole. A border would leave the chamfered corner open."
+      },
+      {
+        "name": "cut-face",
+        "value": "clip-path: polygon(0 0, 100% 7px, 100% calc(100% - 7px), 0 100%) on a ::before of width var(--face, 10px)",
+        "purpose": "The trapezoid that carries a course's colour off the week grid. Not a border-left; a straight rule reads as a status bar."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The committing action. Quarry fill, chamfered, 38px tall.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">ดึงรายวิชาจากเว็บ<svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"17\" height=\"17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M5 12h13\"/><path d=\"m13 7 5 5-5 5\"/></svg></button>",
+      "css": ".ds-btn { --c: 9px; position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; min-height: 38px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.03em; line-height: 1.2; border: 0; border-radius: 0; cursor: pointer; background: transparent; color: #0d2e5e; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); transition: background-color 0.14s linear, color 0.14s linear; } .ds-btn-primary { background: #1d5aa8; color: #ffffff; } .ds-btn-primary:hover { background: #2269c0; } .ds-btn-primary:active { background: #14406f; } .ds-btn-primary:focus-visible { outline: 2px solid #1d5aa8; outline-offset: 2px; } .ds-btn-primary:disabled { background: #d6dadf; color: #565d66; cursor: not-allowed; } .ds-ico { flex: 0 0 auto; display: block; }"
+    },
+    {
+      "name": "Line Button (evenodd ring)",
+      "kind": "button",
+      "refersTo": "button-line",
+      "description": "The outlined control. Its 1px outline is a clipped pseudo-element, because a border would leave the chamfered corner open.",
+      "html": "<button class=\"ds-btn ds-btn-line\">มุมมองรายวัน</button> <button class=\"ds-btn ds-btn-line ds-is-on\">มุมมองกริด</button> <button class=\"ds-btn ds-btn-line\" disabled>ลบทั้งหมด</button>",
+      "css": ".ds-btn { --c: 9px; position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 14px; min-height: 38px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.03em; line-height: 1.2; border: 0; border-radius: 0; cursor: pointer; background: transparent; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); transition: background-color 0.14s linear, color 0.14s linear; } .ds-btn-line { color: #1d5aa8; } .ds-btn-line::before { content: \"\"; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: currentColor; clip-path: polygon(evenodd, var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c), calc(var(--c) + 1px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) calc(100% - var(--c) - 1px), calc(100% - var(--c) - 1px) calc(100% - 1px), 1px calc(100% - 1px), 1px calc(var(--c) + 1px)); } .ds-btn-line:hover:not(:disabled) { background: #dceefb; } .ds-btn-line:focus-visible { outline: 2px solid #1d5aa8; outline-offset: 2px; } .ds-btn-line.ds-is-on { background: #1d5aa8; color: #ffffff; } .ds-btn-line.ds-is-on::before { display: none; } .ds-btn-line:disabled { color: #5f6670; cursor: not-allowed; } .ds-btn-line:disabled::before { background: #c3cad2; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Text and select input. Edged with an inset stroke, never a border; focus doubles the stroke to quarry.",
+      "html": "<label class=\"ds-field\"><span>ชื่อรายวิชา</span><input type=\"text\" placeholder=\"เช่น แคลคูลัส 1\"></label><label class=\"ds-field\"><span>วัน</span><select><option>จันทร์</option><option>อังคาร</option></select></label>",
+      "css": ".ds-field { display: inline-flex; flex-direction: column; gap: 5px; min-width: 200px; margin-right: 12px; } .ds-field > span { font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: #4a5f7d; } .ds-field input, .ds-field select { --c: 8px; width: 100%; padding: 9px 11px; font-family: \"Anuphan\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 14px; color: #0d2e5e; background: #ffffff; border: 0; border-radius: 0; box-shadow: inset 0 0 0 1px #c3cad2; caret-color: #1d5aa8; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); transition: box-shadow 0.14s linear; } .ds-field select { appearance: none; padding-right: 30px; background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%231d5aa8' stroke-width='1.6'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 11px center; } .ds-field input::placeholder { color: #64758d; } .ds-field input:hover, .ds-field select:hover { box-shadow: inset 0 0 0 1px #7c828b; } .ds-field input:focus, .ds-field select:focus { outline: none; box-shadow: inset 0 0 0 2px #1d5aa8; }"
+    },
+    {
+      "name": "Day Chip",
+      "kind": "chip",
+      "refersTo": "chip-day",
+      "description": "The planner's avoid-this-day selector. Selecting a day declares it hazardous, so the on state fills fracture red.",
+      "html": "<label class=\"ds-chip\"><input type=\"checkbox\"><span>จ</span></label><label class=\"ds-chip\"><input type=\"checkbox\" checked><span>อ</span></label><label class=\"ds-chip\"><input type=\"checkbox\"><span>พ</span></label>",
+      "css": ".ds-chip { --c: 5px; display: inline-block; cursor: pointer; margin-right: 5px; } .ds-chip input { position: absolute; opacity: 0; width: 0; height: 0; } .ds-chip span { display: grid; place-items: center; min-width: 38px; height: 34px; padding: 0 8px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13px; font-weight: 600; color: #4a5f7d; background: #ffffff; border-radius: 0; box-shadow: inset 0 0 0 1px #c3cad2; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); transition: background-color 0.14s linear, color 0.14s linear; } .ds-chip:hover span { color: #1d5aa8; } .ds-chip input:checked + span { color: #ffffff; background: #c2381f; box-shadow: inset 0 0 0 1px #c2381f; } .ds-chip input:focus-visible + span { outline: 2px solid #1d5aa8; outline-offset: 2px; }"
+    },
+    {
+      "name": "Rail Nav",
+      "kind": "nav",
+      "refersTo": "rail-tab",
+      "description": "The desktop strata rail. Exactly one tab is active; the active tab is itself a block cut into the rail, notched at the top-right.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-tab ds-is-active\" href=\"#\"><svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M3 4h18v16H3Z\"/><path d=\"M3 9h18\"/><path d=\"M9 9v11\"/><path d=\"M15 9v11\"/></svg><span>หน้าตัด</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M12 3 20.5 7.5v9L12 21l-8.5-4.5v-9Z\"/><path d=\"M3.5 7.5 12 12l8.5-4.5\"/><path d=\"M12 12v9\"/></svg><span>รายวิชา</span></a><a class=\"ds-tab\" href=\"#\"><svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M6 21V4\"/><path d=\"M3 21h6\"/><path d=\"M6 4h13\"/><path d=\"M17 4v5\"/><path d=\"M14 9h6v3h-6Z\"/></svg><span>ตัวช่วยจัดแผน</span></a></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 2px; width: 244px; padding: 12px; background: linear-gradient(180deg, #14417e 0%, #0d2e5e 100%); } .ds-tab { --c: 9px; display: flex; align-items: center; gap: 10px; padding: 9px 12px; color: #e6edf6; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13.5px; font-weight: 500; letter-spacing: 0.02em; text-decoration: none; border-radius: 0; border-bottom: 1px solid rgba(35, 82, 143, 0.7); transition: background-color 0.14s linear, color 0.14s linear; } .ds-tab .ds-ico { flex: 0 0 auto; display: block; color: #4da7e6; transition: color 0.14s linear; } .ds-tab:hover { background: rgba(77, 167, 230, 0.16); } .ds-tab:focus-visible { outline: 2px solid #4da7e6; outline-offset: 2px; } .ds-tab.ds-is-active { color: #ffffff; background: #1d5aa8; border-bottom-color: #1d5aa8; clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, 0 100%); } .ds-tab.ds-is-active .ds-ico { color: #ffffff; }"
+    },
+    {
+      "name": "Cut Block (saved course)",
+      "kind": "card",
+      "refersTo": "cut-block",
+      "description": "A course held in the plan. Cumulus stone notched at the top-right, with the course colour carried only on the left cut face and the code glyph.",
+      "html": "<article class=\"ds-cut-block\" style=\"--cut:#14746a\"><header><span class=\"ds-cut-code\">040613001</span><span class=\"ds-tag ds-tag-anchor\">ล็อก</span></header><p class=\"ds-cut-name\">แคลคูลัสสำหรับวิศวกร 1</p><dl class=\"ds-measures\"><div><dt>เวลา</dt><dd>จันทร์ 09:00-12:00</dd></div><div><dt>ห้อง</dt><dd>อาคาร 78 ชั้น 4</dd></div></dl><footer><button type=\"button\" class=\"ds-cut-act\">แก้ไข</button><button type=\"button\" class=\"ds-cut-act ds-is-fracture\">ลบ</button></footer></article>",
+      "css": ".ds-cut-block { --c: 12px; position: relative; display: flex; flex-direction: column; gap: 8px; width: 280px; padding: 13px 15px 13px 22px; color: #0d2e5e; background: linear-gradient(176deg, #ffffff 0%, #eef1f5 100%); border-radius: 0; box-shadow: inset 0 1px 0 #ffffff; clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, 0 100%); } .ds-cut-block::before { content: \"\"; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: linear-gradient(90deg, transparent 9px, rgba(255,255,255,0.85) 9px), var(--cut); clip-path: polygon(0 0, 100% 7px, 100% calc(100% - 7px), 0 100%); } .ds-cut-block > header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; } .ds-cut-code { font-family: \"Azeret Mono\", ui-monospace, monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.02em; color: color-mix(in srgb, var(--cut) 72%, #08203c); } .ds-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; border-radius: 0; } .ds-tag-anchor { color: #ffffff; background: #1d5aa8; } .ds-cut-name { margin: 0; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 14.5px; font-weight: 600; line-height: 1.3; } .ds-measures { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 6px 14px; } .ds-measures dt { font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; color: #5a6e88; } .ds-measures dd { margin: 0; font-family: \"Anuphan\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 12.5px; color: #4a5f7d; } .ds-cut-block > footer { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; padding-top: 10px; border-top: 1px solid #c3cad2; } .ds-cut-act { --c: 6px; position: relative; padding: 5px 11px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 12px; font-weight: 600; color: #1d5aa8; background: transparent; border: 0; border-radius: 0; cursor: pointer; transition: background-color 0.14s linear; } .ds-cut-act::before { content: \"\"; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: currentColor; clip-path: polygon(evenodd, var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c), calc(var(--c) + 1px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) calc(100% - var(--c) - 1px), calc(100% - var(--c) - 1px) calc(100% - 1px), 1px calc(100% - 1px), 1px calc(var(--c) + 1px)); } .ds-cut-act:hover { background: #dceefb; } .ds-cut-act.ds-is-fracture { color: #c2381f; } .ds-cut-act.ds-is-fracture:hover { background: #fae7e2; }"
+    },
+    {
+      "name": "Week Face Block",
+      "kind": "custom",
+      "refersTo": "face-block",
+      "description": "The signature. Stone cut out of the sky void, with the collision variant beside it. Both carry the cut-in and saw-pass motion.",
+      "html": "<div class=\"ds-face\"><div class=\"ds-block\" style=\"--cut:#a8471d\"><span class=\"ds-block-code\">010113001</span><span class=\"ds-block-name\">ฟิสิกส์สำหรับวิศวกร 1</span><span class=\"ds-block-teacher\">ผศ.ดร. สมชาย</span><span class=\"ds-block-time\"><time>09:00-12:00</time><em>อาคาร 78</em></span></div><div class=\"ds-block ds-is-fracture\" style=\"--cut:#0f6ba8\"><span class=\"ds-block-code\">040203111</span><span class=\"ds-block-name\">เคมีสำหรับวิศวกร</span><span class=\"ds-block-teacher\">รศ.ดร. วิภา</span><span class=\"ds-block-time\"><time>10:00-13:00</time><em>อาคาร 40</em></span></div></div>",
+      "css": ".ds-face { display: flex; gap: 12px; padding: 14px; background: linear-gradient(180deg, #5fb2e9 0%, #4da7e6 45%, #3d97d8 100%); } .ds-block { --c: 9px; position: relative; display: flex; flex-direction: column; gap: 1px; width: 210px; height: 88px; padding: 7px 9px 8px 16px; overflow: hidden; color: #0d2e5e; background: linear-gradient(90deg, var(--cut) 0 7px, transparent 7px), linear-gradient(178deg, #ffffff 0%, #e7ecf1 100%); border-radius: 0; box-shadow: inset 0 1px 0 #ffffff; clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, 0 100%); filter: drop-shadow(0 2px 5px rgba(6, 32, 63, 0.32)); animation: ds-cut-in 0.42s cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-block::after { content: \"\"; position: absolute; inset: 0 0 0 7px; pointer-events: none; background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.95) 46%, #d6dadf 50%, rgba(255,255,255,0.95) 54%, transparent 100%); animation: ds-saw-pass 0.52s cubic-bezier(0.5, 0, 0.2, 1) both; } @keyframes ds-cut-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } } @keyframes ds-saw-pass { from { opacity: 0.85; transform: translateX(-100%); } to { opacity: 0; transform: translateX(100%); } } .ds-block-code { font-family: \"Azeret Mono\", ui-monospace, monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: color-mix(in srgb, var(--cut) 82%, #08203c); } .ds-block-name { font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 12.5px; font-weight: 600; line-height: 1.2; } .ds-block-teacher { font-family: \"Anuphan\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 11.5px; color: #4a5f7d; } .ds-block-time { margin-top: auto; display: flex; align-items: baseline; gap: 6px; color: #4a5f7d; } .ds-block-time time { font-family: \"Azeret Mono\", ui-monospace, monospace; font-size: 11px; font-variant-numeric: tabular-nums; } .ds-block-time em { font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 11.5px; font-style: normal; } .ds-block.ds-is-fracture { color: #8f2412; background: linear-gradient(90deg, #c2381f 0 7px, transparent 7px), repeating-linear-gradient(-45deg, rgba(194,56,31,0.18) 0 6px, transparent 6px 12px), linear-gradient(178deg, #ffffff 0%, #fae7e2 100%); box-shadow: inset 0 0 0 1px #c2381f; } .ds-block.ds-is-fracture .ds-block-code { color: #8f2412; } .ds-block.ds-is-fracture .ds-block-teacher, .ds-block.ds-is-fracture .ds-block-time { color: #94331c; } @media (prefers-reduced-motion: reduce) { .ds-block { animation-duration: 0.001ms; } .ds-block::after { display: none; } }"
+    },
+    {
+      "name": "Weather Rows",
+      "kind": "custom",
+      "refersTo": "cut-block-fracture",
+      "description": "The hazard strip above the week grid. Fracture red hatch for a time collision, thunder-gray rain hatch for exam weather, sky-pale for information. Colour is never the only signal. The exam-warning list below the grid is the same storm treatment -- storm ink on storm pale under the same 74-degree rain hatch -- so the two storm surfaces read as one.",
+      "html": "<div class=\"ds-weather\"><p class=\"ds-weather-row ds-is-fracture\"><svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M12 3.5 21 20H3Z\"/><path d=\"M12 10v4\"/><path d=\"M12 16.6v.2\"/></svg>มีเวลาชนกัน 2 คู่</p><p class=\"ds-weather-row ds-is-storm\"><svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.4 1.3A3.4 3.4 0 0 1 17 15Z\"/><path d=\"M8 18.5 7 21\"/><path d=\"M12 18.5 11 21\"/><path d=\"M16 18.5 15 21\"/></svg>ตารางสอบปลายภาคติดกัน 2 วิชา</p><p class=\"ds-weather-row\"><svg class=\"ds-ico\" viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"square\" stroke-linejoin=\"miter\" aria-hidden=\"true\"><path d=\"M4 4h6M14 4h6M20 4v6M20 14v6M20 20h-6M10 20H4M4 20v-6M4 10V4\"/><path d=\"M9 12h6\"/></svg>ว่างมากที่สุดวันพฤหัสบดี 4 ชั่วโมง</p></div>",
+      "css": ".ds-weather { display: flex; flex-direction: column; gap: 1px; background: #c3cad2; } .ds-weather-row { display: flex; align-items: center; gap: 10px; margin: 0; padding: 11px 14px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13.5px; font-weight: 500; color: #0d2e5e; background: #dceefb; } .ds-weather-row .ds-ico { flex: 0 0 auto; display: block; color: #1d5aa8; } .ds-weather-row.ds-is-fracture { color: #8f2412; background: repeating-linear-gradient(-45deg, rgba(194,56,31,0.1) 0 7px, transparent 7px 14px), #fae7e2; } .ds-weather-row.ds-is-fracture .ds-ico { color: #c2381f; } .ds-weather-row.ds-is-storm { color: #2c3e4d; background: repeating-linear-gradient(74deg, rgba(63,83,100,0.14) 0 1px, transparent 1px 7px), #e2e7ec; } .ds-weather-row.ds-is-storm .ds-ico { color: #3f5364; }"
+    },
+    {
+      "name": "Zone Panel",
+      "kind": "card",
+      "refersTo": "zone",
+      "description": "Every section of the page. Cumulus stone chamfered at 16px, with thunder-gray crosshair registration marks stamped into two corners.",
+      "html": "<section class=\"ds-zone\"><div class=\"ds-zone-head\"><h2>เวลาว่างระหว่างคาบ</h2><p>ช่องว่างที่เหลือในแต่ละวันหลังจากจัดรายวิชาแล้ว</p></div><h3>สรุปรายวัน</h3><p class=\"ds-empty\">ยังไม่มีรายวิชา ดึงรายวิชาจากเว็บหรือเพิ่มด้วยตนเองเพื่อเริ่มจัดตาราง</p></section>",
+      "css": ".ds-zone { --c: 16px; position: relative; padding: 22px 24px 24px; color: #0d2e5e; background: #f5f7f9; border-radius: 0; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); } .ds-zone::after { content: \"\"; position: absolute; inset: 0; pointer-events: none; background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%237c828b' stroke-width='1'/%3E%3C/svg%3E\"), url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11'%3E%3Cpath d='M5.5 0v11M0 5.5h11' stroke='%237c828b' stroke-width='1'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 11px top 11px, left 11px bottom 11px; opacity: 0.9; } .ds-zone-head { margin-bottom: 18px; } .ds-zone-head h2 { margin: 0; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: clamp(19px, 1.5vw, 24px); font-weight: 700; line-height: 1.2; letter-spacing: -0.01em; } .ds-zone-head p { margin: 0; max-width: 68ch; font-family: \"Anuphan\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13.5px; color: #5a6e88; } .ds-zone h3 { margin: 0 0 12px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.14em; color: #1d5aa8; } .ds-empty { margin: 0; padding: 18px; font-family: \"Anuphan\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 13.5px; color: #5a6e88; background: repeating-linear-gradient(-45deg, rgba(77,167,230,0.14) 0 8px, transparent 8px 16px), #dceefb; border: 1px dashed #63b1e8; }"
+    },
+    {
+      "name": "Rail Readout",
+      "kind": "custom",
+      "refersTo": "readout",
+      "description": "The live plan measures on the depth ground. Every figure is mono with tabular numerals; the collision count lifts to coral because fracture red is unreadable on depth blue.",
+      "html": "<div class=\"ds-readout\"><p class=\"ds-readout-head\">แผนที่ใช้อยู่</p><p class=\"ds-readout-plan\">ตารางเทอม 1/2569</p><dl class=\"ds-measures-dark\"><div><dt>รายวิชา</dt><dd>7<i>วิชา</i></dd></div><div><dt>หน่วยกิต</dt><dd>19<i>นก.</i></dd></div><div class=\"ds-is-fracture\"><dt>เวลาชน</dt><dd>2<i>คู่</i></dd></div></dl></div>",
+      "css": ".ds-readout { --c: 10px; width: 244px; padding: 14px; color: #e6edf6; background: #071d3f; border: 1px solid #23528f; border-radius: 0; clip-path: polygon(var(--c) 0, 100% 0, 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, 0 100%, 0 var(--c)); } .ds-readout-head { margin: 0; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; color: #4da7e6; } .ds-readout-plan { margin: 2px 0 12px; font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 17px; font-weight: 600; color: #ffffff; } .ds-measures-dark { margin: 0; display: grid; gap: 1px; background: #23528f; border-block: 1px solid #23528f; } .ds-measures-dark > div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 6px 2px; background: #071d3f; } .ds-measures-dark dt { font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 12px; font-weight: 500; color: #4da7e6; } .ds-measures-dark dd { margin: 0; display: flex; align-items: baseline; gap: 4px; font-family: \"Azeret Mono\", ui-monospace, monospace; font-size: 17px; font-weight: 500; font-variant-numeric: tabular-nums; color: #ffffff; } .ds-measures-dark dd i { font-family: \"Chakra Petch\", \"Leelawadee UI\", \"Segoe UI\", sans-serif; font-size: 10.5px; font-style: normal; font-weight: 500; letter-spacing: 0.06em; color: #4da7e6; } .ds-measures-dark .ds-is-fracture dd { color: #ff8f76; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Cloud Quarry",
+    "overview": "A week of classes is a quarry face. Every section the student takes is a block cut out of the sky; every hour they keep is the blue void the cut leaves behind; a time collision is a bad cut, and it fractures. The whole interface is built from that one physical claim, and it is why nothing here looks like a calendar app: no rounded cards, no pastel chips, no soft ambient shadows, no gradient-happy dashboard. Panels are cumulus-white stone laid on a depth-blue ground; every corner is a 45-degree saw cut; the seams between things are 1px hairlines, not gaps.\n\nThe system is dense and industrial without being cold. It runs at 15px body text with 12-14px secondary copy, uses 1px seams instead of whitespace to divide lists, and packs a full 07:00-20:00 week onto one screen at 1440px. That density is deliberate: the surface is used under deadline pressure during registration week, so the operator's read — what collides, what is free, what is committed — must be available without scrolling or hunting. Expression carries the information; it never sits on top of it. Where the world and the task disagree, the task wins.\n\nThe palette is dichromatic by discipline. Blue does the work — depth-blue ground, sky-blue void, quarry-blue for every affordance — and colour is then spent exactly twice, on the two hazards the product exists to surface: fracture red for a time collision, thunder-gray for exam weather. Course pigments are user data and are deliberately starved: a course's colour appears only on the cut face of its block and in its code glyph, never as a fill. The result is a screen where saturated red means one thing and one thing only.",
+    "keyCharacteristics": [
+      "Chamfered cut corners everywhere; border-radius is 0 on every element in the build",
+      "Cumulus-white stone panels on a depth-blue gradient ground with a fixed grain overlay",
+      "Sky blue (#4da7e6) is a material meaning \"free time\", never a decorative accent",
+      "Course colour survives only as a block's cut face and its code glyph",
+      "Two hazard channels, never crossed: fracture red for collisions, thunder-gray for exams",
+      "1px hairline seams instead of gutters between list rows and grid cells",
+      "Latin stencil for the mark, industrial sans for labels, Thai humanist for prose, mono for numerals only",
+      "One authored motion moment (the cut), and colour-only transitions everywhere else"
+    ],
+    "rules": [
+      {
+        "name": "The Sky-Void Rule",
+        "body": "Sky blue is a material, not an accent. It means unclaimed time. Any surface painted sky must be empty time (a timeline ground, a free-time row, a between-class gap); nothing that represents a course, a control, or a piece of chrome may be painted sky, and no block may sit on the void without being cut out of it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Cut-Face Rule",
+        "body": "A course's colour reaches the screen through the cut face (a 7-10px edge on the leading side) and the code glyph, and through nothing else. Blocks are cumulus-white stone. Never fill a block with the course colour, never tint its background, never make a pastel chip of it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two-Hazard Rule",
+        "body": "Fracture red is a time collision. Thunder-gray is exam weather. The two never swap and never blend, and neither is available for ordinary emphasis. Colour is not the only carrier: every hazard state also ships a hatch pattern, an icon, and Thai text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono-Numerals Rule",
+        "body": "Azeret Mono carries no Thai glyphs. --font-num is permitted only on numerals, times, course codes, room codes, and section numbers. Any Thai character that lands in a mono run falls into an ugly system fallback and is a bug, not a style — put the Thai in a sibling element on --font-ui and keep the mono run to the digits.",
+        "section": "typography"
+      },
+      {
+        "name": "The Stencil-Once Rule",
+        "body": "The stencil face appears exactly once per page, on the wordmark. It is Latin-only, so it can never carry Thai copy, and it must never be recruited for headings, numbers, or emphasis.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Anything that stacks or compares — readout measures, compare table, exam times, free-time spans — is font-variant-numeric: tabular-nums. Numbers that sit in a column must not shimmy as they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Static Rail Rule",
+        "body": "Under 900px the rail must be position: static. As sticky it creates a stacking context that traps the fixed bottom dock beneath the work column, and the dock disappears behind the page. This is a load-bearing declaration; do not \"tidy\" it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Face-First Rule",
+        "body": "Collisions and exam weather are rendered above the week grid, never below it and never only inside the blocks. They are the reason the student opened the page.",
+        "section": "layout"
+      },
+      {
+        "name": "The Seam Rule",
+        "body": "Related rows are separated by a 1px saw-line seam, not by a gutter. Reach for whitespace between zones; reach for a cut line within one.",
+        "section": "layout"
+      },
+      {
+        "name": "The Cut-Relief Rule",
+        "body": "One drop shadow exists in this system, and it belongs to a block cut out of the sky. Everywhere else, depth is tone and a 1px line. Never add a soft ambient shadow to a panel, a card, a dialog, or a button.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Inset-Stroke Rule",
+        "body": "A chamfered element is never given a border. Use an inset box-shadow, a 1px seam, or the evenodd ring — a border draws a rectangle and leaves the diagonal corner open.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Chamfer-Only Rule",
+        "body": "border-radius is 0 on every element. The chamfer is the only corner treatment in the system. A rounded corner anywhere is a defect, including on images, avatars, and third-party embeds.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Notch-Direction Rule",
+        "body": "Panels chamfer top-left and bottom-right. Course blocks notch top-right only. Never mix the two silhouettes; the difference is how the eye separates chrome from material.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Ring Rule",
+        "body": "An outlined chamfered element draws its 1px outline as an absolutely positioned pseudo-element filled with the ring colour and clipped by an evenodd polygon whose inner ring is inset 1px. This is the only way to get an outline that follows the diagonal; clip-path on the element itself would clip a border and leave the corner open.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Designed-Disabled Rule",
+        "body": "Disabled is a colour decision, never a blanket opacity. A filled button goes disabled-ink on a saw fill; an outlined or quiet button goes disabled-ink-quiet on transparent with its ring dropped to saw-line; a primary button on the depth ground goes #9fb3cc on a 55% depth-line wash. Only the icon inside dims (to 0.7).",
+        "section": "components"
+      },
+      {
+        "name": "The One Cut Rule",
+        "body": "The system gets one authored motion moment — the cut — and it belongs to the course block. Everything else is a 0.14s linear colour transition. Do not add entrance animations, parallax, hover lifts, or scroll effects to anything else.",
+        "section": "components"
+      },
+      {
+        "name": "The Second Surface Rule",
+        "body": "The exported PNG is part of the design system, not an output format. Any change to the ground, sky, stone, cut face, or type roles must be made in the canvas painter in the same change as the CSS, or the two surfaces drift.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do cut every corner with the chamfer at a --c scaled to the element (16px zones → 4px checkboxes), and take the notch off the top-right for anything that represents a course.",
+      "Do paint a course's colour only as a cut face and a code glyph, darkening the glyph with color-mix(in srgb, var(--cut) 70–82%, var(--cut-ink)) so a light user pigment stays legible.",
+      "Do keep sky blue meaning \"free time\" — a timeline ground, a gap strip, a free-time row.",
+      "Do pair every hazard colour with a hatch, an icon, and Thai text, so the state survives colour-blindness and a black-and-white print.",
+      "Do put digits, times, and codes in --font-num with tabular figures, and the Thai next to them in --font-ui.",
+      "Do separate rows with a 1px saw-line seam and edge surfaces with an inset stroke.",
+      "Do keep .rail position: static below 900px, and keep all seven dock destinations visible by shortening labels rather than dropping them.",
+      "Do update the canvas painter in app/page.tsx whenever the palette, sky gradient, or block geometry changes.",
+      "Do give disabled controls their designed inks, and keep the whole system's transitions at 0.14s linear."
+    ],
+    "donts": [
+      "Don't use border-radius anywhere, or add a second corner language (soft, cut-all-four, or asymmetric-rounded).",
+      "Don't put a border on a chamfered element — the diagonal corner stays open. Use the evenodd ring or an inset stroke.",
+      "Don't fill a course block with its course colour, or render a course as a pastel chip.",
+      "Don't spend fracture red on anything but a time collision, or thunder-gray on anything but exam weather.",
+      "Don't let Thai text into a --font-num run, and don't use the stencil display face for anything but the wordmark.",
+      "Don't add soft ambient drop shadows to panels, cards, dialogs, or buttons; the only cast shadow belongs to a block on the sky.",
+      "Don't signal disabled with opacity.",
+      "Don't add new motion. The cut is the one authored moment.",
+      "Don't let the page scroll horizontally to show the week — the face scrolls inside its own container."
+    ]
+  }
+}
