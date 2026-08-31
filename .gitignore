@@ -24,3 +24,17 @@ pnpm-debug.log*
 
 # vercel
 .vercel/
+
+# typescript
+*.tsbuildinfo
+
+# local dev logs
+.next-dev-*.log
+.next-dev-*.err.log
+
+# impeccable: process evidence, not source
+.impeccable/review/
+.impeccable/refs/
+.impeccable/questions/
+.impeccable/hook.cache.json
+.impeccable/direction-payload.json
