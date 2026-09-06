@@ -93,7 +93,9 @@ const days: { key: DayKey; label: string; short: string }[] = [
   { key: "sun", label: "อาทิตย์", short: "อา" },
 ];
 
-const palette = ["#1d5aa8", "#14746a", "#a8471d", "#5b3fa8", "#0f6ba8", "#7a6a1f", "#a83d63"];
+// course pigments: registrar-family hues darkened to clear 4.5:1 on white,
+// deliberately excluding the danger red that only a time clash may wear.
+const palette = ["#0a7d75", "#5847c7", "#0f6f96", "#1c7d47", "#a35c12", "#4f5b6b", "#7b3fa0"];
 const hours = Array.from({ length: 14 }, (_, index) => 7 + index);
 const fallbackFilters: FilterOptions = {
   campuses: [{ comboid: 10, comboshow: "10 : มจพ. กรุงเทพฯ" }],
@@ -221,8 +223,16 @@ function comboValue(option: ComboOption) {
   return String(option.comboid).replace(/\.0$/, "");
 }
 
+const examDateFormat = new Intl.DateTimeFormat("th-TH", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function examText(value: string) {
-  return value ? new Date(value).toLocaleString("th-TH") : "";
+  return value ? examDateFormat.format(new Date(value)) : "";
 }
 
 function normalizeText(value: unknown) {
@@ -602,9 +612,9 @@ function Svg({ children, className }: { children: React.ReactNode; className?: s
       height="20"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="square"
-      strokeLinejoin="miter"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >
@@ -613,12 +623,21 @@ function Svg({ children, className }: { children: React.ReactNode; className?: s
   );
 }
 
+function IconMark({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+      <path d="m8.5 15.5 2.5 2.5 4.5-4.5" />
+    </Svg>
+  );
+}
+
 function IconBlock({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M12 3 20.5 7.5v9L12 21l-8.5-4.5v-9Z" />
-      <path d="M3.5 7.5 12 12l8.5-4.5" />
-      <path d="M12 12v9" />
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2Z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7Z" />
     </Svg>
   );
 }
@@ -626,10 +645,8 @@ function IconBlock({ className }: IconProps) {
 function IconFace({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M3 4h18v16H3Z" />
-      <path d="M3 9h18" />
-      <path d="M9 9v11" />
-      <path d="M15 9v11" />
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
     </Svg>
   );
 }
@@ -637,11 +654,8 @@ function IconFace({ className }: IconProps) {
 function IconCrane({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M6 21V4" />
-      <path d="M3 21h6" />
-      <path d="M6 4h13" />
-      <path d="M17 4v5" />
-      <path d="M14 9h6v3h-6Z" />
+      <path d="M4 21v-7M4 10V3M12 21v-11M12 6V3M20 21v-3M20 14V3" />
+      <path d="M1 14h6M9 6h6M17 18h6" />
     </Svg>
   );
 }
@@ -649,9 +663,7 @@ function IconCrane({ className }: IconProps) {
 function IconCompare({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M4 5h7v14H4Z" />
-      <path d="M13 9h7v10h-7Z" />
-      <path d="M13 5h7" />
+      <path d="M18 20V10M12 20V4M6 20v-6" />
     </Svg>
   );
 }
@@ -659,8 +671,18 @@ function IconCompare({ className }: IconProps) {
 function IconVoid({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M4 4h6M14 4h6M20 4v6M20 14v6M20 20h-6M10 20H4M4 20v-6M4 10V4" />
-      <path d="M9 12h6" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </Svg>
+  );
+}
+
+function IconExam({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 2v6h6" />
+      <path d="M8 13h8M8 17h5" />
     </Svg>
   );
 }
@@ -668,10 +690,8 @@ function IconVoid({ className }: IconProps) {
 function IconStorm({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M7 15a4 4 0 0 1 .5-8 5 5 0 0 1 9.4 1.3A3.4 3.4 0 0 1 17 15Z" />
-      <path d="M8 18.5 7 21" />
-      <path d="M12 18.5 11 21" />
-      <path d="M16 18.5 15 21" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5M12 16v.01" />
     </Svg>
   );
 }
@@ -679,8 +699,9 @@ function IconStorm({ className }: IconProps) {
 function IconRail({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M8 3v18M16 3v18" />
-      <path d="M8 7h8M8 12h8M8 17h8" />
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11" />
     </Svg>
   );
 }
@@ -688,9 +709,8 @@ function IconRail({ className }: IconProps) {
 function IconNote({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M12 3.5 21 20H3Z" />
-      <path d="M12 10v4" />
-      <path d="M12 16.6v.2" />
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4M12 17v.01" />
     </Svg>
   );
 }
@@ -698,8 +718,8 @@ function IconNote({ className }: IconProps) {
 function IconArrow({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M5 12h13" />
-      <path d="m13 7 5 5-5 5" />
+      <path d="M5 12h14" />
+      <path d="m12 5 7 7-7 7" />
     </Svg>
   );
 }
@@ -707,7 +727,7 @@ function IconArrow({ className }: IconProps) {
 function IconClose({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M6 6l12 12M18 6 6 18" />
+      <path d="M18 6 6 18M6 6l12 12" />
     </Svg>
   );
 }
@@ -715,9 +735,8 @@ function IconClose({ className }: IconProps) {
 function IconAnchor({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M12 7v13" />
-      <path d="M5 13a7 7 0 0 0 14 0" />
-      <path d="M9 4h6v3H9Z" />
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </Svg>
   );
 }
@@ -733,19 +752,27 @@ function IconPlus({ className }: IconProps) {
 function IconCopy({ className }: IconProps) {
   return (
     <Svg className={className}>
-      <path d="M8 8h12v12H8Z" />
-      <path d="M16 8V4H4v12h4" />
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </Svg>
+  );
+}
+
+function IconChevron({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m6 9 6 6 6-6" />
     </Svg>
   );
 }
 
 const zones: { id: string; label: string; short: string; Icon: (props: IconProps) => React.JSX.Element }[] = [
-  { id: "face", label: "หน้าตัด", short: "ตาราง", Icon: IconFace },
+  { id: "face", label: "ตารางเรียน", short: "ตาราง", Icon: IconFace },
   { id: "blocks", label: "รายวิชา", short: "วิชา", Icon: IconBlock },
   { id: "planner", label: "ตัวช่วยจัดแผน", short: "จัดแผน", Icon: IconCrane },
   { id: "compare", label: "เปรียบเทียบ", short: "เทียบ", Icon: IconCompare },
   { id: "voids", label: "เวลาว่าง", short: "ว่าง", Icon: IconVoid },
-  { id: "exams", label: "ตารางสอบ", short: "สอบ", Icon: IconStorm },
+  { id: "exams", label: "ตารางสอบ", short: "สอบ", Icon: IconExam },
   { id: "room", label: "ห้องร่วมกัน", short: "ห้อง", Icon: IconRail },
 ];
 
@@ -789,6 +816,9 @@ export default function Home() {
   const [comparePlanBId, setComparePlanBId] = useState("");
   const [timetableView, setTimetableView] = useState<"grid" | "list">("grid");
   const [activeZone, setActiveZone] = useState<string>("face");
+  // Mobile only: every zone but the week starts folded, so the phone opens on the
+  // timetable instead of a nine-thousand-pixel scroll. Desktop ignores this entirely.
+  const [foldedZones, setFoldedZones] = useState<string[]>(() => zones.filter((zone) => zone.id !== "face").map((zone) => zone.id));
   const excelInputRef = useRef<HTMLInputElement | null>(null);
   const hasLocalPlanMutationRef = useRef(false);
   const plansRef = useRef<TimetablePlan[]>([]);
@@ -1260,6 +1290,14 @@ export default function Home() {
     nav.scrollTo({ left: tab.offsetLeft - nav.clientWidth / 2 + tab.offsetWidth / 2, behavior: "smooth" });
   }, [activeZone]);
 
+  function toggleZoneFold(id: string) {
+    setFoldedZones((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
+  function unfoldZone(id: string) {
+    setFoldedZones((current) => current.filter((item) => item !== id));
+  }
+
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canEditActivePlan) {
@@ -1688,14 +1726,55 @@ export default function Home() {
 
   function exportTimetableImage() {
     const scale = 2;
-    const leftWidth = 150;
-    const hourWidth = 120;
-    const titleHeight = 96;
-    const headerHeight = 54;
-    const rowHeight = 122;
-    const padding = 36;
-    const width = padding * 2 + leftWidth + hours.length * hourWidth;
-    const height = padding * 2 + titleHeight + headerHeight + days.length * rowHeight;
+    const leftWidth = 132;
+    const hourWidth = 116;
+    const titleHeight = 92;
+    const headerHeight = 46;
+    const laneHeight = 112;
+    const laneGap = 6;
+    const rowPad = 18;
+    const emptyRowHeight = 78;
+    const noteHeight = 46;
+    const padding = 32;
+
+    // Same lane packing as the on-screen week: overlapping classes stack, never
+    // paint over each other, so the exported sheet tells the truth about a clash.
+    const dayStart = hours[0] * 60;
+    const dayEnd = (hours[hours.length - 1] + 1) * 60;
+    const dayMinutes = dayEnd - dayStart;
+    const laidOutDays = days.map((day) => {
+      const laneEnds: number[] = [];
+      const placed = courses
+        .filter((course) => course.day === day.key && toMinutes(course.start) < dayEnd && toMinutes(course.end) > dayStart)
+        .sort((a, b) => toMinutes(a.start) - toMinutes(b.start) || toMinutes(a.end) - toMinutes(b.end))
+        .map((course) => {
+          const start = Math.max(dayStart, toMinutes(course.start));
+          const finish = Math.min(dayEnd, toMinutes(course.end));
+          let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start);
+
+          if (lane === -1) {
+            lane = laneEnds.length;
+            laneEnds.push(finish);
+          } else {
+            laneEnds[lane] = finish;
+          }
+
+          return { course, lane, start, finish };
+        });
+      const laneCount = Math.max(1, laneEnds.length);
+
+      return {
+        day,
+        placed,
+        height: placed.length === 0 ? emptyRowHeight : rowPad + laneCount * laneHeight + (laneCount - 1) * laneGap,
+      };
+    });
+
+    const gridWidth = leftWidth + hours.length * hourWidth;
+    const bodyHeight = laidOutDays.reduce((sum, row) => sum + row.height, 0);
+    const gridHeight = headerHeight + bodyHeight;
+    const width = padding * 2 + gridWidth;
+    const height = padding * 2 + titleHeight + gridHeight + noteHeight;
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
 
@@ -1703,141 +1782,190 @@ export default function Home() {
       return;
     }
 
+    // the exported sheet is a second surface of the same design system:
+    // registrar-console palette, Prompt for Thai, Montserrat for numerals.
+    const bodyStyles = window.getComputedStyle(document.body);
+    const readFamily = (name: string) => bodyStyles.getPropertyValue(name).trim();
+    const thaiFace = [readFamily("--font-th"), '"Leelawadee UI"', '"Segoe UI"', "sans-serif"].filter(Boolean).join(", ");
+    const numFace = [readFamily("--font-mont"), thaiFace].filter(Boolean).join(", ");
+    const ink = { heading: "#5e5873", body: "#6e6b7b", quiet: "#71757c", muted: "#71757c" };
+    const line = "#ebe9f1";
+    const softLine = "#f2f0f7";
+    const sunk = "#fafafc";
+    const danger = "#ea5455";
+    const dangerFill = "#fdeced";
+    const tint = (hex: string, amount: number) => {
+      const value = hex.replace("#", "");
+      const channel = (index: number) => parseInt(value.slice(index * 2, index * 2 + 2), 16);
+      const mix = (part: number) => Math.round(part * amount + 255 * (1 - amount));
+
+      return `rgb(${mix(channel(0))}, ${mix(channel(1))}, ${mix(channel(2))})`;
+    };
+
     canvas.width = width * scale;
     canvas.height = height * scale;
     context.scale(scale, scale);
-    context.fillStyle = "#0d2e5e";
+    context.fillStyle = "#ffffff";
     context.fillRect(0, 0, width, height);
 
-    context.fillStyle = "#ffffff";
-    context.font = '700 32px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
-    context.fillText(activePlan?.name || defaultPlanName, padding, padding + 34);
-    context.fillStyle = "#4da7e6";
-    context.font = '500 17px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
-    context.fillText(`${courses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 66);
+    context.fillStyle = ink.heading;
+    context.font = `600 27px ${thaiFace}`;
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+    context.fillText(activePlan?.name || defaultPlanName, padding, padding + 28);
+    context.fillStyle = ink.quiet;
+    context.font = `400 14px ${thaiFace}`;
+    context.fillText(`${courses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 52);
+    context.strokeStyle = line;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(padding, padding + 68.5);
+    context.lineTo(width - padding, padding + 68.5);
+    context.stroke();
 
     const gridX = padding;
     const gridY = padding + titleHeight;
-    const gridWidth = leftWidth + hours.length * hourWidth;
-    const gridHeight = headerHeight + days.length * rowHeight;
 
-    context.fillStyle = "#f5f7f9";
+    context.fillStyle = "#ffffff";
     context.fillRect(gridX, gridY, gridWidth, gridHeight);
-    context.strokeStyle = "#c3cad2";
-    context.lineWidth = 1;
-    context.strokeRect(gridX, gridY, gridWidth, gridHeight);
-
-    const skyX = gridX + leftWidth;
-    const skyY = gridY + headerHeight;
-    const skyHeight = gridHeight - headerHeight;
-    const sky = context.createLinearGradient(0, skyY, 0, skyY + skyHeight);
-    sky.addColorStop(0, "#5fb2e9");
-    sky.addColorStop(0.45, "#4da7e6");
-    sky.addColorStop(1, "#3d97d8");
-    context.fillStyle = sky;
-    context.fillRect(skyX, skyY, gridWidth - leftWidth, skyHeight);
-
-    context.fillStyle = "#0d2e5e";
+    context.fillStyle = sunk;
     context.fillRect(gridX, gridY, gridWidth, headerHeight);
-    context.fillStyle = "#e9edf1";
-    context.fillRect(gridX, gridY + headerHeight, leftWidth, gridHeight - headerHeight);
+    context.fillRect(gridX, gridY + headerHeight, leftWidth, bodyHeight);
 
-    context.font = '600 14px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
+    // alternating hour bands keep the eye on one column
+    hours.forEach((hour, index) => {
+      if (index % 2 === 0) {
+        return;
+      }
+
+      context.fillStyle = "#fcfcfd";
+      context.fillRect(gridX + leftWidth + index * hourWidth, gridY + headerHeight, hourWidth, bodyHeight);
+    });
+
+    context.font = `600 13px ${numFace}`;
     context.textAlign = "center";
     context.textBaseline = "middle";
-    context.fillStyle = "#4da7e6";
-    context.fillText("วัน / เวลา", gridX + leftWidth / 2, gridY + headerHeight / 2);
-    context.fillStyle = "#e6edf6";
+    context.fillStyle = ink.quiet;
 
     hours.forEach((hour, index) => {
       const x = gridX + leftWidth + index * hourWidth;
       context.fillText(`${String(hour).padStart(2, "0")}:00`, x + hourWidth / 2, gridY + headerHeight / 2);
     });
 
-    context.fillStyle = "#0d2e5e";
-    days.forEach((day, index) => {
-      const y = gridY + headerHeight + index * rowHeight;
-      context.fillText(day.label, gridX + leftWidth / 2, y + rowHeight / 2);
+    context.font = `500 13px ${thaiFace}`;
+    context.fillStyle = ink.heading;
+    context.fillText("วัน / เวลา", gridX + leftWidth / 2, gridY + headerHeight / 2);
+
+    let rowY = gridY + headerHeight;
+    const rowTops: number[] = [];
+
+    laidOutDays.forEach((row) => {
+      rowTops.push(rowY);
+      context.fillStyle = ink.body;
+      context.font = `500 14px ${thaiFace}`;
+      context.fillText(row.day.label, gridX + leftWidth / 2, rowY + row.height / 2);
+      rowY += row.height;
     });
+
+    context.lineWidth = 1;
 
     for (let index = 0; index <= hours.length; index += 1) {
       const x = gridX + leftWidth + index * hourWidth;
-      context.strokeStyle = "rgba(255, 255, 255, 0.4)";
+      context.strokeStyle = softLine;
       context.beginPath();
-      context.moveTo(x, skyY);
-      context.lineTo(x, gridY + gridHeight);
+      context.moveTo(x + 0.5, gridY);
+      context.lineTo(x + 0.5, gridY + gridHeight);
       context.stroke();
     }
 
-    for (let index = 0; index <= days.length; index += 1) {
-      const y = gridY + headerHeight + index * rowHeight;
-      context.strokeStyle = "#c3cad2";
+    [...rowTops, gridY + gridHeight].forEach((y) => {
+      context.strokeStyle = line;
       context.beginPath();
-      context.moveTo(gridX, y);
-      context.lineTo(gridX + leftWidth, y);
+      context.moveTo(gridX, y + 0.5);
+      context.lineTo(gridX + gridWidth, y + 0.5);
       context.stroke();
-      context.strokeStyle = "rgba(255, 255, 255, 0.4)";
-      context.beginPath();
-      context.moveTo(skyX, y);
-      context.lineTo(gridX + gridWidth, y);
-      context.stroke();
-    }
-
-    courses.forEach((course) => {
-      const dayIndex = days.findIndex((day) => day.key === course.day);
-      const startOffset = (toMinutes(course.start) - hours[0] * 60) / 60;
-      const endOffset = (toMinutes(course.end) - hours[0] * 60) / 60;
-
-      if (dayIndex < 0 || endOffset <= 0 || startOffset >= hours.length) {
-        return;
-      }
-
-      const x = gridX + leftWidth + Math.max(0, startOffset) * hourWidth + 5;
-      const y = gridY + headerHeight + dayIndex * rowHeight + 8;
-      const blockWidth = Math.max(48, (Math.min(hours.length, endOffset) - Math.max(0, startOffset)) * hourWidth - 10);
-      const blockHeight = rowHeight - 16;
-
-      const notch = 10;
-
-      context.beginPath();
-      context.moveTo(x, y);
-      context.lineTo(x + blockWidth - notch, y);
-      context.lineTo(x + blockWidth, y + notch);
-      context.lineTo(x + blockWidth, y + blockHeight);
-      context.lineTo(x, y + blockHeight);
-      context.closePath();
-      context.save();
-      context.shadowColor = "rgba(6, 32, 63, 0.34)";
-      context.shadowBlur = 6;
-      context.shadowOffsetY = 2;
-      context.fillStyle = "#ffffff";
-      context.fill();
-      context.restore();
-      context.save();
-      context.clip();
-      const stone = context.createLinearGradient(0, y, 0, y + blockHeight);
-      stone.addColorStop(0, "#ffffff");
-      stone.addColorStop(1, "#e7ecf1");
-      context.fillStyle = stone;
-      context.fillRect(x, y, blockWidth, blockHeight);
-      context.fillStyle = course.color;
-      context.fillRect(x, y, 7, blockHeight);
-      context.restore();
-
-      context.fillStyle = course.color;
-      context.textAlign = "left";
-      context.textBaseline = "alphabetic";
-      context.font = '700 15px "Azeret Mono", ui-monospace, monospace';
-      drawWrappedText(context, course.code, x + 16, y + 24, blockWidth - 26, 18, 1);
-      context.fillStyle = "#0d2e5e";
-      context.font = '600 13px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
-      drawWrappedText(context, course.name, x + 16, y + 46, blockWidth - 26, 17, 2);
-      context.fillStyle = "#4a5f7d";
-      context.font = '500 12px "Chakra Petch", "Leelawadee UI", "Segoe UI", sans-serif';
-      drawWrappedText(context, course.teacher, x + 16, y + blockHeight - 30, blockWidth - 26, 16, 1);
-      context.font = '500 12px "Azeret Mono", ui-monospace, monospace';
-      drawWrappedText(context, `${course.start}-${course.end} ${course.room}`, x + 16, y + blockHeight - 14, blockWidth - 26, 16, 1);
     });
+
+    context.strokeStyle = line;
+    context.strokeRect(gridX + 0.5, gridY + 0.5, gridWidth - 1, gridHeight - 1);
+
+    laidOutDays.forEach((row, dayIndex) => {
+      row.placed.forEach(({ course, lane, start, finish }) => {
+        const isClash = conflictIds.has(course.id);
+        const left = ((start - dayStart) / dayMinutes) * (gridWidth - leftWidth);
+        const span = ((finish - start) / dayMinutes) * (gridWidth - leftWidth);
+        const x = gridX + leftWidth + left + 6;
+        const y = rowTops[dayIndex] + 9 + lane * (laneHeight + laneGap);
+        const blockWidth = Math.max(56, span - 12);
+        const blockHeight = laneHeight - 10;
+        const radius = 5;
+
+        context.save();
+        context.beginPath();
+        context.roundRect(x, y, blockWidth, blockHeight, radius);
+        context.shadowColor = "rgba(34, 41, 47, 0.1)";
+        context.shadowBlur = 7;
+        context.shadowOffsetY = 2;
+        context.fillStyle = isClash ? dangerFill : tint(course.color, 0.09);
+        context.fill();
+        context.restore();
+
+        context.strokeStyle = isClash ? danger : tint(course.color, 0.26);
+        context.lineWidth = 1;
+        context.beginPath();
+        context.roundRect(x + 0.5, y + 0.5, blockWidth - 1, blockHeight - 1, radius);
+        context.stroke();
+
+        context.save();
+        context.beginPath();
+        context.roundRect(x, y, blockWidth, blockHeight, radius);
+        context.clip();
+        context.textAlign = "left";
+        context.textBaseline = "alphabetic";
+        // one course keeps one identity colour on every surface; the red border,
+        // the red field and the ชนกัน pill already carry the clash on this sheet too
+        context.fillStyle = course.color;
+        context.font = `600 12px ${numFace}`;
+        context.fillText(course.code, x + 13, y + 22);
+
+        // a clash carries the word, never colour alone
+        if (isClash) {
+          const codeWidth = context.measureText(course.code).width;
+          const badgeX = x + 13 + codeWidth + 8;
+          const badgeWidth = 40;
+
+          context.beginPath();
+          context.roundRect(badgeX, y + 11, badgeWidth, 15, 7.5);
+          context.fillStyle = danger;
+          context.fill();
+          context.fillStyle = "#ffffff";
+          context.font = `500 10px ${thaiFace}`;
+          context.textAlign = "center";
+          context.fillText("ชนกัน", badgeX + badgeWidth / 2, y + 22);
+          context.textAlign = "left";
+        }
+
+        context.fillStyle = ink.heading;
+        context.font = `500 13.5px ${thaiFace}`;
+        drawWrappedText(context, course.name, x + 13, y + 43, blockWidth - 24, 18, 2);
+        context.fillStyle = ink.quiet;
+        context.font = `400 12.5px ${thaiFace}`;
+        drawWrappedText(context, course.teacher, x + 13, y + blockHeight - 41, blockWidth - 24, 16, 1);
+        context.font = `500 12.5px ${numFace}`;
+        drawWrappedText(context, `${course.start}-${course.end}`, x + 13, y + blockHeight - 24, blockWidth - 24, 16, 1);
+        context.font = `400 12.5px ${thaiFace}`;
+        drawWrappedText(context, course.room, x + 13, y + blockHeight - 8, blockWidth - 24, 16, 1);
+        context.restore();
+      });
+    });
+
+    const noteY = gridY + gridHeight + 22;
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+    context.fillStyle = ink.quiet;
+    context.font = `400 12.5px ${thaiFace}`;
+    context.fillText("เว็บนี้เป็นเครื่องมือช่วยวางแผนลงทะเบียน ไม่ใช่ระบบของมหาวิทยาลัย", padding, noteY);
+    context.fillText("ข้อมูลรายวิชามาจาก reg.kmutnb.ac.th โปรดตรวจสอบข้อมูลล่าสุดจากเว็บนั้นก่อนลงทะเบียนจริง", padding, noteY + 18);
 
     downloadCanvas(canvas, `${activePlan?.name || "timetable"}.png`);
   }
@@ -1997,15 +2125,13 @@ export default function Home() {
   }
 
   return (
-    <div className="quarry">
-      <div className="grain" aria-hidden="true" />
-
+    <div className="app">
       <aside className="rail">
         <div className="rail-mark">
-          <span className="mark-glyph" aria-hidden="true"><IconBlock /></span>
+          <span className="mark-glyph" aria-hidden="true"><IconMark /></span>
           <span className="mark-words">
             <span className="mark-name">TableLearn</span>
-            <span className="mark-sub">ผู้ช่วยจัดตารางเรียน มจพ.</span>
+            <span className="mark-sub">ผู้ช่วยวางแผนลงทะเบียน มจพ.</span>
           </span>
         </div>
 
@@ -2021,6 +2147,7 @@ export default function Home() {
               href={`#${zone.id}`}
               className={activeZone === zone.id ? "rail-tab is-active" : "rail-tab"}
               aria-current={activeZone === zone.id ? "true" : undefined}
+              onClick={() => unfoldZone(zone.id)}
             >
               <zone.Icon />
               <span className="tab-long">{zone.label}</span>
@@ -2030,7 +2157,7 @@ export default function Home() {
         </nav>
 
         <div className="readout" aria-label="สรุปตารางเรียน">
-          <p className="readout-head">แผ่นงานปัจจุบัน</p>
+          <p className="readout-head">ตารางปัจจุบัน</p>
           <p className="readout-plan">{activePlan?.name ?? defaultPlanName}</p>
           <dl className="measures">
             <div>
@@ -2041,7 +2168,7 @@ export default function Home() {
               <dt>หน่วยกิต</dt>
               <dd>{totalCredits}<i>นก.</i></dd>
             </div>
-            <div className={conflicts.length > 0 ? "is-fracture" : undefined}>
+            <div className={conflicts.length > 0 ? "is-clash" : undefined}>
               <dt>เวลาชน</dt>
               <dd>{conflicts.length}<i>คู่</i></dd>
             </div>
@@ -2058,11 +2185,35 @@ export default function Home() {
       </aside>
 
       <main className="works">
-        <section className="zone zone-face" id="face" aria-labelledby="face-title">
+        <section className="zone zone-primary" id="face" aria-labelledby="face-title" data-folded={foldedZones.includes("face") ? "true" : undefined}>
           <div className="zone-head">
-            <h1 id="face-title">หน้าตัดสัปดาห์</h1>
-            <p>ทุกวิชาที่ลงคือบล็อกที่ตัดออกจากสัปดาห์ ช่องฟ้าที่เหลือคือเวลาว่างของคุณ</p>
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("face")} aria-label={foldedZones.includes("face") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("face")}><IconChevron /></button>
+            <h1 id="face-title">ตารางเรียนสัปดาห์นี้</h1>
+            <p>ดูทุกคาบเรียนในสัปดาห์ พร้อมเวลาที่ชนกันและชั่วโมงว่างที่เหลือ</p>
           </div>
+
+          {(isActiveReadOnlySharedPlan || conflicts.length > 0 || examWarnings.length > 0) && (
+            <div className="alerts" role="status">
+              {isActiveReadOnlySharedPlan && (
+                <p className="alert-row">
+                  <IconAnchor />
+                  ห้องนี้เป็นโหมดดูอย่างเดียว จึงเพิ่ม ลบ หรือแก้รายวิชาไม่ได้
+                </p>
+              )}
+              {conflicts.length > 0 && (
+                <p className="alert-row is-clash">
+                  <IconNote />
+                  พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
+                </p>
+              )}
+              {examWarnings.length > 0 && (
+                <p className="alert-row is-exam">
+                  <IconStorm />
+                  พบความเสี่ยงตารางสอบ {examWarnings.length} รายการ
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="strip strip-plan">
             <label className="field field-select">
@@ -2089,7 +2240,7 @@ export default function Home() {
                 <IconPlus />
                 เพิ่มตาราง
               </button>
-              <button type="button" className="btn btn-line btn-fracture" onClick={removePlan} disabled={!canRemoveCurrentPlan}>
+              <button type="button" className="btn btn-line btn-destructive" onClick={removePlan} disabled={!canRemoveCurrentPlan}>
                 ลบตาราง
               </button>
             </div>
@@ -2116,7 +2267,7 @@ export default function Home() {
                 onClick={() => setTimetableView("grid")}
                 aria-pressed={timetableView === "grid"}
               >
-                หน้าตัด
+                ตาราง
               </button>
               <button
                 type="button"
@@ -2131,31 +2282,8 @@ export default function Home() {
 
           {excelStatus && <p className="status-line">{excelStatus}</p>}
 
-          {(isActiveReadOnlySharedPlan || conflicts.length > 0 || examWarnings.length > 0) && (
-            <div className="weather" role="status">
-              {isActiveReadOnlySharedPlan && (
-                <p className="weather-row">
-                  <IconAnchor />
-                  ห้องนี้เป็นโหมดดูอย่างเดียว จึงเพิ่ม ลบ หรือแก้รายวิชาไม่ได้
-                </p>
-              )}
-              {conflicts.length > 0 && (
-                <p className="weather-row is-fracture">
-                  <IconNote />
-                  พบเวลาชนกัน {conflicts.length} คู่ ตรวจรายวิชาที่ทับซ้อนในตาราง
-                </p>
-              )}
-              {examWarnings.length > 0 && (
-                <p className="weather-row is-storm">
-                  <IconStorm />
-                  พบความเสี่ยงตารางสอบ {examWarnings.length} รายการ
-                </p>
-              )}
-            </div>
-          )}
-
           {timetableView === "grid" ? (
-            <div className="face-scroll">
+            <div className="grid-scroll">
               <div className="timetable">
                 <div className="corner">วัน / เวลา</div>
                 {hours.map((hour) => (
@@ -2175,10 +2303,11 @@ export default function Home() {
           )}
         </section>
 
-        <section className="zone" id="blocks" aria-labelledby="blocks-title">
+        <section className="zone" id="blocks" aria-labelledby="blocks-title" data-folded={foldedZones.includes("blocks") ? "true" : undefined}>
           <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("blocks")} aria-label={foldedZones.includes("blocks") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("blocks")}><IconChevron /></button>
             <h2 id="blocks-title">รายวิชาที่บันทึก</h2>
-            <p>บล็อกทั้งหมดที่ตัดไว้ในแผ่นงานนี้ ล็อกไว้เพื่อกันไม่ให้ตัวช่วยจัดแผนสลับ section</p>
+            <p>รายวิชาทั้งหมดในตารางนี้ ล็อกไว้เพื่อกันไม่ให้ตัวช่วยจัดแผนสลับ section</p>
             <div className="zone-actions">
               <button
                 type="button"
@@ -2193,7 +2322,7 @@ export default function Home() {
                 <IconPlus />
                 เพิ่มด้วยตนเอง
               </button>
-              <button type="button" className="btn btn-line btn-fracture" onClick={removeAllCourses} disabled={courses.length === 0 || !canEditActivePlan}>
+              <button type="button" className="btn btn-line btn-destructive" onClick={removeAllCourses} disabled={courses.length === 0 || !canEditActivePlan}>
                 ลบทั้งหมด
               </button>
             </div>
@@ -2205,17 +2334,17 @@ export default function Home() {
             <div className="block-list">
               {courses.map((course) => (
                 <article
-                  className={conflictIds.has(course.id) ? "cut-block is-fracture" : "cut-block"}
+                  className={conflictIds.has(course.id) ? "course-card is-clash" : "course-card"}
                   key={course.id}
-                  style={{ ["--cut" as string]: course.color }}
+                  style={{ ["--course" as string]: course.color }}
                 >
                   <header>
-                    <span className="cut-code">{course.code}</span>
-                    {course.locked && <span className="tag tag-anchor"><IconAnchor />ล็อก</span>}
-                    {conflictIds.has(course.id) && <span className="tag tag-fracture">ชนกัน</span>}
+                    <span className="course-code">{course.code}</span>
+                    {course.locked && <span className="tag tag-lock"><IconAnchor />ล็อก</span>}
+                    {conflictIds.has(course.id) && <span className="tag tag-clash">ชนกัน</span>}
                   </header>
-                  <p className="cut-name">{course.name}</p>
-                  <dl className="cut-measures">
+                  <p className="course-name">{course.name}</p>
+                  <dl className="course-meta">
                     <div>
                       <dt>เวลา</dt>
                       <dd>{days.find((day) => day.key === course.day)?.label} {course.start}-{course.end}</dd>
@@ -2238,7 +2367,7 @@ export default function Home() {
                       {course.locked ? "ปลดล็อก" : "ล็อก"}
                     </button>
                     <button type="button" onClick={() => editCourse(course)} disabled={!canEditActivePlan}>แก้ไข</button>
-                    <button type="button" className="is-fracture" onClick={() => removeCourse(course.id)} disabled={!canEditActivePlan}>ลบ</button>
+                    <button type="button" className="is-destructive" onClick={() => removeCourse(course.id)} disabled={!canEditActivePlan}>ลบ</button>
                   </footer>
                 </article>
               ))}
@@ -2246,8 +2375,9 @@ export default function Home() {
           )}
         </section>
 
-        <section className="zone" id="planner" aria-labelledby="planner-title">
+        <section className="zone" id="planner" aria-labelledby="planner-title" data-folded={foldedZones.includes("planner") ? "true" : undefined}>
           <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("planner")} aria-label={foldedZones.includes("planner") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("planner")}><IconChevron /></button>
             <h2 id="planner-title">ตัวช่วยจัดแผน</h2>
             <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
             <div className="zone-actions">
@@ -2351,8 +2481,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="zone" id="compare" aria-labelledby="compare-title">
+        <section className="zone" id="compare" aria-labelledby="compare-title" data-folded={foldedZones.includes("compare") ? "true" : undefined}>
           <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("compare")} aria-label={foldedZones.includes("compare") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("compare")}><IconChevron /></button>
             <h2 id="compare-title">เปรียบเทียบ 2 แผน</h2>
             <p>ดูคะแนนพื้นฐาน วันเรียน หน่วยกิต เวลาว่าง และรายวิชาที่ต่างกัน</p>
           </div>
@@ -2399,8 +2530,8 @@ export default function Home() {
                 ] as [string, number, number, string][]).map(([label, aValue, bValue, unit]) => (
                   <tr key={label}>
                     <th scope="row">{label}</th>
-                    <td>{aValue}<i>{unit}</i></td>
-                    <td>{bValue}<i>{unit}</i></td>
+                    <td className={label === "เวลาชน" && aValue > 0 ? "is-clash" : undefined}>{aValue}<i>{unit}</i></td>
+                    <td className={label === "เวลาชน" && bValue > 0 ? "is-clash" : undefined}>{bValue}<i>{unit}</i></td>
                   </tr>
                 ))}
               </tbody>
@@ -2422,33 +2553,35 @@ export default function Home() {
         </section>
 
         <div className="zone-pair">
-          <section className="zone" id="voids" aria-labelledby="voids-title">
+          <section className="zone" id="voids" aria-labelledby="voids-title" data-folded={foldedZones.includes("voids") ? "true" : undefined}>
             <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("voids")} aria-label={foldedZones.includes("voids") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("voids")}><IconChevron /></button>
               <h2 id="voids-title">เวลาว่าง</h2>
-              <p>ช่องฟ้าที่เหลือหลังตัดบล็อกในแต่ละวัน</p>
+              <p>ช่วงเวลาที่ไม่มีเรียนในแต่ละวัน</p>
             </div>
             {freeSlots.length === 0 ? (
               <p className="empty">ยังไม่มีข้อมูลเวลาว่างจากตารางปัจจุบัน</p>
             ) : (
-              <ul className="void-list">
+              <ul className="free-list">
                 {freeSlots.map((slot) => (
-                  <li className="void-item" key={`${slot.day}-${slot.start}-${slot.end}`}>
-                    <span className="void-day">{slot.label}</span>
-                    <span className="void-span">{slot.start}–{slot.end}</span>
-                    <span className="void-len">{Math.round(slot.minutes / 60 * 10) / 10}<i>ชม.</i></span>
+                  <li className="free-item" key={`${slot.day}-${slot.start}-${slot.end}`}>
+                    <span className="free-day">{slot.label}</span>
+                    <span className="free-span">{slot.start}–{slot.end}</span>
+                    <span className="free-len">{Math.round(slot.minutes / 60 * 10) / 10}<i>ชม.</i></span>
                   </li>
                 ))}
               </ul>
             )}
           </section>
 
-          <section className="zone" id="exams" aria-labelledby="exams-title">
+          <section className="zone" id="exams" aria-labelledby="exams-title" data-folded={foldedZones.includes("exams") ? "true" : undefined}>
             <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("exams")} aria-label={foldedZones.includes("exams") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("exams")}><IconChevron /></button>
               <h2 id="exams-title">ตารางสอบ</h2>
-              <p>วันสอบกลางภาคและปลายภาคของทุกวิชาในแผ่นงานนี้</p>
+              <p>วันสอบกลางภาคและปลายภาคของทุกวิชาในตารางนี้</p>
             </div>
             {examWarnings.length > 0 && (
-              <ul className="storm-list">
+              <ul className="exam-warn-list">
                 {examWarnings.map((warning) => (
                   <li key={warning}>
                     <IconStorm />
@@ -2462,7 +2595,7 @@ export default function Home() {
             ) : (
               <ul className="exam-list">
                 {courses.filter((course) => course.midterm || course.final).map((course) => (
-                  <li className="exam-item" key={course.id} style={{ ["--cut" as string]: course.color }}>
+                  <li className="exam-item" key={course.id} style={{ ["--course" as string]: course.color }}>
                     <span className="exam-code">{course.code}</span>
                     <span className="exam-name">{course.name}</span>
                     <span className="exam-when">
@@ -2480,8 +2613,9 @@ export default function Home() {
           </section>
         </div>
 
-        <section className="zone" id="room" aria-labelledby="room-title">
+        <section className="zone" id="room" aria-labelledby="room-title" data-folded={foldedZones.includes("room") ? "true" : undefined}>
           <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("room")} aria-label={foldedZones.includes("room") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("room")}><IconChevron /></button>
             <h2 id="room-title">ห้องตารางร่วมกัน</h2>
             <p>ส่งรหัสห้องให้เพื่อน แล้วแก้ตารางเดียวกันจากคนละเครื่อง</p>
           </div>
@@ -2494,7 +2628,7 @@ export default function Home() {
               ) : (
                 <span className="room-code-slots" aria-hidden="true">
                   {Array.from({ length: 6 }, (_, index) => (
-                    <i key={index} />
+                    <i key={index}>–</i>
                   ))}
                 </span>
               )}
@@ -2536,7 +2670,7 @@ export default function Home() {
                   คัดลอกรหัสห้อง
                 </button>
                 <button type="button" className="btn btn-line" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
-                <button type="button" className="btn btn-line" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
+                <button type="button" className="btn btn-line btn-destructive" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
               </div>
               {shareStatus && <p className="status-line">{shareStatus}</p>}
             </div>
@@ -2786,8 +2920,8 @@ export default function Home() {
                 </div>
               </div>
 
-              {filterError && <p className="status-line is-fracture">{filterError}</p>}
-              {classError && <p className="status-line is-fracture">{classError}</p>}
+              {filterError && <p className="status-line is-clash">{filterError}</p>}
+              {classError && <p className="status-line is-clash">{classError}</p>}
               {hasLoadedClasses && !classError && remoteClasses.length === 0 && (
                 <p className="empty">ไม่พบรายวิชาตามเงื่อนไขที่เลือก ลองปรับคณะ ภาควิชา หรือรหัสวิชาแล้วโหลดอีกครั้ง</p>
               )}
@@ -2796,20 +2930,20 @@ export default function Home() {
               )}
 
               {filteredRemoteClasses.length > 0 && (
-                <ul className="quarry-face-list">
+                <ul className="remote-list">
                   {filteredRemoteClasses.map((remoteClass) => {
                     const parsedTime = parseClassTime(remoteClass.classtime);
                     const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
                     const isPicked = plannerSelectedCodes.includes(remoteClass.coursecode);
 
                     return (
-                      <li className="raw-block" key={remoteClass.classid}>
-                        <div className="raw-head">
-                          <span className="raw-code">{remoteClass.coursecode}</span>
-                          <span className="raw-section">S.{remoteClass.sectioncode}</span>
+                      <li className="remote-card" key={remoteClass.classid}>
+                        <div className="remote-head">
+                          <span className="remote-code">{remoteClass.coursecode}</span>
+                          <span className="remote-section">S.{remoteClass.sectioncode}</span>
                         </div>
-                        <p className="raw-name">{remoteClass.coursename}</p>
-                        <dl className="cut-measures">
+                        <p className="remote-name">{remoteClass.coursename}</p>
+                        <dl className="course-meta">
                           <div>
                             <dt>เวลา</dt>
                             <dd>{dayLabel} {parsedTime.start}-{parsedTime.end}</dd>
@@ -2827,7 +2961,7 @@ export default function Home() {
                             <dd>{remoteClass.courseunit}</dd>
                           </div>
                         </dl>
-                        <div className="raw-actions">
+                        <div className="remote-actions">
                           <button
                             type="button"
                             className="btn btn-primary"
@@ -2862,7 +2996,7 @@ function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; cou
   const dayStart = hours[0] * 60;
   const dayEnd = (hours[hours.length - 1] + 1) * 60;
   const dayMinutes = dayEnd - dayStart;
-  const laneHeight = 88;
+  const laneHeight = 130;
   const laneGap = 5;
   const lanes: number[] = [];
   const positionedCourses = courses
@@ -2888,7 +3022,7 @@ function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; cou
       };
     });
   const laneCount = Math.max(1, lanes.length);
-  const rowHeight = positionedCourses.length === 0 ? 62 : 12 + laneCount * laneHeight + (laneCount - 1) * laneGap;
+  const rowHeight = positionedCourses.length === 0 ? 68 : 12 + laneCount * laneHeight + (laneCount - 1) * laneGap;
 
   return (
     <>
@@ -2904,10 +3038,10 @@ function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; cou
         </div>
         {positionedCourses.map(({ course, lane, left, width }) => (
           <article
-            className={conflictIds.has(course.id) ? "block is-fracture" : "block"}
+            className={conflictIds.has(course.id) ? "block is-clash" : "block"}
             key={course.id}
             style={{
-              ["--cut" as string]: course.color,
+              ["--course" as string]: course.color,
               left: `${left}%`,
               top: 6 + lane * (laneHeight + laneGap),
               width: `${width}%`,
@@ -2916,13 +3050,13 @@ function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; cou
             <span className="block-code">
               {course.code}
               {course.locked && <IconAnchor className="ico-sm" />}
+              {conflictIds.has(course.id) && <em className="block-clash">ชนกัน</em>}
             </span>
             <span className="block-name">{course.name}</span>
-            {course.teacher && <span className="block-teacher">{course.teacher}</span>}
             <span className="block-time">
               <time>{course.start}–{course.end}</time>
-              {course.room && <em>{course.room}</em>}
             </span>
+            {course.room && <span className="block-room">{course.room}</span>}
           </article>
         ))}
       </div>
@@ -2932,7 +3066,7 @@ function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; cou
 
 function CourseDifference({ course }: { course: Course }) {
   return (
-    <div className="diff-block" style={{ ["--cut" as string]: course.color }}>
+    <div className="diff-block" style={{ ["--course" as string]: course.color }}>
       <span className="diff-code">{course.code}</span>
       <span className="diff-name">{course.name}</span>
       <span className="diff-when">
@@ -2945,15 +3079,15 @@ function CourseDifference({ course }: { course: Course }) {
 
 function DayList({ day, conflictIds }: { day: (typeof days)[number] & { courses: Course[] }; conflictIds: Set<string> }) {
   return (
-    <section className="day-strata">
+    <section className="day-agenda">
       <h3>
         <b>{day.short}</b>
         {day.label}
       </h3>
       {day.courses.length === 0 ? (
-        <p className="day-void">ไม่มีเรียน · ว่างทั้งวัน</p>
+        <p className="day-free">ไม่มีเรียน · ว่างทั้งวัน</p>
       ) : (
-        <div className="day-strata-body">
+        <div className="day-agenda-body">
           {day.courses.map((course, index) => {
             const nextCourse = day.courses[index + 1];
             const gapMinutes = nextCourse ? toMinutes(nextCourse.start) - toMinutes(course.end) : 0;
@@ -2961,18 +3095,18 @@ function DayList({ day, conflictIds }: { day: (typeof days)[number] & { courses:
             return (
               <div key={course.id}>
                 <article
-                  className={conflictIds.has(course.id) ? "strata-block is-fracture" : "strata-block"}
-                  style={{ ["--cut" as string]: course.color }}
+                  className={conflictIds.has(course.id) ? "agenda-item is-clash" : "agenda-item"}
+                  style={{ ["--course" as string]: course.color }}
                 >
-                  <span className="strata-time">{course.start}<i>{course.end}</i></span>
-                  <span className="strata-body">
+                  <span className="agenda-time">{course.start}<i>{course.end}</i></span>
+                  <span className="agenda-body">
                     <b>{course.code}</b>
                     <span>{course.name}</span>
                     <small>{course.room || "-"} · {course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}</small>
                   </span>
                 </article>
                 {gapMinutes > 0 && (
-                  <p className="strata-gap">
+                  <p className="agenda-gap">
                     ว่าง <time>{minutesToTime(toMinutes(course.end))}–{minutesToTime(toMinutes(nextCourse.start))}</time> · <time>{Math.round((gapMinutes / 60) * 10) / 10}</time> ชม.
                   </p>
                 )}

@@ -1,484 +1,478 @@
 ---
 name: TableLearn
-description: A KMUTNB registration planner where a week of classes is a quarry face cut out of the sky.
+description: A KMUTNB registration planner that wears the registrar console's own theme — white cards on #f8f8f8, one teal working colour, one red reserved for a time clash.
 colors:
-  depth: "#0d2e5e"
-  depth-deep: "#071d3f"
-  depth-lift: "#14417e"
-  depth-line: "#23528f"
-  depth-ink: "#06203f"
-  cumulus: "#f5f7f9"
-  mist: "#e9edf1"
-  saw: "#d6dadf"
-  saw-line: "#c3cad2"
-  thunder: "#7c828b"
-  white: "#ffffff"
-  stone-base: "#eef1f5"
-  stone-face: "#e7ecf1"
-  sky: "#4da7e6"
-  sky-pale: "#dceefb"
-  quarry: "#1d5aa8"
-  quarry-lift: "#2269c0"
-  quarry-press: "#14406f"
-  fracture: "#c2381f"
-  fracture-pale: "#fae7e2"
-  fracture-ink: "#8f2412"
-  fracture-lift: "#ff8f76"
-  storm: "#3f5364"
-  storm-pale: "#e2e7ec"
-  storm-ink: "#2c3e4d"
-  sky-lift: "#5fb2e9"
-  sky-deep: "#3d97d8"
-  sky-soft: "#7cc2ee"
-  fracture-ink-soft: "#94331c"
-  fracture-ink-deep: "#7c2412"
-  on-depth-soft: "#b9cde6"
-  on-depth-quiet: "#8fa9c8"
-  on-depth-note: "#c6d6ea"
-  on-depth-off: "#9fb3cc"
-  ink: "#0d2e5e"
-  ink-soft: "#4a5f7d"
-  ink-quiet: "#5a6e88"
-  placeholder-ink: "#64758d"
-  on-depth: "#e6edf6"
-  disabled-ink: "#565d66"
-  disabled-ink-quiet: "#5f6670"
-  cut-ink: "#08203c"
-  cut-quarry: "#1d5aa8"
-  cut-verdigris: "#14746a"
-  cut-oxide: "#a8471d"
-  cut-amethyst: "#5b3fa8"
-  cut-cobalt: "#0f6ba8"
-  cut-brass: "#7a6a1f"
-  cut-garnet: "#a83d63"
+  primary: "#00aa9f"
+  primary-hover: "#009187"
+  primary-deep: "#00776f"
+  primary-tint: "rgba(0, 170, 159, 0.12)"
+  primary-tint-strong: "rgba(0, 170, 159, 0.2)"
+  ground: "#f8f8f8"
+  surface: "#ffffff"
+  surface-sunk: "#fafafc"
+  heading: "#5e5873"
+  ink: "#6e6b7b"
+  ink-quiet: "#71757c"
+  muted: "#b9b9c3"
+  disabled: "#a8a6b3"
+  disabled-ground: "#f1f1f4"
+  line: "#ebe9f1"
+  line-soft: "#f2f0f7"
+  field-line: "#d8d6de"
+  danger: "#ea5455"
+  danger-deep: "#c33e3f"
+  danger-tint: "rgba(234, 84, 85, 0.12)"
+  danger-line: "#f5b4b5"
+  danger-field: "#fdeced"
+  destructive-line: "#e0c6c7"
+  destructive-line-hover: "#d3adae"
+  warning: "#ff9f43"
+  warning-deep: "#cf7a26"
+  warning-tint: "rgba(255, 159, 67, 0.14)"
+  band: "#fcfcfd"
+  scroll-thumb: "#cfcdd8"
+  pigment-teal: "#0a7d75"
+  pigment-violet: "#5847c7"
+  pigment-blue: "#0f6f96"
+  pigment-green: "#1c7d47"
+  pigment-amber: "#a35c12"
+  pigment-slate: "#4f5b6b"
+  pigment-purple: "#7b3fa0"
 typography:
   display:
-    fontFamily: "Saira Stencil One, Chakra Petch, system-ui, sans-serif"
-    fontSize: "30px"
-    fontWeight: 400
-    lineHeight: 1
-    letterSpacing: "-0.025em"
-  headline:
-    fontFamily: "Chakra Petch, Leelawadee UI, Segoe UI, sans-serif"
-    fontSize: "clamp(19px, 1.5vw, 24px)"
+    fontFamily: "Montserrat, Prompt, Segoe UI, sans-serif"
+    fontSize: "clamp(26px, 3vw, 34px)"
     fontWeight: 700
-    lineHeight: 1.2
+    lineHeight: 1.1
+    letterSpacing: "0.16em"
+  wordmark:
+    fontFamily: "Montserrat, Prompt, Segoe UI, sans-serif"
+    fontSize: "21px"
+    fontWeight: 700
+    lineHeight: 1.1
     letterSpacing: "-0.01em"
+  headline:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
+    fontSize: "clamp(19px, 1.4vw, 22px)"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "normal"
+  dialog-title:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
+    fontSize: "17px"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "normal"
+  metric:
+    fontFamily: "Montserrat, Prompt, Segoe UI, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+    lineHeight: 1.1
+    letterSpacing: "normal"
+    fontFeature: "tabular-nums"
+  score:
+    fontFamily: "Montserrat, Prompt, Segoe UI, sans-serif"
+    fontSize: "17px"
+    fontWeight: 700
+    lineHeight: 1
+    letterSpacing: "normal"
+    fontFeature: "tabular-nums"
   title:
-    fontFamily: "Chakra Petch, Leelawadee UI, Segoe UI, sans-serif"
-    fontSize: "14.5px"
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
+    fontSize: "15px"
     fontWeight: 600
     lineHeight: 1.3
     letterSpacing: "normal"
   body:
-    fontFamily: "Anuphan, Leelawadee UI, Segoe UI, sans-serif"
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.55
     letterSpacing: "normal"
-  body-small:
-    fontFamily: "Anuphan, Leelawadee UI, Segoe UI, sans-serif"
+  body-dense:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
     fontSize: "13.5px"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.6
     letterSpacing: "normal"
-  label:
-    fontFamily: "Chakra Petch, Leelawadee UI, Segoe UI, sans-serif"
-    fontSize: "11px"
-    fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: "0.12em"
-  numeric:
-    fontFamily: "Azeret Mono, ui-monospace, Cascadia Mono, monospace"
-    fontSize: "17px"
+  control:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
+    fontSize: "13.5px"
     fontWeight: 500
     lineHeight: 1.2
-    letterSpacing: "0.02em"
-    fontFeature: "tabular-nums"
-  numeric-lead:
-    fontFamily: "Azeret Mono, ui-monospace, Cascadia Mono, monospace"
-    fontSize: "clamp(22px, 3vw, 30px)"
-    fontWeight: 700
-    lineHeight: 1.1
-    letterSpacing: "0.12em"
-    fontFeature: "tabular-nums"
-  mark-mobile:
-    fontFamily: "Saira Stencil One, Chakra Petch, system-ui, sans-serif"
-    fontSize: "26px"
-    fontWeight: 400
-    lineHeight: 1
-    letterSpacing: "-0.025em"
-  dialog-title:
-    fontFamily: "Chakra Petch, Leelawadee UI, Segoe UI, sans-serif"
-    fontSize: "18px"
-    fontWeight: 700
-    lineHeight: 1.25
-  section-label:
-    fontFamily: "Chakra Petch, Leelawadee UI, Segoe UI, sans-serif"
-    fontSize: "12px"
-    fontWeight: 600
-    lineHeight: 1.4
-    letterSpacing: "0.14em"
-  meta:
-    fontFamily: "Anuphan, Leelawadee UI, Segoe UI, sans-serif"
+    letterSpacing: "normal"
+  label:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
     fontSize: "12.5px"
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: "normal"
+  numeral:
+    fontFamily: "Montserrat, Prompt, Segoe UI, sans-serif"
+    fontSize: "13px"
+    fontWeight: 600
+    lineHeight: 1.35
+    letterSpacing: "normal"
+    fontFeature: "tabular-nums"
+  micro:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
+    fontSize: "11.5px"
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: "normal"
+  unit:
+    fontFamily: "Prompt, Leelawadee UI, Segoe UI, sans-serif"
+    fontSize: "11px"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.3
+    letterSpacing: "normal"
+  unit-floor:
+    fontFamily: "Montserrat, Prompt, Segoe UI, sans-serif"
+    fontSize: "9.5px"
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: "normal"
 rounded:
-  none: "0px"
-  chamfer-field: "8px"
-  chamfer-control: "9px"
-  chamfer-card: "12px"
-  chamfer-default: "14px"
-  chamfer-zone: "16px"
+  ring: "2px"
+  check: "3px"
+  pill: "4px"
+  ctl: "5px"
+  card: "6px"
+  scroll: "8px"
+  status: "20px"
+  circle: "50%"
 spacing:
-  seam: "1px"
   xs: "6px"
   sm: "8px"
   md: "12px"
-  lg: "18px"
-  xl: "24px"
+  lg: "14px"
+  xl: "16px"
+  gap: "20px"
+  gap-dense: "14px"
 components:
   button-primary:
-    backgroundColor: "{colors.quarry}"
-    textColor: "{colors.white}"
-    typography: "{typography.label}"
-    rounded: "{rounded.chamfer-control}"
-    padding: "9px 14px"
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
+    typography: "{typography.control}"
+    rounded: "{rounded.ctl}"
+    padding: "9px 16px"
     height: "38px"
   button-primary-hover:
-    backgroundColor: "{colors.quarry-lift}"
-    textColor: "{colors.white}"
+    backgroundColor: "{colors.primary-hover}"
+    textColor: "#ffffff"
   button-primary-active:
-    backgroundColor: "{colors.quarry-press}"
-    textColor: "{colors.white}"
-  button-primary-disabled:
-    backgroundColor: "{colors.saw}"
-    textColor: "{colors.disabled-ink}"
+    backgroundColor: "{colors.primary-deep}"
+    textColor: "#ffffff"
   button-line:
     backgroundColor: "transparent"
-    textColor: "{colors.quarry}"
-    rounded: "{rounded.chamfer-control}"
-    padding: "9px 14px"
+    textColor: "{colors.primary}"
+    typography: "{typography.control}"
+    rounded: "{rounded.ctl}"
+    padding: "9px 16px"
     height: "38px"
   button-line-hover:
-    backgroundColor: "{colors.sky-pale}"
-    textColor: "{colors.quarry}"
-  button-line-on:
-    backgroundColor: "{colors.quarry}"
-    textColor: "{colors.white}"
-  button-line-disabled:
-    backgroundColor: "transparent"
-    textColor: "{colors.disabled-ink-quiet}"
-  button-fracture:
-    backgroundColor: "transparent"
-    textColor: "{colors.fracture}"
-    rounded: "{rounded.chamfer-control}"
-    padding: "9px 14px"
+    backgroundColor: "{colors.primary-tint}"
+    textColor: "{colors.primary}"
   button-quiet:
-    backgroundColor: "{colors.mist}"
-    textColor: "{colors.quarry}"
-    rounded: "{rounded.chamfer-control}"
-    padding: "6px 10px"
-    height: "30px"
+    backgroundColor: "{colors.primary-tint}"
+    textColor: "{colors.primary}"
+    typography: "{typography.label}"
+    rounded: "{rounded.ctl}"
+    padding: "6px 12px"
+    height: "32px"
+  button-destructive:
+    backgroundColor: "transparent"
+    textColor: "{colors.danger-deep}"
+    typography: "{typography.control}"
+    rounded: "{rounded.ctl}"
+    padding: "9px 16px"
+    height: "38px"
   button-icon:
     backgroundColor: "transparent"
-    textColor: "{colors.ink-soft}"
-    rounded: "{rounded.none}"
-    size: "34px"
-  input:
-    backgroundColor: "{colors.white}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.chamfer-field}"
-    padding: "9px 11px"
-  input-disabled:
-    backgroundColor: "{colors.mist}"
     textColor: "{colors.ink-quiet}"
-  chip-day:
-    backgroundColor: "{colors.white}"
-    textColor: "{colors.ink-soft}"
-    rounded: "5px"
+    rounded: "{rounded.circle}"
+    width: "36px"
+    height: "36px"
+  button-disabled:
+    backgroundColor: "{colors.disabled-ground}"
+    textColor: "{colors.disabled}"
+  input:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-dense}"
+    rounded: "{rounded.ctl}"
+    padding: "6px 14px"
+    height: "38px"
+  nav-tab:
+    backgroundColor: "transparent"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-dense}"
+    rounded: "{rounded.pill}"
+    padding: "10px 12px"
+  nav-tab-active:
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
+    rounded: "{rounded.pill}"
+    padding: "10px 12px"
+  zone-card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.card}"
+    padding: "22px 24px 24px"
+  course-card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.card}"
+    padding: "15px 16px 13px"
+  class-block:
+    textColor: "{colors.ink}"
+    rounded: "{rounded.ctl}"
+    padding: "9px 11px 9px 13px"
+    height: "130px"
+  class-block-clash:
+    backgroundColor: "{colors.danger-field}"
+    textColor: "{colors.ink}"
+  day-chip:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink-quiet}"
+    rounded: "{rounded.ctl}"
     padding: "0 8px"
     height: "34px"
-  chip-day-selected:
-    backgroundColor: "{colors.fracture}"
-    textColor: "{colors.white}"
-  tag-anchor:
-    backgroundColor: "{colors.quarry}"
-    textColor: "{colors.white}"
-    rounded: "{rounded.none}"
-    padding: "2px 7px"
-  tag-fracture:
-    backgroundColor: "{colors.fracture}"
-    textColor: "{colors.white}"
-    rounded: "{rounded.none}"
-    padding: "2px 7px"
-  zone:
-    backgroundColor: "{colors.cumulus}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.chamfer-zone}"
-    padding: "22px 24px 24px"
-  cut-block:
-    backgroundColor: "{colors.white}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.chamfer-card}"
-    padding: "13px 15px 13px 22px"
-  cut-block-fracture:
-    backgroundColor: "{colors.fracture-pale}"
-    textColor: "{colors.fracture-ink}"
-  face-block:
-    backgroundColor: "{colors.white}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.chamfer-control}"
-    padding: "7px 9px 8px 16px"
-    height: "88px"
-  rail-tab:
-    backgroundColor: "transparent"
-    textColor: "{colors.on-depth}"
-    rounded: "{rounded.none}"
-    padding: "9px 12px"
-  rail-tab-active:
-    backgroundColor: "{colors.quarry}"
-    textColor: "{colors.white}"
-  readout:
-    backgroundColor: "{colors.depth-deep}"
-    textColor: "{colors.on-depth}"
-    rounded: "10px"
-    padding: "14px"
-  dialog:
-    backgroundColor: "{colors.cumulus}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.chamfer-zone}"
-    padding: "18px 20px"
+  day-chip-on:
+    backgroundColor: "{colors.primary}"
+    textColor: "#ffffff"
+  tag-clash:
+    backgroundColor: "{colors.danger-tint}"
+    textColor: "{colors.danger}"
+    rounded: "{rounded.status}"
+    padding: "2px 9px"
+  alert-clash:
+    backgroundColor: "{colors.danger-tint}"
+    textColor: "{colors.danger-deep}"
+    typography: "{typography.body-dense}"
+    rounded: "{rounded.ctl}"
+    padding: "11px 14px"
 ---
 
 # Design System: TableLearn
 
 ## Overview
 
-**Creative North Star: "Cloud Quarry"**
+**Creative North Star: "The Registrar's Desk"**
 
-A week of classes is a quarry face. Every section the student takes is a block cut out of the sky; every hour they keep is the blue void the cut leaves behind; a time collision is a bad cut, and it fractures. The whole interface is built from that one physical claim, and it is why nothing here looks like a calendar app: no rounded cards, no pastel chips, no soft ambient shadows, no gradient-happy dashboard. Panels are cumulus-white stone laid on a depth-blue ground; every corner is a 45° saw cut; the seams between things are 1px hairlines, not gaps.
+TableLearn wears the KMUTNB registrar console's own theme. A student plans their week in one browser tab and checks section seats at `reg.kmutnb.ac.th` in the next; the two tabs are meant to feel like the same desk. This is not a mood board interpretation of that system — the palette, radii, shadows, control metrics, and the active-nav gradient were read off the registrar's live stylesheet (a Vision Net / Vuexy admin theme) and reproduced, because the user pinned that system as the standard rather than as a one-time decision.
 
-The system is dense and industrial without being cold. It runs at 15px body text with 12–14px secondary copy, uses 1px seams instead of whitespace to divide lists, and packs a full 07:00–20:00 week onto one screen at 1440px. That density is deliberate: the surface is used under deadline pressure during registration week, so the operator's read — what collides, what is free, what is committed — must be available without scrolling or hunting. Expression carries the information; it never sits on top of it. Where the world and the task disagree, the task wins.
+Continuity is the whole point; impersonation is forbidden. The system may look like the registrar's desk and may never claim to be it: no university mark, no crest, no claim of affiliation or endorsement, and the footer disclaimer stays on the page and on every exported sheet. Everything the product asserts about itself must be true of a planning tool that reads public course data.
 
-The palette is dichromatic by discipline. Blue does the work — depth-blue ground, sky-blue void, quarry-blue for every affordance — and colour is then spent exactly twice, on the two hazards the product exists to surface: fracture red for a time collision, thunder-gray for exam weather. Course pigments are user data and are deliberately starved: a course's colour appears only on the cut face of its block and in its code glyph, never as a fill. The result is a screen where saturated red means one thing and one thing only.
+The world is a light administrative console, not a calendar app. A near-white ground (`#f8f8f8`) holds white cards with a 6px radius under one diffuse shadow. Teal `#00aa9f` is the only colour that means *you can act here*; it appears as a solid fill on primary buttons, as a 12% tint behind quiet controls and status pills, and as a 118° gradient pill with a matching glow behind the active nav item. Text runs purple-grey — `#5e5873` headings over `#6e6b7b` body — never black. Type is Prompt for Thai and Montserrat for numerals; icons are Feather-weight 2px strokes. Two more colours exist and mean exactly one thing each: red `#ea5455` is a time clash, amber `#ff9f43` is exam risk. It refuses the dark industrial world it replaced, and it refuses the pastel, heavily rounded calendar app.
+
+The system has **two surfaces**, not one. The screen is the first. The second is the 2× PNG the student exports and posts to a group chat, painted onto a canvas by `exportTimetableImage` in `app/page.tsx` — same palette, same type roles, same block anatomy, same disclaimer. It is a surface of this design system, not an output format.
 
 **Key Characteristics:**
-- Chamfered cut corners everywhere; `border-radius` is `0` on every element in the build
-- Cumulus-white stone panels on a depth-blue gradient ground with a fixed grain overlay
-- Sky blue (#4da7e6) is a material meaning "free time", never a decorative accent
-- Course colour survives only as a block's cut face and its code glyph
-- Two hazard channels, never crossed: fracture red for collisions, thunder-gray for exams
-- 1px hairline seams instead of gutters between list rows and grid cells
-- Latin stencil for the mark, industrial sans for labels, Thai humanist for prose, mono for numerals only
-- One authored motion moment (the cut), and colour-only transitions everywhere else
+- Near-white ground, white cards, one diffuse shadow — depth by shadow, never by border weight.
+- Exactly one working colour (teal), one clash colour (red), one risk colour (amber).
+- A course's colour is user data with a passport: the same pigment on every surface.
+- Purple-grey ink ladder; pure black and pure grey text do not appear.
+- Thai-first typography that never tracks and never shouts in uppercase.
+- 6px cards / 5px controls: tight, administrative geometry.
+- Dense but never cramped — 13.5px is the workhorse size, 38px the control height.
 
 ## Colors
 
-A dichromatic blue world — depth, void, and working blue — with saturated colour reserved almost entirely for the two hazard states.
+A light registrar console: one saturated teal doing all the work over a purple-grey neutral ladder, with two single-purpose status hues held in reserve.
 
 ### Primary
-- **Quarry Blue** (`{colors.quarry}`): Every affordance. Primary button fills, outlined-button ink, active rail tab, field focus ring, checkbox fill, section eyebrows, plan-score badges, the day-label numerals in the week header. If something can be pressed or is currently on, it is quarry blue.
-- **Quarry Lift** (`{colors.quarry-lift}`): Primary button hover only.
-- **Quarry Press** (`{colors.quarry-press}`): Primary button active only.
+- **Registrar Teal** (`#00aa9f`): the only working colour. Solid on primary buttons, day-number circles, chips in their on state, checkbox fills, focus outlines, links, and every numeric readout that is a *result*. Its darker hover (`#009187`) and pressed (`#00776f`) steps are the only other teals on a control.
+- **Teal Tint** (12% alpha) and **Teal Tint Strong** (20% alpha): the quiet register of the same colour. Backgrounds for status pills, plan-score discs, tags, quiet buttons, agenda gap notes, and the live shared-room panel. `--primary-deep` is the text colour on any tinted field, never `--primary` itself.
+- **Teal Gradient** (`linear-gradient(118deg, #00aa9f, rgba(0,170,159,0.7))`) with **Teal Glow** (`0 0 10px 1px rgba(0,170,159,0.55)`): reserved for exactly two elements — the brand glyph and the active desktop nav pill. This pair is the registrar theme's signature; using it anywhere else spends it.
 
-### Secondary
-- **Sky** (`{colors.sky}`): The void. It is the ground of the week grid's day timelines, the fill of every free-time row and gap strip, and the label ink for headings sitting on the depth ground.
-- **Sky Lift** (`{colors.sky-lift}`) / **Sky Deep** (`{colors.sky-deep}`) / **Sky Soft** (`{colors.sky-soft}`): The void's three gradient stops. A day timeline runs lift → sky → deep vertically so the face reads as open air with depth; a free-time row runs deep → sky → soft horizontally so the void brightens as it opens out. The hour divisions inside the void are `rgba(255,255,255,0.34)` rules, never dark lines.
-- **Sky Pale** (`{colors.sky-pale}`): The quiet hover wash under outlined and quiet buttons, the hovered row in the compare table, the ground of an informational weather row, and the base of the empty-state hatch.
-
-### Tertiary — the cut pigments
-Seven strata pigments are the default course colours (`cut-quarry`, `cut-verdigris`, `cut-oxide`, `cut-amethyst`, `cut-cobalt`, `cut-brass`, `cut-garnet`). They are assigned round-robin and are user-editable, so they are data, not decoration. They appear in exactly two places: the block's cut face (a 7–10px edge), and the course code, which is darkened into legibility against **Cut Ink** (`{colors.cut-ink}`) — the near-black the pigment is mixed toward at five call sites, `color-mix(in srgb, var(--cut) 70–82%, var(--cut-ink))`. Cut ink is the load-bearing token of the whole pigment system: it is what holds a light user-chosen colour at readable contrast on white stone, so the mix ratio and the ink move together or not at all.
+### Tertiary — course pigments
+Seven hues assigned to courses in rotation, each darkened until it clears 4.5:1 on white so a course code stays readable at 12.5px: **Pigment Teal** (`#0a7d75`), **Violet** (`#5847c7`), **Blue** (`#0f6f96`), **Green** (`#1c7d47`), **Amber** (`#a35c12`), **Slate** (`#4f5b6b`), **Purple** (`#7b3fa0`). The set deliberately contains no red and no orange: those families belong to clash and exam risk. A pigment is user data — the student can change it — so the system owns the set, not the assignment.
 
 ### Neutral
-- **Depth** (`{colors.depth}`) / **Depth Deep** (`{colors.depth-deep}`) / **Depth Lift** (`{colors.depth-lift}`): The ground. The page is a vertical `depth-lift → depth → depth-deep` gradient with a sky-tinted radial bloom at 78% -14%; `depth` also fills the week grid's header band and the mobile dock; `depth-deep` is the html background and the scrim base.
-- **Depth Line** (`{colors.depth-line}`): The only divider that exists on the dark ground — rail rule, readout border, dock top edge, scrollbar thumb.
-- **Cumulus** (`{colors.cumulus}`): Panel stone. Every zone and dialog body.
-- **Mist** (`{colors.mist}`): The recessed tone inside a panel — control strips, planner benches, day-strata cards, the week grid's day-label column, icon-button hover.
-- **Saw** (`{colors.saw}`) / **Saw Line** (`{colors.saw-line}`): Cut edges. `saw-line` is the 1px seam colour for grid gaps, list separators, table rules, and field strokes; `saw` is the disabled button fill and the bright edge in the saw-pass sweep.
-- **Thunder** (`{colors.thunder}`): Field hover stroke, table head rule, and the crosshair registration marks stamped into each panel's corners.
-- **Stone Base** (`{colors.stone-base}`) / **Stone Face** (`{colors.stone-face}`): The bottom stops of the two stone gradients — a cut block runs white → stone-base at 176°, a week-face block white → stone-face at 178°. The block on the sky face is a shade cooler and darker than the one on a panel, because it is lit against open air rather than against cumulus.
-- **White** (`{colors.white}`): The topmost surface — fields, plan results, raw blocks, the top stop of both stone gradients, and the lit inset edge of a cut. It is the one colour left as a literal in the stylesheet rather than routed through a custom property: pure white is self-describing, and the two `inset 0 1px 0 #ffffff` cut highlights read as exact CSS that way.
-- **Ink** (`{colors.ink}`) / **Ink Soft** (`{colors.ink-soft}`) / **Ink Quiet** (`{colors.ink-quiet}`) / **Placeholder Ink** (`{colors.placeholder-ink}`): Primary, secondary, and tertiary text on stone, then the field placeholder. Ink is the same value as depth — the text is the ground. Placeholder ink is cooler and lighter than ink-quiet so an unfilled field reads as empty rather than as filled-but-dim.
-- **On Depth** (`{colors.on-depth}`) / **On Depth Note** (`{colors.on-depth-note}`) / **On Depth Soft** (`{colors.on-depth-soft}`) / **On Depth Quiet** (`{colors.on-depth-quiet}`): The four-step ink ramp for the dark ground, in descending loudness — primary text, the site-note footnote, the shared-room caption, and the faintest room note. Headings on depth are sky, and the loudest values are pure white.
-- **On Depth Off** (`{colors.on-depth-off}`): Outside that ramp, and a state rather than a step — the disabled label on a rail button. It sits between soft and quiet in lightness, so it reads as withdrawn rather than merely quiet.
-- **Disabled Ink** (`{colors.disabled-ink}`) / **Disabled Ink Quiet** (`{colors.disabled-ink-quiet}`): The designed disabled state — see The Designed-Disabled Rule. `disabled-ink-quiet` doubles as the neutral fill of the section badge in the course browser.
+- **Ground** (`#f8f8f8`): the page behind every card. The only background at page level.
+- **Surface** (`#ffffff`): cards, zones, blocks, the rail, dialogs, and the exported sheet.
+- **Sunk Surface** (`#fafafc`): a panel *inside* a card — benches, agenda cards, the grid's header row and time column, exam and free-time rows, empty states. It marks "this is nested", not "this is dimmer".
+- **Heading** (`#5e5873`): every heading, every course name, every hard number.
+- **Ink** (`#6e6b7b`, 5.18:1 on white): body text and default control labels.
+- **Quiet Ink** (`#71757c`, 4.63:1 on white): metadata, hints, table headers, placeholders, times inside a block. The floor of the text ladder.
+- **Muted** (`#b9b9c3`): decoration only — scrollbar thumb hover and hairline furniture.
+- **Line** (`#ebe9f1`) / **Soft Line** (`#f2f0f7`) / **Field Line** (`#d8d6de`): card dividers and grid lines; the inner hour rules of the week; input and dashed-outline borders respectively.
+- **Band** (`#fcfcfd`): the alternating hour column in the week grid and in the exported sheet. It is a rhythm, not a surface.
+- **Scroll Thumb** (`#cfcdd8`): browser chrome only — the custom scrollbar thumb, sitting between `--line` and `--muted` so a scrollbar reads on both white and sunk surfaces. It hovers to `--muted`. It never touches content.
 
-### Hazard
-- **Fracture** (`{colors.fracture}`): A time collision, and nothing else. It is the cut face and 1px inset ring of a colliding block, the fill of the "ชนกัน" tag, the ink of destructive buttons, the selected state of an avoid-this-day chip, and the ring around the shared-room conflict panel.
-- **Fracture Pale** (`{colors.fracture-pale}`) / **Fracture Ink** (`{colors.fracture-ink}`) / **Fracture Ink Soft** (`{colors.fracture-ink-soft}`) / **Fracture Ink Deep** (`{colors.fracture-ink-deep}`): The hazard surface and its three inks — headings and codes, the secondary metadata inside a fractured block, and body copy on a fracture ground. Fracture surfaces are always the pale ground *plus* a −45° hatch at 9–18% opacity, never a flat tint.
-- **Fracture Lift** (`{colors.fracture-lift}`): The collision count in the rail readout — fracture red is unreadable on the depth ground, so the hazard lifts to a light coral there.
-- **Storm** (`{colors.storm}`) / **Storm Pale** (`{colors.storm-pale}`) / **Storm Ink** (`{colors.storm-ink}`): Exam weather. Both storm surfaces — the weather row above the grid and the exam-warning list — are one treatment: storm ink on storm pale under the same fine 74° rain hatch, with the icon at full storm. They read as a forecast rather than a failure.
+### States
+- **Clash Red** (`#ea5455`) with **Clash Field** (`#fdeced`), 12% tint, and line (`#f5b4b5`): a time clash, and nothing else.
+- **Deep Red** (`#c33e3f`): text weight for red — alert copy, destructive control labels, clash table headings.
+- **Destructive Line** (`#e0c6c7`) and its hover (`#d3adae`): a muted, desaturated red-grey pair used only as the border of a destructive button, over white or a `#faf1f1` wash. This is what lets "delete" read as destructive without borrowing the clash field — the desaturation is the whole point, and neither value may be used as a fill or as text.
+- **Exam Amber** (`#ff9f43`) with its 14% tint and **Deep Amber** (`#cf7a26`) for text: exam risk and the shared-room version conflict.
 
 ### Named Rules
+**The One Working Colour Rule.** Teal is the only colour that means *you can act here*. If an element is not actionable, not a live result, and not the active location, it is not teal.
 
-**The Sky-Void Rule.** Sky blue is a material, not an accent. It means unclaimed time. Any surface painted sky must be empty time (a timeline ground, a free-time row, a between-class gap); nothing that represents a course, a control, or a piece of chrome may be painted sky, and no block may sit on the void without being cut out of it.
+**The Reserved Red Rule.** `#ea5455` is a time clash. Destructive controls wear `--danger-deep` (`#c33e3f`) on a pale outline over white — never a red field, never the clash tint. If a delete button and a clash badge look alike, the clash has stopped being legible.
 
-**The Cut-Face Rule.** A course's colour reaches the screen through the cut face (a 7–10px edge on the leading side) and the code glyph, and through nothing else. Blocks are cumulus-white stone. Never fill a block with the course colour, never tint its background, never make a pastel chip of it.
+**The Pigment Passport Rule.** A course's colour is user data and keeps one identity on every surface — the week grid, the saved-course card, the day agenda, the compare diff, the exam list, and the exported PNG. It appears as a 9% tinted field with a 26% border on the week grid, and as an 8px round dot beside the course code everywhere else. It is never a thick edge stripe on any side.
 
-**The Two-Hazard Rule.** Fracture red is a time collision. Thunder-gray is exam weather. The two never swap and never blend, and neither is available for ordinary emphasis. Colour is not the only carrier: every hazard state also ships a hatch pattern, an icon, and Thai text.
+**The Muted-Is-Not-Ink Rule.** `--muted` (`#b9b9c3`) draws rules and decoration. Text stops at `--ink-quiet` (`#71757c`). No copy, label, or hint is ever set in `--muted` or lighter.
+
+**The Never-Colour-Alone Rule.** A clash is a red field *plus* a red border *plus* the word `ชนกัน` on a pill — on screen and in the raster. Exam risk is an amber field *plus* the warning icon *plus* the sentence. Colour never carries a state by itself.
 
 ## Typography
 
-**Display Font:** Saira Stencil One (Latin only; falls back to Chakra Petch, then system-ui)
-**UI Font:** Chakra Petch (with Leelawadee UI, Segoe UI)
-**Body Font:** Anuphan (with Leelawadee UI, Segoe UI)
-**Numeric Font:** Azeret Mono (with ui-monospace, Cascadia Mono)
+**Display / Numeral Font:** Montserrat (500/600/700, with Prompt and Segoe UI as fallbacks)
+**Body Font:** Prompt (300–700, with Leelawadee UI and Segoe UI as fallbacks)
 
-**Character:** A stencilled Latin mark over an industrial Thai-capable sans, softened by a humanist Thai text face and measured out in a squared mono. Chakra Petch does the shouting — squared terminals, tight tracking, heavy weights for headings and wide tracking for eyebrows — while Anuphan keeps the Thai prose readable at 12–15px. The four aliases (`--font-display`, `--font-ui`, `--font-body`, `--font-num`) are declared on `body`, not `:root`, because `next/font` puts its variables on `<body>`; declaring them on `:root` silently breaks the whole ramp.
+**Character:** Prompt is a Thai/Latin humanist sans that keeps Thai clusters open at 13px on a phone; Montserrat is used only where digits are compared — times, credits, scores, codes, room codes — always with `font-variant-numeric: tabular-nums` so a column of numbers doesn't shift as it updates. The pairing reads as an administrative form that respects Thai as the primary language rather than as an afterthought.
 
 ### Hierarchy
-- **Display** (Saira Stencil One 400, 30px, line-height 1, -0.025em): The wordmark only. One instance per page, in the rail head, in white on the depth ground.
-- **Mark Mobile** (Saira Stencil One 400, 26px): The same wordmark below 900px. The only responsive step in the type ramp.
-- **Headline** (Chakra Petch 700, clamp(19px, 1.5vw, 24px), 1.2, -0.01em): Zone titles. The page's only `h1` is the face zone.
-- **Dialog Title** (Chakra Petch 700, 18px): The head of a modal. Heavier than a zone title at a smaller size, because a dialog has no rail to anchor it.
-- **Title** (Chakra Petch 600, 14.5px, 1.3): Course names on cut blocks. The readout plan name runs 17px/600; block names inside the week grid 12.5px/600, clamped to two lines.
-- **Body** (Anuphan 400, 15px, 1.55): The base. Line length in the site note is capped at 78ch.
-- **Body Small** (Anuphan 400, 13.5px): Descriptive prose under a zone title, capped at 68ch.
-- **Meta** (Anuphan 400, 12.5px): Measures, hints, and footnotes. The floor for Thai prose; below this the ramp is labels only.
-- **Label** (Chakra Petch 600, 11px, 0.12em): Field labels and bench labels.
-- **Section Label** (Chakra Petch 600, 12px, 0.14em): The eyebrow over a subsection, in quarry blue on stone or sky on depth. Its 10.5px sibling runs the same tracking inside cards and the readout.
-- **Numeric** (Azeret Mono 500, tabular-nums): Every digit read as a measurement — readout figures at 17px, compare-table cells at 15px, course codes at 12–13px/700, times at 11–12.5px.
-- **Numeric Lead** (Azeret Mono 700, clamp(22px, 3vw, 30px), 0.12em): The one numeral that is a headline — the shared-room code, tracked out so it can be read aloud and typed by a friend.
-
-Two 19px/700 steps sit outside the ramp on purpose: the plan score (mono) and the week grid's day numeral (Chakra Petch). Both are single-instance display figures inside their own components.
+- **Display** (Montserrat 700, `clamp(26px, 3vw, 34px)`, 1.1, `0.16em`): one use only — the shared-room code, spaced so it can be read aloud or copied off a phone screen.
+- **Wordmark** (Montserrat 700, 21px, 1.1, `-0.01em`): the brand name in the rail, dropping to 19px under 900px. Its Thai subtitle sits under it at 12px in quiet ink.
+- **Headline** (Prompt 600, `clamp(19px, 1.4vw, 22px)`, 1.3, heading colour): zone titles. One `h1` (the week), the rest `h2`.
+- **Dialog title** (Prompt 600, 17px): the head of a modal, above a 13px quiet-ink description.
+- **Metric** (Montserrat 600, 18px, 1.1, tabular): the plan readout's numerals in the rail — the largest number on the page and the one a student reads first.
+- **Score** (Montserrat 700, 17px, 1, tabular): the number inside a plan-score disc, with its 9.5px unit under it.
+- **Title** (Prompt 600, 15px): footer heading and plan readout (15px), sub-headings inside a zone (14px). Always heading colour.
+- **Body** (Prompt 400, 15px, 1.55): the document default set on `<body>`.
+- **Body-dense** (Prompt 400, 13.5px, 1.6): the real workhorse — zone descriptions, alerts, card metadata, hints. Zone prose caps at `70ch`.
+- **Control** (Prompt 500, 13.5px, 1.2): every button, toggle, and chip label.
+- **Label** (Prompt 500, 12–12.5px, quiet ink): field labels, table headers, metadata keys, the mobile dock's tab names. Sentence case, always.
+- **Numeral** (Montserrat 600, 12.5–18px, tabular): times, credits, hour headers, plan scores, measures, compare figures, course codes.
+- **Micro** (Prompt 500, 11.5px): the two status pills that carry a word rather than a number — `tag`/`tag-lock`/`tag-clash` and the shared-room section badge.
+- **Unit** (Prompt 400, 11px): the floor tier — see the rule below.
+- **Unit floor** (Montserrat 500, 9.5px): the single smallest step, the unit label under a plan score.
 
 ### Named Rules
 
-**The Mono-Numerals Rule.** Azeret Mono carries no Thai glyphs. `--font-num` is permitted only on numerals, times, course codes, room codes, and section numbers. Any Thai character that lands in a mono run falls into an ugly system fallback and is a bug, not a style — put the Thai in a sibling element on `--font-ui` and keep the mono run to the digits.
+**The Unit-Suffix Floor Rule.** Nothing below 12px is ever body copy, a standalone label, or a link. The tier exists for exactly four jobs, and each is legible because of what it sits against: a unit suffix attached to a numeral it belongs to (`หน่วยกิต`, `ชม.`, `วิชา` at 11px beside an 18px, 15px or 13px number; 9.5px under a 17px score); white-on-solid-`#ea5455` pill text (the 11px `ชนกัน` badge, where the field carries the contrast); the 11px labels in the mobile dock, each under its own 20px icon; and the 11.5px word pills. A fifth use is a new size, not a new instance.
+**The Thai-Never-Tracks Rule.** Thai text takes no `letter-spacing` and no `text-transform: uppercase` — both break cluster rendering and neither is a Thai typographic convention. Tracking exists only on Latin and numeral runs: the room code (`0.16em`), a room label pill (`0.08em`), a course code (`0.01em`), the wordmark (`-0.01em`).
 
-**The Stencil-Once Rule.** The stencil face appears exactly once per page, on the wordmark. It is Latin-only, so it can never carry Thai copy, and it must never be recruited for headings, numbers, or emphasis.
+**The Two-Face Rule.** If the value is a number the student compares — a time, a credit count, a score, a code — it is Montserrat with tabular figures. Everything else is Prompt. A number set in Prompt inside a comparison column is a bug.
 
-**The Tabular Rule.** Anything that stacks or compares — readout measures, compare table, exam times, free-time spans — is `font-variant-numeric: tabular-nums`. Numbers that sit in a column must not shimmy as they change.
+**The Heading-Is-Purple Rule.** Headings and hard values take `#5e5873`; supporting copy takes `#6e6b7b`; metadata takes `#71757c`. Weight, not colour, separates a heading from its body — the ladder never reaches black.
 
 ## Layout
 
-**The frame.** Desktop is a two-column grid: a 268px sticky rail (232px under 1180px) and a fluid work column, separated and inset by `--gap` (18px, dropping to 12px under 900px). The rail carries the mark, the primary action, the seven-zone index, and a live readout of the active plan; the work column is a vertical stack of zones at the same gap.
+**Page shell.** A CSS grid of `260px minmax(0, 1fr)` with a `20px` gap and `20px` page padding: a sticky white menu rail beside a single content column. The rail narrows to `232px` under 1180px. Under 900px the shell becomes a block: the rail's brand and plan readout sit at the top of the page, and its nav detaches into a fixed bottom dock (`padding-bottom: env(safe-area-inset-bottom)`), with the content column reserving `78px` for it.
 
-**The zone.** Every section of the page is a cumulus panel with 22px/24px padding, a 16px chamfer, and thunder-gray crosshair registration marks stamped 11px into its top-right and bottom-left corners. Paired zones (free time + exams) sit in an `auto-fit minmax(320px, 1fr)` grid so they split on desktop and stack when narrow.
+**Content column.** A vertical stack of white "zones" at the same `20px` rhythm, each `22px 24px 24px` of padding, each with a `zone-head` grid of `title/description | actions`. Two zones can pair into a row via `repeat(auto-fit, minmax(min(340px, 100%), 1fr))`. Inside a zone, panels sit on `--surface-sunk` at `14px` gaps; cards, benches and diff blocks use `auto-fill`/`auto-fit` tracks at 280–340px.
 
-**Within a zone**, the rhythm is: a `zone-head` (title, one line of prose at 68ch, actions right-aligned at 20px gap), an optional mist control strip at 12px/14px padding, then the content. Card collections are `auto-fill`/`auto-fit` grids with a 260–276px minimum and a 12px gap. Lists are not gapped — they are a 1px `saw-line` background showing through a 1px flex gap, so rows read as strata separated by a cut line.
+**Spacing rhythm.** `20px` between zones (`14px` under 900px, via `--gap`), `14px` between cards in a grid, `12px` between fields, `8px` between buttons in a group, `6px` between hairline items. Controls are `38px` tall (`32px` for quiet, `34px` for chips), rising to `42–44px` under 900px so they stay thumb-sized.
 
-**The week face.** A 15-column grid: an 88px time gutter plus 14 hour columns at `minmax(66px, 1fr)`, `min-width: 1030px`, with 1px seams. Each day's timeline is one full-width sky-gradient row spanned across all hour columns, with hour divisions painted as translucent white rules; blocks are absolutely positioned over it at a fixed 88px height. The face scrolls horizontally inside its own container rather than letting the page scroll.
+**The week grid.** `88px` time gutter plus `repeat(14, minmax(66px, 1fr))` for 07:00–20:00, `min-width: 1030px`, 1px gaps rendered as `--line` showing through the grid's own background. Each day is one full-width timeline row with absolutely positioned 130px blocks packed into lanes, so overlapping classes stack instead of painting over each other. It fits without horizontal scrolling at 1440px; below that it scrolls inside `.grid-scroll`, never taking the page with it. Mobile defaults to the day-agenda list instead.
 
-**Spacing rhythm.** 1px (seam) · 6px · 8px · 12px · 18px (`--gap`) · 24px. Component internals stay on that ladder; the only values off it are the optical ones inside cut blocks, where the left padding is enlarged (16px, 22px) to clear the cut face.
-
-**Responsive.** At 1180px the rail narrows. At 900px the page goes single-column: the rail becomes a horizontal band above the work column and its nav detaches into a fixed bottom dock carrying all seven destinations, using mobile-only short labels stacked under 20px icons, with `env(safe-area-inset-bottom)` padding and 74px of bottom padding on the work column to clear it. Mobile defaults to the day-list view rather than the grid. At 560px, card grids collapse to one column and control groups go full width.
+**Breakpoints:** 1180px (rail narrows), 900px (dock, folds, full-screen dialogs, larger touch targets), 560px (every multi-column grid collapses to one).
 
 ### Named Rules
+**The Shrinkable Track Rule.** Every `auto-fit`/`auto-fill` track is written `repeat(auto-fit, minmax(min(Npx, 100%), 1fr))`. The bare `minmax(Npx, 1fr)` form cannot shrink below N and overflows a 320px phone.
 
-**The Static Rail Rule.** Under 900px the rail must be `position: static`. As `sticky` it creates a stacking context that traps the fixed bottom dock beneath the work column, and the dock disappears behind the page. This is a load-bearing declaration; do not "tidy" it.
+**The One Exception Rule.** `.timetable` is the single deliberate violation: `repeat(14, minmax(66px, 1fr))` with `min-width: 1030px`. A week compressed to fit a phone stops being readable, so the week scrolls inside its own container instead. No other component may claim this exception.
 
-**The Face-First Rule.** Collisions and exam weather are rendered above the week grid, never below it and never only inside the blocks. They are the reason the student opened the page.
-
-**The Seam Rule.** Related rows are separated by a 1px `saw-line` seam, not by a gutter. Reach for whitespace between zones; reach for a cut line within one.
+**The Fold-Below-900 Rule.** Under 900px every zone except the week folds by default — `data-folded="true"` plus a round chevron disclosure button pinned to the zone's top-right, with the zone reserving `52px` of right padding for it. The bottom dock unfolds the zone it links to. This is what keeps the phone's first load near 3,600 CSS px instead of 9,700.
 
 ## Elevation & Depth
 
-The system is not flat, but it has no ambient card shadows. Depth is carried three ways, in order of how much of the screen they cover.
-
-First, **tonal strata**: the dark ground gradient recedes, cumulus panels sit on it, mist recesses inside them, and pure white is the topmost surface (fields, cut blocks, plan results). Second, **the seam and the inset stroke**: separation is a 1px `saw-line` seam or an `inset 0 0 0 1px` box-shadow, never a border on a chamfered element. Third, **the cut relief**: a block on the week face is the only element that casts — a `drop-shadow(0 2px 5px rgba(6,32,63,0.32))` filter (not a box-shadow, so the shadow follows the notched silhouette) plus an `inset 0 1px 0 #ffffff` top highlight, which together make it read as stone standing proud of the sky it was cut from.
-
-A fixed fractal-noise grain sits over the whole page at 16% opacity in `overlay` blend mode, and the dialog scrim is an 82% depth-deep wash with a 3px backdrop blur.
+Depth is carried by three diffuse shadows in a purple-grey ink (`rgba(34, 41, 47, …)`), never by border weight and never by a hard offset. A card is white on near-white; the shadow is the only thing separating them, which is why the ground can never be white.
 
 ### Shadow Vocabulary
-- **Cut relief** (`filter: drop-shadow(0 2px 5px rgba(6, 32, 63, 0.32))`): Only on a course block sitting on the sky void. It is what makes the block look cut rather than drawn.
-- **Cut highlight** (`box-shadow: inset 0 1px 0 #ffffff`): The lit top edge of a block or cut-block card.
-- **Hairline stroke** (`box-shadow: inset 0 0 0 1px <colour>`): The universal edge — fields (`saw-line`), field focus (2px `quarry`), fracture blocks (`fracture`), plan results and raw blocks (`saw-line`).
+- **Card** (`box-shadow: 0 4px 24px rgba(34, 41, 47, 0.1)`): a page-level surface — the rail, every zone, the footer note. One value, used everywhere at that level.
+- **Soft** (`box-shadow: 0 2px 8px rgba(34, 41, 47, 0.07)`): a thing *inside* a surface — class blocks, course cards, the selected segment of the view toggle.
+- **Pop** (`box-shadow: 0 10px 34px rgba(34, 41, 47, 0.16)`): the dialog only.
+- **Teal Glow** (`box-shadow: 0 0 10px 1px rgba(0, 170, 159, 0.55)`): the brand glyph and the active desktop nav pill only.
+- **Primary lift** (`box-shadow: 0 6px 16px rgba(0, 170, 159, 0.36)`): a hovered primary button, removed again on `:active`.
+- **Field focus** (`box-shadow: 0 3px 10px 0 rgba(34, 41, 47, 0.1)` with a teal border): an input under the cursor's attention — a lift, not a ring.
+- Two edge shadows exist for detached bars: `0 2px 12px rgba(34,41,47,0.08)` on the mobile top rail and `0 -4px 20px rgba(34,41,47,0.08)` on the bottom dock.
 
 ### Named Rules
+**The Level-Not-Loudness Rule.** A shadow states which level a thing lives on: page surface → Card, nested object → Soft, modal → Pop. It never states importance, and it never appears on hover for an element that has no elevation at rest.
 
-**The Cut-Relief Rule.** One drop shadow exists in this system, and it belongs to a block cut out of the sky. Everywhere else, depth is tone and a 1px line. Never add a soft ambient shadow to a panel, a card, a dialog, or a button.
-
-**The Inset-Stroke Rule.** A chamfered element is never given a `border`. Use an inset box-shadow, a 1px seam, or the evenodd ring — a border draws a rectangle and leaves the diagonal corner open.
+**The Sunk-Instead-Of-Shadow Rule.** Inside a card, nesting is shown by `--surface-sunk` plus a 1px `--line` border, not by another shadow. Two stacked shadows inside one card is the failure mode this rule exists to prevent.
 
 ## Shapes
 
-**Radius is zero.** There is no rounding anywhere in the build. The single corner language is the chamfer: a 45° cut of length `--c`, taken off the **top-left and bottom-right** of a panel, so every rectangle reads as a piece that came off a larger face. The chamfer is parametric — `--c` is set per component and scales with the element: 16px on zones and dialogs, 14px default, 12px on cards and the room code, 10px on the readout, 9px on buttons, blocks, and rail tabs, 8px on fields, and 4–6px on elements under 40px (checkbox, day chip, in-card footer buttons). Icon buttons set `--c: 0` and stay square.
+Tight administrative geometry. Rectangles carry one of three radii: `6px` for anything card-shaped (zones, cards, panels, dialogs, the grid, the brand glyph), `5px` for anything control-shaped (buttons, inputs, chips, blocks, alerts, rows), `4px` for the nav pill. Nothing on a rectangle goes above 6px — a larger radius reads as a consumer calendar app and is out of world.
 
-**Blocks cut a different silhouette.** Anything that represents a course cut off the face — the week block, the strata row in day view, the saved-course card — takes a *single* notch off the **top-right** corner only, keeping three square corners. The direction of the notch is what distinguishes a piece of stone from a panel.
+Below the control tier sits a **chrome tier** for objects smaller than a control, sized to the object rather than to the ladder: `3px` on the 18px checkbox and on the inner pill of the view toggle, `2px` on the global `:focus-visible` ring so it hugs a small target without reading as a lozenge, and `8px` on the 10px scrollbar thumb (drawn with a 3px transparent border and `background-clip: padding-box`, which is what makes a 10px track render as a 4px thumb). These are chrome, not surfaces, and they do not extend the card/control ladder.
 
-**The cut face.** Off the week grid, a course's colour is drawn as a `::before` trapezoid pinned to the left edge (`clip-path: polygon(0 0, 100% 7px, 100% calc(100% - 7px), 0 100%)`), 8–10px wide, with a 1px white highlight on its inner edge. It is a cut face, not a `border-left`; a straight rule reads as a status bar and loses the geometry. On the week face itself the colour is instead a 7px hard stop in the block's background gradient, because the block is clipped.
+Full rounding is reserved for two shapes that are not rectangles: `20px`/`999`-style **status pills** (tags, the `ชนกัน` badge, free-time durations, section badges) and **circles** (`50%`) for day numbers, plan-score discs, icon buttons, and the fold chevron.
 
-**Hatching is the world's texture.** Diagonal −45° repeating gradients at 8–18% opacity mark every state that is not solid: fracture surfaces, sky voids and gaps, empty states, the room-code placeholder slots. Exam weather uses a distinct fine 74° hatch so the two hazard textures are separable at a glance.
+Borders are 1px and hairline-coloured: `--line` for structure, `--field-line` for a control's own edge, and a **1px dashed `--field-line`** for a container that is empty or not yet live — empty states, free-day notes, the shared-room panel before a room exists. The dash going solid teal is how "this is now live" is shown.
 
-**Icons** are a hand-authored 24px stroke set drawn on the same geometry: `stroke-width: 1.6`, `stroke-linecap: square`, `stroke-linejoin: miter`, no fills, no curves except where a form demands one (the storm cloud). They are square-cut and mitered to match the chamfer.
+Icons are a single hand-drawn Feather-weight set: `24` viewBox, `fill: none`, `stroke: currentColor`, `stroke-width: 2`, round caps and joins, rendered at 12/14/17/18/20/22px and always `aria-hidden`. They inherit their colour from the text beside them.
 
 ### Named Rules
-
-**The Chamfer-Only Rule.** `border-radius` is `0` on every element. The chamfer is the only corner treatment in the system. A rounded corner anywhere is a defect, including on images, avatars, and third-party embeds.
-
-**The Notch-Direction Rule.** Panels chamfer top-left and bottom-right. Course blocks notch top-right only. Never mix the two silhouettes; the difference is how the eye separates chrome from material.
-
-**The Ring Rule.** An outlined chamfered element draws its 1px outline as an absolutely positioned pseudo-element filled with the ring colour and clipped by an `evenodd` polygon whose inner ring is inset 1px. This is the only way to get an outline that follows the diagonal; `clip-path` on the element itself would clip a border and leave the corner open.
+**The Three-Radius Rule.** Anything card- or control-shaped takes one of exactly three radii: 6px card, 5px control, 4px nav pill. A fourth radius *in that range* is a drift, not a decision. The chrome tier (3px / 2px / 8px) and the pill and circle are outside the ladder, chosen by what the element *is*, not by how large its container is.
 
 ## Components
 
 ### Buttons
-- **Shape:** Chamfered (`{rounded.chamfer-control}`), 38px minimum height, 9px/14px padding, Chakra Petch 600 at 13px with 0.03em tracking, 17px icons, `transition: background-color 0.14s linear, color 0.14s linear`.
-- **Primary:** Quarry fill, white text. Hover lifts to quarry-lift, active presses to quarry-press. On the depth ground (the rail CTA) the hover inverts instead: sky fill with `{colors.depth-ink}` text.
-- **Line:** Transparent with a quarry evenodd ring and quarry text; hover washes sky-pale; the `is-on` state fills quarry and hides its ring.
-- **Fracture:** Quarry's destructive sibling — fracture text, fracture-pale hover wash. Used for delete and clear-all.
-- **Quiet:** A mist-filled 30px button at 12px for in-strip secondary actions.
-- **Icon:** 34px square (`--c: 0`), ink-soft, mist hover.
-- **Disabled:** See The Designed-Disabled Rule.
+- **Shape:** control radius (5px), 38px tall, `9px 16px`, 8px gap to a 17px icon, `0.16s ease` on colour and shadow.
+- **Primary:** solid teal on white text; hover deepens to `#009187` and lifts on a teal shadow; `:active` presses to `#00776f` and drops the shadow.
+- **Line (secondary):** teal text on a teal 1px border over transparent; hover fills with the 12% tint. Its `is-on` state inverts to solid teal — this is how a toggle button shows it is engaged.
+- **Quiet:** teal on a 12% tint field, 32px tall at 12.5px — for in-card actions that shouldn't compete with the zone's primary.
+- **Destructive:** deep red text (`#c33e3f`) on a muted red-grey border (`#e0c6c7`); hover washes the field to `#faf1f1` and deepens the border to `#d3adae`. Never a red field.
+- **Icon:** 36px circle, quiet ink, hover darkens to heading colour on a light grey wash.
+- **Disabled:** flat `--disabled-ground` field with `--disabled` text, no shadow, `cursor: not-allowed`. Outline variants keep a transparent field and drop to a `--line` border instead.
+- **Focus:** the global `:focus-visible` — 2px solid teal, 2px offset. Never removed.
 
 ### Chips
-- **Day chip** (planner "avoid this day"): 38×34px white cell with a `saw-line` inset stroke and a 5px chamfer; hover shifts the text to quarry; **selected fills fracture red**, because selecting a day is declaring it hazardous.
-- **Tags** (on cut blocks): square, unchamfered, 2px/7px, 10.5px/600 at 0.08em, white on quarry for "locked", white on fracture for "collides". Tags always carry Thai text alongside the colour.
+- **Day chip** (planner constraints): a 34px-tall, 38px-min-width control-radius box, quiet ink on white with a `--field-line` border. Hover turns border and text teal; checked inverts to solid teal on white. The real `<input>` is visually hidden but still receives focus, which draws the same 2px teal outline on the box.
+- **Status pill / tag:** `2px 9px` at 11.5px on a 20px radius. Only two exist — `tag-lock` (teal on 12% tint) and `tag-clash` (red on 12% red tint) — each always paired with its icon or word.
 
 ### Cards / Containers
-- **Zone:** Cumulus stone, 16px chamfer, 22–24px padding, crosshair marks in two corners. No shadow, no border.
-- **Cut block** (a saved course): A white-to-`{colors.stone-base}` vertical gradient, 12px top-right notch, cut face on the left, inset white top highlight, 22px left padding to clear the face. Header (code + tags), title, a 112px-minimum `auto-fit` measures grid, and a footer of ring-outlined text buttons above a `saw-line` rule. Its fracture variant swaps the ground for the pale hatch and the cut face for fracture red.
-- **Bench / strip:** Mist recess, no chamfer, 12–16px padding. The workspace inside a panel.
+- **Zone:** white, 6px, Card shadow, `22px 24px 24px`. The unit of the content column; carries an `h1`/`h2`, an optional description capped at 70ch, and right-aligned actions.
+- **Course card:** white, 6px, `--line` border, Soft shadow; header row of pigment-dotted code plus tags, then the course name at 14.5px, then a two-column definition list of metadata at 12/13px, then a footer of equal-width tinted action buttons above a `--line` rule. In a clash it turns to the red tint with a `--danger-line` border, and its footer buttons switch to white fields with an inset red hairline so they stay legible on the tint.
+- **Bench / agenda / sunk panel:** `--surface-sunk`, 6px, 1px `--line`, `14–18px` padding. The nested level.
+- **Empty state:** sunk field, 1px dashed `--field-line`, 20px of padding, quiet ink at 13.5px.
 
 ### Inputs / Fields
-- **Style:** White, 8px chamfer, 9px/11px padding, 14px Anuphan, edged with `inset 0 0 0 1px saw-line` (never a border). The label above is 11px/600 at 0.12em in ink-soft. Selects get an authored quarry chevron and 30px right padding; time, date, and number inputs switch to `--font-num` with tabular figures; the placeholder sits at `{colors.placeholder-ink}`.
-- **Hover:** Stroke darkens to thunder. **Focus:** stroke doubles to 2px quarry, native outline removed, caret quarry.
-- **Disabled:** Mist fill, ink-quiet text, `not-allowed` cursor.
-- **Checkbox:** A 17px white square with a 4px chamfer and a thunder stroke; checked fills quarry with an authored white tick. Focus draws a 2px quarry outline offset 2px.
+- **Style:** 38px tall, white, 1px `--field-line`, 5px radius, `6px 14px`, 14px Prompt. Label above at 13px/500 in heading colour, hint below at 13px in quiet ink.
+- **Hover:** border darkens to `#c3c1cd`. **Focus:** border turns teal and the field lifts on the field-focus shadow; the native outline is removed only because that pair replaces it.
+- **Select:** native chevron suppressed, replaced by an inline 18px Feather chevron data-URI at `right 11px center` with `36px` of right padding.
+- **Checkbox:** an 18px custom box (3px radius) beside a visually hidden input; checked fills teal and fades in a white check data-URI over `0.12s`.
+- **Disabled:** `#f4f4f7` field, quiet ink, `not-allowed`.
 
 ### Navigation
-- **Rail (desktop):** A sticky column of tabs at 13.5px/500 with 18px sky icons, separated by translucent depth-line rules. Hover washes 16% sky. The active tab fills quarry, turns its icon white, and takes a notch off its **top-right** corner — the tab is itself a block cut into the rail. Exactly one tab is active, driven by an IntersectionObserver.
-- **Dock (mobile, ≤900px):** The same nav, fixed to the bottom on a depth gradient with a depth-line top edge. All seven destinations stay visible by switching to a stacked 20px icon over an 11px short label; the long labels are hidden, not truncated. Safe-area padding at the bottom, z-index 30.
+- **Desktop rail:** a sticky white card holding the brand lockup (a 40px teal-gradient glyph with the glow, beside the Montserrat wordmark and its Thai subtitle) above a `--line` rule, a full-width primary CTA, seven zone links, and a live plan readout.
+- **Tab states:** rest is 14px `--ink` with quiet-ink 18px icon; hover washes `#f6f6f9` and darkens the label; **active** is the signature — white text and icon on the 118° teal gradient with the teal glow, at weight 500. Exactly one tab is active, driven by an IntersectionObserver over the zones.
+- **Mobile dock (<900px):** the same list, fixed to the bottom, one tab per zone, icon over an abbreviated label at 11px. The active tab drops the gradient and glow for teal-on-12%-tint — a glowing gradient at 60px wide reads as an error, and the dock sits over content where a glow would smear.
 
-### The Week Face (signature)
-The centrepiece. Sky-gradient day rows are the void; blocks are absolutely positioned stone at 88px tall with a 9px top-right notch, a 7px cut face, a white-to-`{colors.stone-face}` gradient, cut relief, and four stacked lines: code (mono 700, darkened course colour), name (Chakra Petch 600, two-line clamp), teacher, and a bottom-anchored time/room row. A colliding block turns into a fracture block: fracture cut face, −45% hatch over a pale ground, a 1px fracture inset ring, and every ink shifted into the fracture family.
+### Signature: the class block
+The one component that carries the product's whole promise. Absolutely positioned in its day's timeline, 130px tall, control radius, Soft shadow, and a field of `color-mix(in srgb, var(--course) 9%, #ffffff)` inside a 26% border of the same pigment. Inside: the course code in Montserrat 600 at the full pigment, the name at 13px/500 heading colour clamped to two lines, then the time in tabular Montserrat beside the room, both in quiet ink. It enters on `block-in` — 4px rise and fade over `0.32s cubic-bezier(0.16, 1, 0.3, 1)`.
 
-**Motion — the cut.** Blocks animate in on mount with `cut-in` (0.42s `cubic-bezier(0.16, 1, 0.3, 1)`: 3px drop and fade) while a `saw-pass` sweep (0.52s `cubic-bezier(0.5, 0, 0.2, 1)`) runs a saw-silver light band across the face and out. Because it fires on mount, switching plans visibly re-cuts the whole week. Dialogs get a matching 0.24s snap-and-settle; the scrim a 0.18s fade. Everything else in the system is a 0.14s linear colour change. Under `prefers-reduced-motion: reduce`, all animations and transitions collapse to 0.001ms and the saw sweep is removed entirely.
+In a clash it becomes the flat clash field `#fdeced` with a full `--danger` border, and the code line gains a white-on-red `ชนกัน` pill. Overlapping classes are packed into lanes and stacked, never overprinted, so the block layout itself tells the truth about the clash.
 
-### Exported PNG (signature)
-`บันทึกเป็นรูป` paints a second surface of the same world onto a 2× canvas: depth ground, cumulus grid, the same three-stop sky gradient for the day rows, translucent white hour rules, notched white blocks with a `rgba(6,32,63,0.34)` shadow and a 7px cut face, and the same type roles (Chakra Petch for the plan title, names, and teacher; Azeret Mono for the code and the time). It is not a screenshot — the palette is hard-coded in the painter.
+### Signature: the exported sheet
+`exportTimetableImage` repaints this same system onto a 2× canvas: white ground, the plan name at 27px/600 heading colour over a quiet-ink summary line and a `--line` rule; the grid with a `--surface-sunk` header row and day column, `#fcfcfd` alternating hour bands, `--line` row rules and `--line-soft` hour rules; the same lane packing; blocks at 5px radius with the same 9% field, 26% border, `rgba(34,41,47,0.1)` shadow, pigment code, heading-colour name, quiet-ink teacher/time/room; the same red field, red border and `ชนกัน` pill for a clash; and the two-line disclaimer at the foot. Fonts are read live off `<body>` so the raster uses the same Prompt and Montserrat faces.
 
 ### Named Rules
+**The Two-Surface Rule.** The screen and the exported PNG are two surfaces of one system. Any change to a token, a type role, or the block's anatomy must be made in both `app/globals.css` and `exportTimetableImage`. A raster that disagrees with the screen is a broken build, not a stale export.
 
-**The Designed-Disabled Rule.** Disabled is a colour decision, never a blanket `opacity`. A filled button goes `disabled-ink` on a `saw` fill; an outlined or quiet button goes `disabled-ink-quiet` on transparent with its ring dropped to `saw-line`; a primary button on the depth ground goes `{colors.on-depth-off}` on a 55% depth-line wash. Only the icon inside dims (to 0.7).
-
-**The One Cut Rule.** The system gets one authored motion moment — the cut — and it belongs to the course block. Everything else is a 0.14s linear colour transition. Do not add entrance animations, parallax, hover lifts, or scroll effects to anything else.
-
-**The Second Surface Rule.** The exported PNG is part of the design system, not an output format. Any change to the ground, sky, stone, cut face, or type roles must be made in the canvas painter in the same change as the CSS, or the two surfaces drift.
+**The Provenance Rule.** Every shipping raster carries the disclaimer: this is a planning tool, not a university system, and the course data comes from reg.kmutnb.ac.th. The sheet travels through group chats without the page around it, so it has to say what it is on its own.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** cut every corner with the chamfer at a `--c` scaled to the element (16px zones → 4px checkboxes), and take the notch off the top-right for anything that represents a course.
-- **Do** paint a course's colour only as a cut face and a code glyph, darkening the glyph with `color-mix(in srgb, var(--cut) 70–82%, var(--cut-ink))` so a light user pigment stays legible.
-- **Do** keep sky blue meaning "free time" — a timeline ground, a gap strip, a free-time row.
-- **Do** pair every hazard colour with a hatch, an icon, and Thai text, so the state survives colour-blindness and a black-and-white print.
-- **Do** put digits, times, and codes in `--font-num` with tabular figures, and the Thai next to them in `--font-ui`.
-- **Do** separate rows with a 1px `saw-line` seam and edge surfaces with an inset stroke.
-- **Do** keep `.rail` `position: static` below 900px, and keep all seven dock destinations visible by shortening labels rather than dropping them.
-- **Do** update the canvas painter in `app/page.tsx` whenever the palette, sky gradient, or block geometry changes.
-- **Do** give disabled controls their designed inks, and keep the whole system's transitions at 0.14s linear.
+- **Do** keep teal as the only working colour: action, active location, live result. Everything else is the neutral ladder.
+- **Do** state every state in words as well as colour — `ชนกัน` on the clash pill, the sentence in the amber alert.
+- **Do** give a course pigment the same identity on every surface: a 9% field on the week grid, an 8px dot beside the code everywhere else, including the PNG.
+- **Do** set numbers a student compares in Montserrat with `font-variant-numeric: tabular-nums`.
+- **Do** write every `auto-fit`/`auto-fill` track as `minmax(min(Npx, 100%), 1fr)`.
+- **Do** nest with `--surface-sunk` plus a 1px `--line`, and keep the shadow for the level above.
+- **Do** raise controls to 42–44px under 900px and fold every zone but the week by default.
+- **Do** honour `prefers-reduced-motion` — the global rule collapses every animation and transition to `0.001ms`, so any new motion must be a `transition`/`animation`, not a JS tween.
+- **Do** keep the disclaimer and the reg.kmutnb.ac.th attribution on the page and in every export.
 
 ### Don't:
-- **Don't** use `border-radius` anywhere, or add a second corner language (soft, cut-all-four, or asymmetric-rounded).
-- **Don't** put a `border` on a chamfered element — the diagonal corner stays open. Use the evenodd ring or an inset stroke.
-- **Don't** fill a course block with its course colour, or render a course as a pastel chip.
-- **Don't** spend fracture red on anything but a time collision, or thunder-gray on anything but exam weather.
-- **Don't** let Thai text into a `--font-num` run, and don't use the stencil display face for anything but the wordmark.
-- **Don't** add soft ambient drop shadows to panels, cards, dialogs, or buttons; the only cast shadow belongs to a block on the sky.
-- **Don't** signal disabled with `opacity`.
-- **Don't** add new motion. The cut is the one authored moment.
-- **Don't** let the page scroll horizontally to show the week — the face scrolls inside its own container.
+- **Don't** put `letter-spacing` or `text-transform: uppercase` on Thai text. Tracking belongs to Latin codes and numerals only.
+- **Don't** set text in `--muted` (`#b9b9c3`) or lighter. The ladder ends at `--ink-quiet`.
+- **Don't** use red for anything but a time clash, or amber for anything but exam risk. A destructive control gets `--danger-deep` on a pale outline, never a red field.
+- **Don't** let a course pigment enter the red or orange family, and don't render it as a thick edge stripe on any side of a block or card.
+- **Don't** spend the teal gradient or the teal glow outside the brand glyph and the active desktop nav pill.
+- **Don't** introduce a fourth card/control radius, or round a card past 6px. The 3px checkbox, 2px focus ring and 8px scrollbar thumb are chrome and are not licence to add a fifth.
+- **Don't** set anything below 12px unless it is a unit suffix beside its numeral, white text on the solid clash red, a dock label under its icon, or an 11.5px word pill.
+- **Don't** invent another neutral wash. Four near-identical greys (`#f6f6f9`, `#f2f2f5`, `#f3f2f5`, `#eceaef`) already sit in the build as hover states; that is drift to be consolidated onto `--surface-sunk` and `--line`, not a scale to extend.
+- **Don't** use a hard offset shadow, a coloured shadow other than the two teal ones, or a border to fake elevation.
+- **Don't** let any component but `.timetable` claim a non-shrinkable track or a `min-width` that pushes the page into horizontal scroll.
+- **Don't** add a university mark, crest, seal, or any wording that implies TableLearn is an official KMUTNB system or an endorsed partner.
+- **Don't** change a colour, radius, or type role on screen without making the same change in `exportTimetableImage`.
