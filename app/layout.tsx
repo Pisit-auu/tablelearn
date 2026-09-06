@@ -1,51 +1,35 @@
 import type { Metadata, Viewport } from "next";
-import { Anuphan, Azeret_Mono, Chakra_Petch, Saira_Stencil_One } from "next/font/google";
+import { Montserrat, Prompt } from "next/font/google";
 import "./globals.css";
 
-const anuphan = Anuphan({
+const prompt = Prompt({
   subsets: ["latin", "thai"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-text",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-th",
   display: "swap",
 });
 
-const chakraPetch = Chakra_Petch({
-  subsets: ["latin", "thai"],
+const montserrat = Montserrat({
+  subsets: ["latin"],
   weight: ["500", "600", "700"],
-  variable: "--font-industrial",
-  display: "swap",
-});
-
-const azeretMono = Azeret_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-measure",
-  display: "swap",
-});
-
-const sairaStencil = Saira_Stencil_One({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-quarry",
+  variable: "--font-mont",
   display: "swap",
 });
 
 const directionContract = `<!--
-THESIS: A week of classes is a quarry face — every section you take is a block cut out of the sky,
-and every hour you keep is the blue void it leaves behind. Refuses the pastel rounded-card
-calendar every timetable app ships.
-OWN-WORLD: Depth-blue ground #0d2e5e, cumulus-white chamfered blocks cut into a sky-void #4da7e6
-field that IS the open time, saw-silver cut edges, the course colour carried only by the block's
-cut face. A bad cut hatches in fracture red #c2381f, not thunder-gray: a time collision is the one
-thing that must read as danger, and thunder-gray #3f5364 is spent on exam weather instead. Quarry
-stencil for the mark, industrial caps for labels, mono for numerals only (Azeret carries no Thai),
-crosshair registration marks on each panel. No rounded cards, no pastel chips.
-STORY: The student reads the face, cuts sections into it, sees collisions surface as fractures,
-then commits one plan before registration opens.
-FIRST VIEWPORT: Left strata rail carries the mark, the section index with one active notched tab,
-and the live readout; the main column opens on the plan control strip, the collision/weather
-strip, then the full-width week face. Primary action ดึงรายวิชาจากเว็บ sits in the rail head.
-FORM: Cloud Quarry — catalog challenger, adopted by the user over the assigned roll; seed key 7e83ad0f.
+THESIS: The planner wears the KMUTNB registrar console's own theme, so the tab the student
+switches to from reg.kmutnb.ac.th feels like the same desk — without ever claiming to be it.
+Refuses the dark industrial world it replaces and the pastel rounded calendar app.
+OWN-WORLD: Registrar console. #f8f8f8 ground, white 6px cards under 0 4px 24px rgba(34,41,47,.1),
+teal #00aa9f as the only working colour, active nav as a 118deg teal gradient pill with a teal
+glow, 12% light-primary tints, #5e5873 headings over #6e6b7b body, Prompt for Thai and Montserrat
+for numerals, Feather-weight icons. One red (#ea5455) reserved for a time clash, one amber
+(#ff9f43) for exam risk.
+STORY: The student reads this week, sees clashes flagged in red before anything else, tries
+sections, compares two plans, and walks into registration knowing what to click.
+FIRST VIEWPORT: White 260px menu (brand, teal CTA, seven zone links, live plan readout) beside a
+content column opening on the plan bar, the clash/exam alerts, then the full 07:00-20:00 week.
+FORM: Pinned by the user to reg.kmutnb.ac.th/registrar/home, overriding direction seed c92d1359.
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the
 verdict, DESIGN.md, and every shipping raster carrying its provenance.
 -->`;
@@ -56,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d2e5e",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
@@ -68,7 +52,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body className={`${anuphan.variable} ${chakraPetch.variable} ${azeretMono.variable} ${sairaStencil.variable}`}>
+      <body className={`${prompt.variable} ${montserrat.variable}`}>
         <div hidden dangerouslySetInnerHTML={{ __html: directionContract }} />
         {children}
       </body>
