@@ -232,7 +232,13 @@ const examDateFormat = new Intl.DateTimeFormat("th-TH", {
 });
 
 function examText(value: string) {
-  return value ? examDateFormat.format(new Date(value)) : "";
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime()) ? value : examDateFormat.format(date);
 }
 
 function normalizeText(value: unknown) {
@@ -892,12 +898,18 @@ export default function Home() {
     }
 
     try {
-      const data = await loadSharedPlanAction(planId);
+      const result = await loadSharedPlanAction(planId);
 
       if (requestId !== sharedRoomLoadRequestRef.current) {
         return;
       }
 
+      if (!result.ok) {
+        setShareStatus(result.error);
+        return;
+      }
+
+      const data = result.data;
       setSharedRoom(planId, data.name, data.plans ?? [{ id: "main", name: data.name, courses: data.courses }], data.updatedAt, editToken);
       setRoomCodeInput(planId);
       if (updateUrl) {
@@ -926,7 +938,7 @@ export default function Home() {
     }
 
     try {
-      const data = await saveSharedPlanAction(planId, {
+      const result = await saveSharedPlanAction(planId, {
         name,
         courses: roomPlans[0]?.courses ?? [],
         plans: roomPlans,
@@ -934,10 +946,15 @@ export default function Home() {
         updatedAt,
       });
 
+      if (!result.ok) {
+        setShareStatus(result.error);
+        return null;
+      }
+
       if (showStatus) {
         setShareStatus("บันทึกห้องแล้ว");
       }
-      return data;
+      return result.data;
     } catch (error) {
       const message = error instanceof Error ? error.message : "บันทึกห้องไม่สำเร็จ";
       setShareStatus(message);
@@ -1065,7 +1082,13 @@ export default function Home() {
         }
 
         setShareSession((current) => current ? { ...current, status: current.mode === "view" ? "readonly" : "syncing" } : current);
-        const data = await loadSharedPlanAction(shareSession.shareId);
+        const result = await loadSharedPlanAction(shareSession.shareId);
+
+        if (!result.ok) {
+          throw new Error(result.error);
+        }
+
+        const data = result.data;
 
         if (data.updatedAt && data.updatedAt !== shareSession.lastServerUpdatedAt) {
           setSharedRoom(
@@ -1087,6 +1110,11 @@ export default function Home() {
         }
       } catch (error) {
         setShareStatus(error instanceof Error ? error.message : "ซิงก์ห้องไม่สำเร็จ");
+        setShareSession((current) =>
+          current && current.shareId === shareSession.shareId
+            ? { ...current, status: current.mode === "view" ? "readonly" : "idle" }
+            : current,
+        );
       }
     }, 2000);
 
@@ -1113,6 +1141,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadDepartments() {
       if (!facultyId) {
         setDepartmentOptions([]);
@@ -1128,18 +1158,26 @@ export default function Home() {
           throw new Error(data.error ?? "โหลดภาควิชาไม่สำเร็จ");
         }
 
-        setDepartmentOptions(data.departments);
-
-        if (!data.departments.some((option: ComboOption) => comboValue(option) === departmentId)) {
-          setDepartmentId("");
+        if (cancelled) {
+          return;
         }
+
+        const departments: ComboOption[] = Array.isArray(data.departments) ? data.departments : [];
+        setDepartmentOptions(departments);
+        setDepartmentId((current) => (departments.some((option) => comboValue(option) === current) ? current : ""));
       } catch (error) {
-        setFilterError(error instanceof Error ? error.message : "โหลดภาควิชาไม่สำเร็จ");
+        if (!cancelled) {
+          setFilterError(error instanceof Error ? error.message : "โหลดภาควิชาไม่สำเร็จ");
+        }
       }
     }
 
     loadDepartments();
-  }, [departmentId, facultyId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [facultyId]);
 
   const totalCredits = useMemo(() => courses.reduce((sum, course) => sum + course.credits, 0), [courses]);
   const examCount = useMemo(() => courses.filter((course) => course.midterm || course.final).length, [courses]);
@@ -1247,9 +1285,13 @@ export default function Home() {
   }, [isCourseBrowserOpen, isManualCourseOpen]);
 
   useEffect(() => {
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      setTimetableView("list");
-    }
+    const timeout = window.setTimeout(() => {
+      if (window.matchMedia("(max-width: 900px)").matches) {
+        setTimetableView("list");
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
   }, []);
 
   useEffect(() => {

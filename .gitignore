@@ -38,3 +38,7 @@ pnpm-debug.log*
 .impeccable/questions/
 .impeccable/hook.cache.json
 .impeccable/direction-payload.json
+
+# agent tooling: local settings and vendored third-party skills
+.claude/settings.local.json
+.codex/
