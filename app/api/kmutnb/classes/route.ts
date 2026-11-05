@@ -22,8 +22,8 @@ export async function GET(request: Request) {
   const campusId = pathSegment(searchParams.get("campus"), "10", "0");
   const divisionCode = pathSegment(searchParams.get("division"), "-");
   const levelId = pathSegment(searchParams.get("level"), "61", "0");
-  const facultyId = pathSegment(searchParams.get("faculty"), "4", "0");
-  const departmentId = pathSegment(searchParams.get("department"), "406", "0");
+  const facultyId = pathSegment(searchParams.get("faculty"), "0");
+  const departmentId = pathSegment(searchParams.get("department"), "0");
   const courseCode = pathSegment(searchParams.get("courseCode"), "-");
   const courseName = pathSegment(searchParams.get("courseName"), "-");
   const classSet = pathSegment(searchParams.get("classSet"), "-");

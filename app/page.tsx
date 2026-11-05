@@ -799,8 +799,8 @@ export default function Home() {
   const [campusId, setCampusId] = useState("10");
   const [divisionCode, setDivisionCode] = useState("");
   const [levelId, setLevelId] = useState("61");
-  const [facultyId, setFacultyId] = useState("4");
-  const [departmentId, setDepartmentId] = useState("406");
+  const [facultyId, setFacultyId] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
   const [classSet, setClassSet] = useState("");
   const [filterOptions, setFilterOptions] = useState<FilterOptions>(fallbackFilters);
   const [departmentOptions, setDepartmentOptions] = useState<ComboOption[]>([]);
