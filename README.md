@@ -215,8 +215,8 @@ POSTGRES_URL="postgresql://USER:PASSWORD@HOST:5432/tablelearn?sslmode=require"
 | `semester` | `1` | ภาคเรียน |
 | `campus` | `10` | รหัสวิทยาเขต |
 | `level` | `61` | รหัสระดับการศึกษา |
-| `faculty` | `4` | รหัสคณะ |
-| `department` | `406` | รหัสภาควิชา |
+| `faculty` | `0` (ทั้งหมด) | รหัสคณะ |
+| `department` | `0` (ทั้งหมด) | รหัสภาควิชา |
 | `division`, `courseCode`, `courseName`, `classSet`, `officer` | — | ตัวกรองเพิ่มเติม |
 
 ### ห้องแชร์
