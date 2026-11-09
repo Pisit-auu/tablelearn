@@ -620,6 +620,55 @@ function sumCredits(courseList: Course[]) {
   return uniqueCourseGroups(courseList).reduce((sum, course) => sum + course.credits, 0);
 }
 
+// จัดแถว (lane) ของคาบในวันเดียว: คาบที่ซ้อนเวลากันแยกแถว ไม่ทับกัน
+// คาบของ section เดียวกันที่ต่อกันพอดี (เช่น 17:00-19:00 กับ 19:00-21:00) นับเป็นก้อนเดียว จึงอยู่แถวเดียวกันเสมอ
+function packDayLanes(courseList: Course[], dayKey: DayKey, dayStart: number, dayEnd: number) {
+  const items = courseList
+    .filter((course) => course.day === dayKey && toMinutes(course.start) < dayEnd && toMinutes(course.end) > dayStart)
+    .map((course) => ({
+      course,
+      start: Math.max(dayStart, toMinutes(course.start)),
+      finish: Math.min(dayEnd, toMinutes(course.end)),
+    }))
+    .sort((a, b) => a.start - b.start || a.finish - b.finish);
+
+  const units: { start: number; finish: number; members: typeof items }[] = [];
+  const openUnitByGroup = new Map<string, (typeof units)[number]>();
+
+  items.forEach((item) => {
+    const key = courseGroupKey(item.course);
+    const unit = openUnitByGroup.get(key);
+
+    if (unit && unit.finish === item.start) {
+      unit.members.push(item);
+      unit.finish = item.finish;
+      return;
+    }
+
+    const nextUnit = { start: item.start, finish: item.finish, members: [item] };
+    units.push(nextUnit);
+    openUnitByGroup.set(key, nextUnit);
+  });
+
+  const laneEnds: number[] = [];
+  const placed = units
+    .sort((a, b) => a.start - b.start || a.finish - b.finish)
+    .flatMap((unit) => {
+      let lane = laneEnds.findIndex((laneEnd) => laneEnd <= unit.start);
+
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(unit.finish);
+      } else {
+        laneEnds[lane] = unit.finish;
+      }
+
+      return unit.members.map((member) => ({ ...member, lane }));
+    });
+
+  return { placed, laneCount: Math.max(1, laneEnds.length) };
+}
+
 function planStats(courseList: Course[]) {
   const usedDays = new Set(courseList.map((course) => course.day));
   const freeMinutes = freeSlotsForCourses(courseList)
@@ -2161,25 +2210,7 @@ export default function Home() {
     const dayEnd = (hours[hours.length - 1] + 1) * 60;
     const dayMinutes = dayEnd - dayStart;
     const laidOutDays = days.map((day) => {
-      const laneEnds: number[] = [];
-      const placed = shownCourses
-        .filter((course) => course.day === day.key && toMinutes(course.start) < dayEnd && toMinutes(course.end) > dayStart)
-        .sort((a, b) => toMinutes(a.start) - toMinutes(b.start) || toMinutes(a.end) - toMinutes(b.end))
-        .map((course) => {
-          const start = Math.max(dayStart, toMinutes(course.start));
-          const finish = Math.min(dayEnd, toMinutes(course.end));
-          let lane = laneEnds.findIndex((laneEnd) => laneEnd <= start);
-
-          if (lane === -1) {
-            lane = laneEnds.length;
-            laneEnds.push(finish);
-          } else {
-            laneEnds[lane] = finish;
-          }
-
-          return { course, lane, start, finish };
-        });
-      const laneCount = Math.max(1, laneEnds.length);
+      const { placed, laneCount } = packDayLanes(shownCourses, day.key, dayStart, dayEnd);
 
       return {
         day,
@@ -3600,30 +3631,13 @@ function DayRow({ day, courses, conflictIds, actions }: { day: (typeof days)[num
   const dayMinutes = dayEnd - dayStart;
   const laneHeight = 130;
   const laneGap = 5;
-  const lanes: number[] = [];
-  const positionedCourses = courses
-    .filter((course) => course.day === day.key && toMinutes(course.start) < dayEnd && toMinutes(course.end) > dayStart)
-    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start) || toMinutes(a.end) - toMinutes(b.end))
-    .map((course) => {
-      const start = Math.max(dayStart, toMinutes(course.start));
-      const end = Math.min(dayEnd, toMinutes(course.end));
-      let lane = lanes.findIndex((laneEnd) => laneEnd <= start);
-
-      if (lane === -1) {
-        lane = lanes.length;
-        lanes.push(end);
-      } else {
-        lanes[lane] = end;
-      }
-
-      return {
-        course,
-        lane,
-        left: ((start - dayStart) / dayMinutes) * 100,
-        width: ((end - start) / dayMinutes) * 100,
-      };
-    });
-  const laneCount = Math.max(1, lanes.length);
+  const { placed, laneCount } = packDayLanes(courses, day.key, dayStart, dayEnd);
+  const positionedCourses = placed.map(({ course, lane, start, finish }) => ({
+    course,
+    lane,
+    left: ((start - dayStart) / dayMinutes) * 100,
+    width: ((finish - start) / dayMinutes) * 100,
+  }));
   const rowHeight = positionedCourses.length === 0 ? 68 : 12 + laneCount * laneHeight + (laneCount - 1) * laneGap;
 
   return (
