@@ -1400,8 +1400,30 @@ body {
   border-radius: var(--r-ctl);
 }
 
+.pick-row {
+  flex-wrap: wrap;
+}
+
 .pick-row .check {
+  flex: 1 1 200px;
   min-width: 0;
+}
+
+.pick-row-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.pick-count {
+  margin: 0 0 8px;
+}
+
+.bench-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .day-chips {

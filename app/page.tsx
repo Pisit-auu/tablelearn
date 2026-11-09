@@ -62,6 +62,12 @@ type RemoteClass = {
   }[];
 };
 
+type RemoteCourseGroup = {
+  code: string;
+  name: string;
+  classes: RemoteClass[];
+};
+
 type ComboOption = {
   comboid: number | string;
   comboshow: string;
@@ -812,8 +818,9 @@ export default function Home() {
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [excelStatus, setExcelStatus] = useState("");
   const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
-  // เก็บ section ของวิชาที่เลือกเข้าตัวช่วยจัดแผนไว้แยก เพื่อไม่ให้หายเมื่อโหลดรายวิชาชุดใหม่
-  const [plannerPool, setPlannerPool] = useState<Record<string, RemoteClass[]>>({});
+  // วิชาที่ดึงมาเก็บไว้ในตัวช่วยจัดแผน แยกจากผลค้นหา จึงไม่หายเมื่อค้นหาชุดใหม่
+  // plannerSelectedCodes คือวิชาในคลังที่ติ๊กไว้ใช้สร้างแผน
+  const [plannerPool, setPlannerPool] = useState<RemoteCourseGroup[]>([]);
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
   const [plannerStart, setPlannerStart] = useState("08:00");
   const [plannerEnd, setPlannerEnd] = useState("17:00");
@@ -1199,34 +1206,6 @@ export default function Home() {
 
     return remoteClasses.filter((remoteClass) => remoteClass.coursecode.toLowerCase().includes(keyword));
   }, [courseSearch, remoteClasses]);
-  const remoteCourseGroups = useMemo(() => {
-    const groups = new Map<string, RemoteClass[]>();
-
-    remoteClasses.forEach((remoteClass) => {
-      const group = groups.get(remoteClass.coursecode) ?? [];
-      group.push(remoteClass);
-      groups.set(remoteClass.coursecode, group);
-    });
-
-    return Array.from(groups.entries()).map(([code, classes]) => ({
-      code,
-      name: classes[0]?.coursename ?? code,
-      classes,
-    }));
-  }, [remoteClasses]);
-  const plannerCourseGroups = useMemo(() => {
-    const selected = plannerSelectedCodes
-      .map((code) => {
-        const classes = plannerPool[code];
-        return classes && classes.length > 0
-          ? { code, name: classes[0]?.coursename ?? code, classes }
-          : null;
-      })
-      .filter(Boolean) as typeof remoteCourseGroups;
-    const selectedCodes = new Set(selected.map((group) => group.code));
-
-    return [...selected, ...remoteCourseGroups.filter((group) => !selectedCodes.has(group.code))];
-  }, [plannerPool, plannerSelectedCodes, remoteCourseGroups]);
   const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
   const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
   const comparison = useMemo(() => {
@@ -1538,20 +1517,72 @@ export default function Home() {
     updateActiveCourses((current) => current.map((course) => (course.id === id ? { ...course, locked: !course.locked } : course)));
   }
 
-  function togglePlannerCode(code: string) {
-    if (plannerSelectedCodes.includes(code)) {
-      setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
-      setPlannerPool((current) => {
-        const next = { ...current };
-        delete next[code];
-        return next;
-      });
+  function groupRemoteClasses(list: RemoteClass[]): RemoteCourseGroup[] {
+    const groups = new Map<string, RemoteClass[]>();
+
+    list.forEach((remoteClass) => {
+      const group = groups.get(remoteClass.coursecode) ?? [];
+      group.push(remoteClass);
+      groups.set(remoteClass.coursecode, group);
+    });
+
+    return Array.from(groups.entries()).map(([code, classes]) => ({
+      code,
+      name: classes[0]?.coursename ?? code,
+      classes,
+    }));
+  }
+
+  // เพิ่มหรืออัปเดตวิชาในคลัง โดยคงลำดับเดิมของวิชาที่มีอยู่แล้ว
+  function mergeIntoPool(current: RemoteCourseGroup[], incoming: RemoteCourseGroup[]) {
+    const incomingByCode = new Map(incoming.map((group) => [group.code, group]));
+    const existingCodes = new Set(current.map((group) => group.code));
+
+    return [
+      ...current.map((group) => incomingByCode.get(group.code) ?? group),
+      ...incoming.filter((group) => !existingCodes.has(group.code)),
+    ];
+  }
+
+  function addAllToPlanner() {
+    const groups = groupRemoteClasses(filteredRemoteClasses);
+
+    if (groups.length === 0) {
       return;
     }
 
-    const classes = remoteClasses.filter((remoteClass) => remoteClass.coursecode === code);
+    setPlannerPool((current) => mergeIntoPool(current, groups));
+    setPlannerStatus(`เก็บ ${groups.length} วิชาไว้ในตัวช่วยแล้ว ติ๊กวิชาที่ต้องการ (สูงสุด 7 วิชา) แล้วกดสร้างแผน`);
+  }
+
+  function removeFromPlanner(code: string) {
+    setPlannerPool((current) => current.filter((group) => group.code !== code));
+    setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+  }
+
+  function clearPlanner() {
+    setPlannerPool([]);
+    setPlannerSelectedCodes([]);
+    setGeneratedPlans([]);
+    setPlannerStatus("");
+  }
+
+  function togglePlannerSelected(code: string) {
+    setPlannerSelectedCodes((current) =>
+      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
+    );
+  }
+
+  // ปุ่มบนการ์ดผลค้นหา: เก็บวิชาเข้าคลังพร้อมติ๊กเลือก หรือเอาออกจากคลัง
+  function togglePlannerCode(code: string) {
+    if (plannerPool.some((group) => group.code === code)) {
+      removeFromPlanner(code);
+      return;
+    }
+
+    const groups = groupRemoteClasses(remoteClasses.filter((remoteClass) => remoteClass.coursecode === code));
+    setPlannerPool((current) => mergeIntoPool(current, groups));
     setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
-    setPlannerPool((current) => ({ ...current, [code]: classes.length > 0 ? classes : current[code] ?? [] }));
   }
 
   function toggleAvoidDay(day: DayKey) {
@@ -1562,8 +1593,8 @@ export default function Home() {
 
   function generateSchedulePlans() {
     const selectedGroups = plannerSelectedCodes
-      .map((code) => plannerCourseGroups.find((group) => group.code === code))
-      .filter(Boolean) as typeof plannerCourseGroups;
+      .map((code) => plannerPool.find((group) => group.code === code))
+      .filter(Boolean) as RemoteCourseGroup[];
 
     if (selectedGroups.length === 0) {
       setGeneratedPlans([]);
@@ -2157,16 +2188,8 @@ export default function Home() {
       const loadedClasses: RemoteClass[] = Array.isArray(data) ? data : [];
       setRemoteClasses(loadedClasses);
       // อัปเดต section ของวิชาที่เลือกไว้แล้ว ถ้าโหลดชุดใหม่มีวิชานั้นด้วย
-      setPlannerPool((current) => {
-        const next = { ...current };
-        Object.keys(next).forEach((code) => {
-          const fresh = loadedClasses.filter((remoteClass) => remoteClass.coursecode === code);
-          if (fresh.length > 0) {
-            next[code] = fresh;
-          }
-        });
-        return next;
-      });
+      const loadedGroups = new Map(groupRemoteClasses(loadedClasses).map((group) => [group.code, group]));
+      setPlannerPool((current) => current.map((group) => loadedGroups.get(group.code) ?? group));
       setHasLoadedClasses(true);
       window.requestAnimationFrame(() => {
         remoteResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2460,7 +2483,7 @@ export default function Home() {
             <h2 id="planner-title">ตัวช่วยจัดแผน</h2>
             <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
             <div className="zone-actions">
-              <button type="button" className="btn btn-primary" onClick={generateSchedulePlans} disabled={plannerCourseGroups.length === 0}>
+              <button type="button" className="btn btn-primary" onClick={generateSchedulePlans} disabled={plannerSelectedCodes.length === 0}>
                 สร้างแผนที่เป็นไปได้
                 <IconArrow />
               </button>
@@ -2469,18 +2492,27 @@ export default function Home() {
 
           <div className="bench-grid">
             <div className="bench">
-              <h3>รายวิชาที่โหลด</h3>
-              {plannerCourseGroups.length === 0 ? (
-                <p className="empty">โหลดรายวิชา KMUTNB ก่อน แล้วเลือกวิชาที่ต้องการให้ช่วยจัด section</p>
+              <div className="bench-head">
+                <h3>วิชาในตัวช่วยจัดแผน</h3>
+                {plannerPool.length > 0 && (
+                  <button type="button" className="btn btn-quiet" onClick={clearPlanner}>
+                    ล้างทั้งหมด
+                  </button>
+                )}
+              </div>
+              {plannerPool.length === 0 ? (
+                <p className="empty">ยังไม่มีวิชาในตัวช่วย ดึงรายวิชาจากเว็บแล้วกด “เลือกเข้าตัวช่วยจัดแผน” ทีละวิชา หรือ “เพิ่มทั้งหมดเข้าตัวช่วย”</p>
               ) : (
+                <>
+                <p className="status-line pick-count">เก็บไว้ {plannerPool.length} วิชา · ติ๊กใช้สร้างแผน {plannerSelectedCodes.length}/7</p>
                 <div className="pick-list">
-                  {plannerCourseGroups.slice(0, Math.max(18, plannerSelectedCodes.length)).map((group) => (
+                  {plannerPool.map((group) => (
                     <div className="pick-row" key={group.code}>
                       <label className="check">
                         <input
                           type="checkbox"
                           checked={plannerSelectedCodes.includes(group.code)}
-                          onChange={() => togglePlannerCode(group.code)}
+                          onChange={() => togglePlannerSelected(group.code)}
                         />
                         <span className="check-box" aria-hidden="true" />
                         <span className="check-text">
@@ -2488,12 +2520,18 @@ export default function Home() {
                           {group.name} · {group.classes.length} section
                         </span>
                       </label>
-                      <button type="button" className="btn btn-quiet" onClick={() => importRemoteCourseGroup(group)} disabled={!canEditActivePlan}>
-                        เพิ่ม
-                      </button>
+                      <div className="pick-row-actions">
+                        <button type="button" className="btn btn-quiet" onClick={() => importRemoteCourseGroup(group)} disabled={!canEditActivePlan}>
+                          เพิ่ม
+                        </button>
+                        <button type="button" className="btn btn-quiet" onClick={() => removeFromPlanner(group.code)}>
+                          เอาออก
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
+                </>
               )}
             </div>
 
@@ -2989,9 +3027,14 @@ export default function Home() {
 
               <div className="dialog-run">
                 <button className="btn btn-primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
-                  {isLoadingClasses ? "กำลังโหลด..." : "โหลดรายวิชา KMUTNB"}
+                  {isLoadingClasses ? "กำลังค้นหา..." : "ค้นหารายวิชา"}
                   <IconArrow />
                 </button>
+                {filteredRemoteClasses.length > 0 && (
+                  <button className="btn btn-line" type="button" onClick={addAllToPlanner}>
+                    เพิ่มทั้งหมดเข้าตัวช่วย
+                  </button>
+                )}
                 <div ref={remoteResultsRef} className="dialog-run-status">
                   {remoteClasses.length > 0 && (
                     <p className="status-line">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
@@ -3013,7 +3056,7 @@ export default function Home() {
                   {filteredRemoteClasses.map((remoteClass) => {
                     const parsedTime = parseClassTime(remoteClass.classtime);
                     const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
-                    const isPicked = plannerSelectedCodes.includes(remoteClass.coursecode);
+                    const isPicked = plannerPool.some((group) => group.code === remoteClass.coursecode);
 
                     return (
                       <li className="remote-card" key={remoteClass.classid}>
