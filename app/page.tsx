@@ -971,6 +971,21 @@ export default function Home() {
   const [hasLoadedClasses, setHasLoadedClasses] = useState(false);
   const [classError, setClassError] = useState("");
   const remoteResultsRef = useRef<HTMLDivElement | null>(null);
+  // ปิด popup เมื่อกดและปล่อยบนฉากหลังเท่านั้น ลากเลือกข้อความจากในกล่องแล้วปล่อยนอกกล่องต้องไม่ปิด
+  const scrimPressRef = useRef<EventTarget | null>(null);
+  const scrimCloseProps = (close: () => void) => ({
+    onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => {
+      scrimPressRef.current = event.target === event.currentTarget ? event.currentTarget : null;
+    },
+    onClick: (event: React.MouseEvent<HTMLDivElement>) => {
+      const pressedOnScrim = scrimPressRef.current === event.currentTarget && event.target === event.currentTarget;
+      scrimPressRef.current = null;
+
+      if (pressedOnScrim) {
+        close();
+      }
+    },
+  });
   const [courseSearch, setCourseSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("2569");
   const [semester, setSemester] = useState("1");
@@ -3368,11 +3383,11 @@ export default function Home() {
         <div
           className="scrim"
           role="presentation"
-          onClick={() => {
+          {...scrimCloseProps(() => {
             setIsManualCourseOpen(false);
             setEditingId(null);
             setForm(emptyCourse);
-          }}
+          })}
         >
           <form
             className="dialog dialog-form"
@@ -3469,7 +3484,7 @@ export default function Home() {
       )}
 
       {isCourseBrowserOpen && (
-        <div className="scrim" role="presentation" onClick={() => setIsCourseBrowserOpen(false)}>
+        <div className="scrim" role="presentation" {...scrimCloseProps(() => setIsCourseBrowserOpen(false))}>
           <section
             className="dialog dialog-wide"
             role="dialog"
