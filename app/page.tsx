@@ -812,6 +812,8 @@ export default function Home() {
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [excelStatus, setExcelStatus] = useState("");
   const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
+  // เก็บ section ของวิชาที่เลือกเข้าตัวช่วยจัดแผนไว้แยก เพื่อไม่ให้หายเมื่อโหลดรายวิชาชุดใหม่
+  const [plannerPool, setPlannerPool] = useState<Record<string, RemoteClass[]>>({});
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
   const [plannerStart, setPlannerStart] = useState("08:00");
   const [plannerEnd, setPlannerEnd] = useState("17:00");
@@ -1212,6 +1214,19 @@ export default function Home() {
       classes,
     }));
   }, [remoteClasses]);
+  const plannerCourseGroups = useMemo(() => {
+    const selected = plannerSelectedCodes
+      .map((code) => {
+        const classes = plannerPool[code];
+        return classes && classes.length > 0
+          ? { code, name: classes[0]?.coursename ?? code, classes }
+          : null;
+      })
+      .filter(Boolean) as typeof remoteCourseGroups;
+    const selectedCodes = new Set(selected.map((group) => group.code));
+
+    return [...selected, ...remoteCourseGroups.filter((group) => !selectedCodes.has(group.code))];
+  }, [plannerPool, plannerSelectedCodes, remoteCourseGroups]);
   const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
   const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
   const comparison = useMemo(() => {
@@ -1524,9 +1539,19 @@ export default function Home() {
   }
 
   function togglePlannerCode(code: string) {
-    setPlannerSelectedCodes((current) =>
-      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
-    );
+    if (plannerSelectedCodes.includes(code)) {
+      setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+      setPlannerPool((current) => {
+        const next = { ...current };
+        delete next[code];
+        return next;
+      });
+      return;
+    }
+
+    const classes = remoteClasses.filter((remoteClass) => remoteClass.coursecode === code);
+    setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
+    setPlannerPool((current) => ({ ...current, [code]: classes.length > 0 ? classes : current[code] ?? [] }));
   }
 
   function toggleAvoidDay(day: DayKey) {
@@ -1537,8 +1562,8 @@ export default function Home() {
 
   function generateSchedulePlans() {
     const selectedGroups = plannerSelectedCodes
-      .map((code) => remoteCourseGroups.find((group) => group.code === code))
-      .filter(Boolean) as typeof remoteCourseGroups;
+      .map((code) => plannerCourseGroups.find((group) => group.code === code))
+      .filter(Boolean) as typeof plannerCourseGroups;
 
     if (selectedGroups.length === 0) {
       setGeneratedPlans([]);
@@ -2129,7 +2154,19 @@ export default function Home() {
         throw new Error(data.error ?? "โหลดข้อมูลรายวิชาไม่สำเร็จ");
       }
 
-      setRemoteClasses(Array.isArray(data) ? data : []);
+      const loadedClasses: RemoteClass[] = Array.isArray(data) ? data : [];
+      setRemoteClasses(loadedClasses);
+      // อัปเดต section ของวิชาที่เลือกไว้แล้ว ถ้าโหลดชุดใหม่มีวิชานั้นด้วย
+      setPlannerPool((current) => {
+        const next = { ...current };
+        Object.keys(next).forEach((code) => {
+          const fresh = loadedClasses.filter((remoteClass) => remoteClass.coursecode === code);
+          if (fresh.length > 0) {
+            next[code] = fresh;
+          }
+        });
+        return next;
+      });
       setHasLoadedClasses(true);
       window.requestAnimationFrame(() => {
         remoteResultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2423,7 +2460,7 @@ export default function Home() {
             <h2 id="planner-title">ตัวช่วยจัดแผน</h2>
             <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
             <div className="zone-actions">
-              <button type="button" className="btn btn-primary" onClick={generateSchedulePlans} disabled={remoteCourseGroups.length === 0}>
+              <button type="button" className="btn btn-primary" onClick={generateSchedulePlans} disabled={plannerCourseGroups.length === 0}>
                 สร้างแผนที่เป็นไปได้
                 <IconArrow />
               </button>
@@ -2433,11 +2470,11 @@ export default function Home() {
           <div className="bench-grid">
             <div className="bench">
               <h3>รายวิชาที่โหลด</h3>
-              {remoteCourseGroups.length === 0 ? (
+              {plannerCourseGroups.length === 0 ? (
                 <p className="empty">โหลดรายวิชา KMUTNB ก่อน แล้วเลือกวิชาที่ต้องการให้ช่วยจัด section</p>
               ) : (
                 <div className="pick-list">
-                  {remoteCourseGroups.slice(0, 18).map((group) => (
+                  {plannerCourseGroups.slice(0, Math.max(18, plannerSelectedCodes.length)).map((group) => (
                     <div className="pick-row" key={group.code}>
                       <label className="check">
                         <input
