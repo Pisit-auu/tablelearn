@@ -398,6 +398,55 @@ function readJson<T>(key: string, fallback: T): T {
   }
 }
 
+const plannerStorageKey = "student-timetable-planner";
+// จำกัดวิชาในตัวช่วยจัดแผน กันไม่ให้ localStorage โตจนเต็ม
+const maxPlannerPool = 100;
+
+type SavedPlanner = {
+  pool: RemoteCourseGroup[];
+  selectedCodes: string[];
+  sectionPicks: Record<string, number[]>;
+  avoidDays: DayKey[];
+  start: string;
+  end: string;
+  lunchBreak: boolean;
+};
+
+// อ่านตัวช่วยจัดแผนที่บันทึกไว้ ตัดข้อมูลที่รูปร่างไม่ถูกทิ้งไปแทนที่จะพังทั้งหน้า
+function readSavedPlanner(): Partial<SavedPlanner> {
+  const saved = readJson<Partial<SavedPlanner> | null>(plannerStorageKey, null);
+
+  if (!saved || typeof saved !== "object") {
+    return {};
+  }
+
+  const pool = Array.isArray(saved.pool)
+    ? saved.pool.filter((group) => group && typeof group.code === "string" && Array.isArray(group.classes)).slice(0, maxPlannerPool)
+    : [];
+  const poolCodes = new Set(pool.map((group) => group.code));
+  const sectionPicks: Record<string, number[]> = {};
+
+  if (saved.sectionPicks && typeof saved.sectionPicks === "object") {
+    Object.entries(saved.sectionPicks).forEach(([code, ids]) => {
+      if (poolCodes.has(code) && Array.isArray(ids) && ids.length > 0) {
+        sectionPicks[code] = ids.filter((id) => typeof id === "number");
+      }
+    });
+  }
+
+  const validDayKeys = new Set(days.map((day) => day.key));
+
+  return {
+    pool,
+    selectedCodes: Array.isArray(saved.selectedCodes) ? saved.selectedCodes.filter((code) => poolCodes.has(code)) : [],
+    sectionPicks,
+    avoidDays: Array.isArray(saved.avoidDays) ? saved.avoidDays.filter((day) => validDayKeys.has(day)) : undefined,
+    start: typeof saved.start === "string" && /^\d{2}:\d{2}$/.test(saved.start) ? saved.start : undefined,
+    end: typeof saved.end === "string" && /^\d{2}:\d{2}$/.test(saved.end) ? saved.end : undefined,
+    lunchBreak: typeof saved.lunchBreak === "boolean" ? saved.lunchBreak : undefined,
+  };
+}
+
 function createRoomCode() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = new Uint8Array(6);
@@ -873,6 +922,7 @@ export default function Home() {
   // วิชาที่ดึงมาเก็บไว้ในตัวช่วยจัดแผน แยกจากผลค้นหา จึงไม่หายเมื่อค้นหาชุดใหม่
   // plannerSelectedCodes คือวิชาในคลังที่ติ๊กไว้ใช้สร้างแผน
   const [plannerPool, setPlannerPool] = useState<RemoteCourseGroup[]>([]);
+  const [plannerPoolNotice, setPlannerPoolNotice] = useState("");
   // section ที่เลือกเฉพาะเจาะจงต่อรหัสวิชา (classid) ถ้าไม่มี key = ใช้ทุก section
   const [plannerSectionPicks, setPlannerSectionPicks] = useState<Record<string, number[]>>({});
   const [expandedPlannerCode, setExpandedPlannerCode] = useState<string | null>(null);
@@ -1048,6 +1098,15 @@ export default function Home() {
         setActivePlanId("default");
       }
 
+      const savedPlanner = readSavedPlanner();
+      setPlannerPool(savedPlanner.pool ?? []);
+      setPlannerSelectedCodes(savedPlanner.selectedCodes ?? []);
+      setPlannerSectionPicks(savedPlanner.sectionPicks ?? {});
+      if (savedPlanner.avoidDays) setPlannerAvoidDays(savedPlanner.avoidDays);
+      if (savedPlanner.start) setPlannerStart(savedPlanner.start);
+      if (savedPlanner.end) setPlannerEnd(savedPlanner.end);
+      if (savedPlanner.lunchBreak !== undefined) setPlannerLunchBreak(savedPlanner.lunchBreak);
+
       setHasLoadedLocalData(true);
     }, 0);
 
@@ -1061,6 +1120,29 @@ export default function Home() {
 
     window.localStorage.setItem("student-timetable-plans", JSON.stringify(ensureLocalPlans(plans)));
   }, [hasLoadedLocalData, plans]);
+
+  useEffect(() => {
+    if (!hasLoadedLocalData) {
+      return;
+    }
+
+    const saved: SavedPlanner = {
+      pool: plannerPool,
+      selectedCodes: plannerSelectedCodes,
+      sectionPicks: plannerSectionPicks,
+      avoidDays: plannerAvoidDays,
+      start: plannerStart,
+      end: plannerEnd,
+      lunchBreak: plannerLunchBreak,
+    };
+
+    try {
+      window.localStorage.setItem(plannerStorageKey, JSON.stringify(saved));
+    } catch (error) {
+      // พื้นที่ localStorage เต็ม (เช่นเก็บวิชาไว้เยอะมาก) ไม่ควรทำให้หน้าใช้งานไม่ได้
+      console.warn("บันทึกตัวช่วยจัดแผนไม่สำเร็จ", error);
+    }
+  }, [hasLoadedLocalData, plannerPool, plannerSelectedCodes, plannerSectionPicks, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak]);
 
   useEffect(() => {
     if (!hasLoadedLocalData) {
@@ -1682,9 +1764,11 @@ export default function Home() {
     const incomingByCode = new Map(incoming.map((group) => [group.code, group]));
     const existingCodes = new Set(current.map((group) => group.code));
 
+    const room = Math.max(0, maxPlannerPool - current.length);
+
     return [
       ...current.map((group) => incomingByCode.get(group.code) ?? group),
-      ...incoming.filter((group) => !existingCodes.has(group.code)),
+      ...incoming.filter((group) => !existingCodes.has(group.code)).slice(0, room),
     ];
   }
 
@@ -1695,8 +1779,18 @@ export default function Home() {
       return;
     }
 
+    const existingCodes = new Set(plannerPool.map((group) => group.code));
+    const newGroups = groups.filter((group) => !existingCodes.has(group.code));
+    const room = Math.max(0, maxPlannerPool - plannerPool.length);
+    const added = Math.min(newGroups.length, room);
+    const skipped = newGroups.length - added;
+
     setPlannerPool((current) => mergeIntoPool(current, groups));
-    setPlannerStatus(`เก็บ ${groups.length} วิชาไว้ในตัวช่วยแล้ว ติ๊กวิชาที่ต้องการ (สูงสุด 7 วิชา) แล้วกดสร้างแผน`);
+    const message = skipped > 0
+      ? `เพิ่ม ${added} วิชา ตัวช่วยเก็บได้สูงสุด ${maxPlannerPool} วิชา อีก ${skipped} วิชาไม่ได้เพิ่ม เอาวิชาที่ไม่ใช้ออกก่อนแล้วลองใหม่`
+      : `เก็บ ${added} วิชาไว้ในตัวช่วยแล้ว ติ๊กวิชาที่ต้องการ (สูงสุด 7 วิชา) แล้วกดสร้างแผน`;
+    setPlannerStatus(message);
+    setPlannerPoolNotice(message);
   }
 
   function dropSectionPicks(code: string) {
@@ -1715,10 +1809,12 @@ export default function Home() {
     setPlannerPool((current) => current.filter((group) => group.code !== code));
     setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
     dropSectionPicks(code);
+    setPlannerPoolNotice("");
   }
 
   function clearPlanner() {
     setPlannerPool([]);
+    setPlannerPoolNotice("");
     setPlannerSelectedCodes([]);
     setPlannerSectionPicks({});
     setExpandedPlannerCode(null);
@@ -1770,7 +1866,13 @@ export default function Home() {
       return;
     }
 
+    if (plannerPool.length >= maxPlannerPool) {
+      setPlannerPoolNotice(`ตัวช่วยเก็บได้สูงสุด ${maxPlannerPool} วิชา เอาวิชาที่ไม่ใช้ออกก่อน`);
+      return;
+    }
+
     const groups = groupRemoteClasses(remoteClasses.filter((remoteClass) => remoteClass.coursecode === code));
+    setPlannerPoolNotice("");
     setPlannerPool((current) => mergeIntoPool(current, groups));
     setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
   }
@@ -2747,7 +2849,7 @@ export default function Home() {
                 <p className="empty">ยังไม่มีวิชาในตัวช่วย ดึงรายวิชาจากเว็บแล้วกด “เลือกเข้าตัวช่วยจัดแผน” ทีละวิชา หรือ “เพิ่มทั้งหมดเข้าตัวช่วย”</p>
               ) : (
                 <>
-                <p className="status-line pick-count">เก็บไว้ {plannerPool.length} วิชา · ติ๊กใช้สร้างแผน {plannerSelectedCodes.length}/7</p>
+                <p className="status-line pick-count">เก็บไว้ {plannerPool.length}/{maxPlannerPool} วิชา · ติ๊กใช้สร้างแผน {plannerSelectedCodes.length}/7</p>
                 <div className="pick-list">
                   {plannerPool.map((group) => {
                     const isSelected = plannerSelectedCodes.includes(group.code);
@@ -3391,8 +3493,9 @@ export default function Home() {
                 )}
                 <div ref={remoteResultsRef} className="dialog-run-status">
                   {remoteClasses.length > 0 && (
-                    <p className="status-line">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ</p>
+                    <p className="status-line">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ · ตัวช่วยเก็บไว้ {plannerPool.length}/{maxPlannerPool} วิชา</p>
                   )}
+                  {plannerPoolNotice && <p className="status-line">{plannerPoolNotice}</p>}
                 </div>
               </div>
 
@@ -3450,8 +3553,9 @@ export default function Home() {
                             type="button"
                             className={isPicked ? "btn btn-line is-on" : "btn btn-line"}
                             onClick={() => togglePlannerCode(remoteClass.coursecode)}
+                            disabled={!isPicked && plannerPool.length >= maxPlannerPool}
                           >
-                            {isPicked ? "เอาออกจากตัวช่วยจัดแผน" : "เลือกเข้าตัวช่วยจัดแผน"}
+                            {isPicked ? "เอาออกจากตัวช่วยจัดแผน" : plannerPool.length >= maxPlannerPool ? `ตัวช่วยเต็ม ${maxPlannerPool} วิชา` : "เลือกเข้าตัวช่วยจัดแผน"}
                           </button>
                         </div>
                       </li>
