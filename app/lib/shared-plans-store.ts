@@ -14,6 +14,7 @@ export type SharedCoursePayload = {
   final: string;
   color: string;
   locked?: boolean;
+  hidden?: boolean;
 };
 
 export type SharedRoomPlanPayload = {
@@ -121,6 +122,7 @@ function sanitizeCourse(course: Partial<SharedCoursePayload>, index: number): Sh
     final: validateDateTime(course.final),
     color: /^#[0-9a-f]{6}$/i.test(String(course.color ?? "")) ? String(course.color) : "#2457ff",
     ...(course.locked === true ? { locked: true } : {}),
+    ...(course.hidden === true ? { hidden: true } : {}),
   };
 }
 

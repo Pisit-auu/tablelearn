@@ -20,6 +20,8 @@ type Course = {
   final: string;
   color: string;
   locked?: boolean;
+  // ซ่อนจากตารางชั่วคราว: ไม่แสดง ไม่นับหน่วยกิตและเวลาชน แต่ยังเก็บไว้ในรายวิชาที่บันทึก
+  hidden?: boolean;
 };
 
 type TimetablePlan = {
@@ -779,6 +781,15 @@ function IconChevron({ className }: IconProps) {
   );
 }
 
+function IconEyeOff({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <path d="m1 1 22 22" />
+    </Svg>
+  );
+}
+
 function IconMessage({ className }: IconProps) {
   return (
     <Svg className={className}>
@@ -841,6 +852,9 @@ export default function Home() {
   // วิชาที่ดึงมาเก็บไว้ในตัวช่วยจัดแผน แยกจากผลค้นหา จึงไม่หายเมื่อค้นหาชุดใหม่
   // plannerSelectedCodes คือวิชาในคลังที่ติ๊กไว้ใช้สร้างแผน
   const [plannerPool, setPlannerPool] = useState<RemoteCourseGroup[]>([]);
+  // section ที่เลือกเฉพาะเจาะจงต่อรหัสวิชา (classid) ถ้าไม่มี key = ใช้ทุก section
+  const [plannerSectionPicks, setPlannerSectionPicks] = useState<Record<string, number[]>>({});
+  const [expandedPlannerCode, setExpandedPlannerCode] = useState<string | null>(null);
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
   const [plannerStart, setPlannerStart] = useState("08:00");
   const [plannerEnd, setPlannerEnd] = useState("17:00");
@@ -858,6 +872,7 @@ export default function Home() {
   const hasLocalPlanMutationRef = useRef(false);
   const plansRef = useRef<TimetablePlan[]>([]);
   const sharedRoomLoadRequestRef = useRef(0);
+  const navClickZoneRef = useRef<{ id: string; until: number } | null>(null);
 
   const activePlan = plans.find((plan) => plan.id === activePlanId) ?? plans[0];
   const currentPlanId = activePlan?.id ?? activePlanId;
@@ -1208,14 +1223,16 @@ export default function Home() {
     };
   }, [facultyId]);
 
-  const totalCredits = useMemo(() => courses.reduce((sum, course) => sum + course.credits, 0), [courses]);
-  const examCount = useMemo(() => courses.filter((course) => course.midterm || course.final).length, [courses]);
+  const shownCourses = useMemo(() => courses.filter((course) => !course.hidden), [courses]);
+  const hiddenCourseCount = courses.length - shownCourses.length;
+  const totalCredits = useMemo(() => shownCourses.reduce((sum, course) => sum + course.credits, 0), [shownCourses]);
+  const examCount = useMemo(() => shownCourses.filter((course) => course.midterm || course.final).length, [shownCourses]);
   const conflicts = useMemo(
     () =>
-      courses.flatMap((course, index) =>
-        courses.slice(index + 1).filter((next) => overlaps(course, next)).map((next) => [course, next]),
+      shownCourses.flatMap((course, index) =>
+        shownCourses.slice(index + 1).filter((next) => overlaps(course, next)).map((next) => [course, next]),
       ),
-    [courses],
+    [shownCourses],
   );
   const filteredRemoteClasses = useMemo(() => {
     const keyword = courseSearch.trim().toLowerCase();
@@ -1226,8 +1243,8 @@ export default function Home() {
 
     return remoteClasses.filter((remoteClass) => remoteClass.coursecode.toLowerCase().includes(keyword));
   }, [courseSearch, remoteClasses]);
-  const freeSlots = useMemo(() => freeSlotsForCourses(courses).filter((slot) => courses.some((course) => course.day === slot.day)).slice(0, 14), [courses]);
-  const examWarnings = useMemo(() => examWarningsForCourses(courses), [courses]);
+  const freeSlots = useMemo(() => freeSlotsForCourses(shownCourses).filter((slot) => shownCourses.some((course) => course.day === slot.day)).slice(0, 14), [shownCourses]);
+  const examWarnings = useMemo(() => examWarningsForCourses(shownCourses), [shownCourses]);
   const comparison = useMemo(() => {
     const comparePlanA = visiblePlans.find((plan) => plan.id === comparePlanAId) ?? visiblePlans[0];
     const comparePlanB = visiblePlans.find((plan) => plan.id === comparePlanBId) ?? visiblePlans[1] ?? visiblePlans[0];
@@ -1242,8 +1259,8 @@ export default function Home() {
     const onlyB = comparePlanB.courses.filter((course) => !aKeys.has(courseKey(course)));
 
     return {
-      aStats: planStats(comparePlanA.courses),
-      bStats: planStats(comparePlanB.courses),
+      aStats: planStats(comparePlanA.courses.filter((course) => !course.hidden)),
+      bStats: planStats(comparePlanB.courses.filter((course) => !course.hidden)),
       onlyA,
       onlyB,
     };
@@ -1254,15 +1271,15 @@ export default function Home() {
     () =>
       days.map((day) => ({
         ...day,
-        courses: courses.filter((course) => course.day === day.key).sort((a, b) => toMinutes(a.start) - toMinutes(b.start)),
+        courses: shownCourses.filter((course) => course.day === day.key).sort((a, b) => toMinutes(a.start) - toMinutes(b.start)),
       })),
-    [courses],
+    [shownCourses],
   );
   const conflictIds = useMemo(() => {
     const ids = new Set<string>();
 
-    courses.forEach((course, index) => {
-      courses.slice(index + 1).forEach((next) => {
+    shownCourses.forEach((course, index) => {
+      shownCourses.slice(index + 1).forEach((next) => {
         if (overlaps(course, next)) {
           ids.add(course.id);
           ids.add(next.id);
@@ -1271,7 +1288,7 @@ export default function Home() {
     });
 
     return ids;
-  }, [courses]);
+  }, [shownCourses]);
 
   useEffect(() => {
     if (!isManualCourseOpen && !isCourseBrowserOpen) {
@@ -1319,6 +1336,15 @@ export default function Home() {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        if (navClickZoneRef.current && Date.now() < navClickZoneRef.current.until) {
+          return;
+        }
+
+        if (isAtPageBottom()) {
+          setActiveZone(sections[sections.length - 1].id);
+          return;
+        }
+
         const visible = entries
           .filter((entry) => entry.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
@@ -1332,7 +1358,27 @@ export default function Home() {
 
     sections.forEach((section) => observer.observe(section));
 
-    return () => observer.disconnect();
+    // ส่วนสุดท้ายสั้นเกินกว่าจะเลื่อนถึงแถบที่ observer จับ เมื่อเลื่อนสุดหน้าจึงถือว่าอยู่ส่วนสุดท้าย
+    function isAtPageBottom() {
+      return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+    }
+
+    function markLastZoneAtBottom() {
+      if (navClickZoneRef.current && Date.now() < navClickZoneRef.current.until) {
+        return;
+      }
+
+      if (isAtPageBottom()) {
+        setActiveZone(sections[sections.length - 1].id);
+      }
+    }
+
+    window.addEventListener("scroll", markLastZoneAtBottom, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", markLastZoneAtBottom);
+    };
   }, [timetableView]);
 
   useEffect(() => {
@@ -1528,6 +1574,24 @@ export default function Home() {
     setForm(emptyCourse);
   }
 
+  function toggleCourseHidden(id: string) {
+    if (!canEditActivePlan) {
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
+      return;
+    }
+
+    updateActiveCourses((current) => current.map((course) => (course.id === id ? { ...course, hidden: !course.hidden } : course)));
+  }
+
+  function showAllCourses() {
+    if (!canEditActivePlan) {
+      setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
+      return;
+    }
+
+    updateActiveCourses((current) => current.map((course) => (course.hidden ? { ...course, hidden: false } : course)));
+  }
+
   function toggleCourseLocked(id: string) {
     if (!canEditActivePlan) {
       setShareStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
@@ -1575,22 +1639,68 @@ export default function Home() {
     setPlannerStatus(`เก็บ ${groups.length} วิชาไว้ในตัวช่วยแล้ว ติ๊กวิชาที่ต้องการ (สูงสุด 7 วิชา) แล้วกดสร้างแผน`);
   }
 
+  function dropSectionPicks(code: string) {
+    setPlannerSectionPicks((current) => {
+      if (!(code in current)) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next[code];
+      return next;
+    });
+  }
+
   function removeFromPlanner(code: string) {
     setPlannerPool((current) => current.filter((group) => group.code !== code));
     setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+    dropSectionPicks(code);
   }
 
   function clearPlanner() {
     setPlannerPool([]);
     setPlannerSelectedCodes([]);
+    setPlannerSectionPicks({});
+    setExpandedPlannerCode(null);
     setGeneratedPlans([]);
     setPlannerStatus("");
   }
 
   function togglePlannerSelected(code: string) {
-    setPlannerSelectedCodes((current) =>
-      current.includes(code) ? current.filter((item) => item !== code) : [...current, code],
-    );
+    if (plannerSelectedCodes.includes(code)) {
+      setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+      dropSectionPicks(code);
+      return;
+    }
+
+    setPlannerSelectedCodes((current) => [...current, code]);
+  }
+
+  // section ที่ตัวช่วยจะใช้จริงของวิชานี้ (ทุก section ถ้าไม่ได้เลือกเฉพาะ)
+  function plannerClassesFor(group: RemoteCourseGroup) {
+    const picks = plannerSectionPicks[group.code];
+    const picked = picks ? group.classes.filter((remoteClass) => picks.includes(remoteClass.classid)) : [];
+    return picked.length > 0 ? picked : group.classes;
+  }
+
+  // เลือก/เลิกเลือก section เดียวให้ตัวช่วยจัดแผน และติ๊กวิชาให้อัตโนมัติ
+  function togglePlannerSection(code: string, classId: number) {
+    const picks = plannerSelectedCodes.includes(code) ? plannerSectionPicks[code] ?? [] : [];
+    const nextPicks = picks.includes(classId) ? picks.filter((id) => id !== classId) : [...picks, classId];
+
+    if (nextPicks.length === 0) {
+      dropSectionPicks(code);
+      setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+      return;
+    }
+
+    setPlannerSectionPicks((current) => ({ ...current, [code]: nextPicks }));
+    setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
+  }
+
+  function selectAllPlannerSections(code: string) {
+    dropSectionPicks(code);
+    setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
   }
 
   // ปุ่มบนการ์ดผลค้นหา: เก็บวิชาเข้าคลังพร้อมติ๊กเลือก หรือเอาออกจากคลัง
@@ -1628,8 +1738,8 @@ export default function Home() {
       return;
     }
 
-    const lockedCourses = courses.filter((course) => course.locked || !plannerSelectedCodes.includes(course.code));
-    const lockedCodes = new Set(courses.filter((course) => course.locked).map((course) => course.code));
+    const lockedCourses = shownCourses.filter((course) => course.locked || !plannerSelectedCodes.includes(course.code));
+    const lockedCodes = new Set(shownCourses.filter((course) => course.locked).map((course) => course.code));
     const unlockedSelectedGroups = selectedGroups.filter((group) => !lockedCodes.has(group.code));
     const results: GeneratedSchedulePlan[] = [];
 
@@ -1668,7 +1778,7 @@ export default function Home() {
         return;
       }
 
-      unlockedSelectedGroups[groupIndex].classes.slice(0, 12).forEach((remoteClass, optionIndex) => {
+      plannerClassesFor(unlockedSelectedGroups[groupIndex]).slice(0, 12).forEach((remoteClass, optionIndex) => {
         const color = palette[(lockedCourses.length + groupIndex + optionIndex) % palette.length];
         const candidate = remoteClassToCourses(remoteClass, color);
         const partialCourses = [...lockedCourses, ...picked.flat(), ...candidate];
@@ -1890,7 +2000,7 @@ export default function Home() {
     const dayMinutes = dayEnd - dayStart;
     const laidOutDays = days.map((day) => {
       const laneEnds: number[] = [];
-      const placed = courses
+      const placed = shownCourses
         .filter((course) => course.day === day.key && toMinutes(course.start) < dayEnd && toMinutes(course.end) > dayStart)
         .sort((a, b) => toMinutes(a.start) - toMinutes(b.start) || toMinutes(a.end) - toMinutes(b.end))
         .map((course) => {
@@ -1961,7 +2071,7 @@ export default function Home() {
     context.fillText(activePlan?.name || defaultPlanName, padding, padding + 28);
     context.fillStyle = ink.quiet;
     context.font = `400 14px ${thaiFace}`;
-    context.fillText(`${courses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 52);
+    context.fillText(`${shownCourses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 52);
     context.strokeStyle = line;
     context.lineWidth = 1;
     context.beginPath();
@@ -2262,16 +2372,14 @@ export default function Home() {
     updateActiveCourses((current) => [...current, ...importedCourses]);
   }
 
-  function importRemoteCourseGroup(group: { code: string; name: string; classes: RemoteClass[] }) {
-    const firstClass = group.classes[0];
-
-    if (!firstClass) {
-      setPlannerStatus("ไม่พบ section สำหรับรายวิชานี้");
+  function importPlannerSection(remoteClass: RemoteClass) {
+    if (!canEditActivePlan) {
+      setPlannerStatus("ห้องนี้ดูได้อย่างเดียว จึงแก้ตารางไม่ได้");
       return;
     }
 
-    importRemoteClass(firstClass);
-    setPlannerStatus(`เพิ่ม ${group.code} เข้าในรายวิชาที่บันทึกแล้ว`);
+    importRemoteClass(remoteClass);
+    setPlannerStatus(`นำ ${remoteClass.coursecode} S.${remoteClass.sectioncode} เข้าตารางแล้ว`);
   }
 
   return (
@@ -2297,7 +2405,12 @@ export default function Home() {
               href={`#${zone.id}`}
               className={activeZone === zone.id ? "rail-tab is-active" : "rail-tab"}
               aria-current={activeZone === zone.id ? "true" : undefined}
-              onClick={() => unfoldZone(zone.id)}
+              onClick={() => {
+                unfoldZone(zone.id);
+                // ส่วนท้าย ๆ เลื่อนขึ้นไม่ถึงจุดที่ observer จับ จึงตั้ง active เองและพัก observer ระหว่างเลื่อน
+                navClickZoneRef.current = { id: zone.id, until: Date.now() + 1200 };
+                setActiveZone(zone.id);
+              }}
             >
               <zone.Icon />
               <span className="tab-long">{zone.label}</span>
@@ -2312,7 +2425,7 @@ export default function Home() {
           <dl className="measures">
             <div>
               <dt>รายวิชา</dt>
-              <dd>{courses.length}<i>วิชา</i></dd>
+              <dd>{shownCourses.length}<i>วิชา</i></dd>
             </div>
             <div>
               <dt>หน่วยกิต</dt>
@@ -2432,6 +2545,13 @@ export default function Home() {
 
           {excelStatus && <p className="status-line">{excelStatus}</p>}
 
+          {hiddenCourseCount > 0 && (
+            <p className="hidden-strip">
+              ซ่อนไว้ {hiddenCourseCount} รายการ ไม่แสดงในตารางและไม่นับเวลาชน
+              <button type="button" className="link-btn" onClick={showAllCourses} disabled={!canEditActivePlan}>แสดงทั้งหมด</button>
+            </p>
+          )}
+
           {timetableView === "grid" ? (
             <div className="grid-scroll">
               <div className="timetable">
@@ -2440,14 +2560,25 @@ export default function Home() {
                   <div className="time-head" key={hour}>{String(hour).padStart(2, "0")}:00</div>
                 ))}
                 {days.map((day) => (
-                  <DayRow key={day.key} day={day} courses={courses} conflictIds={conflictIds} />
+                  <DayRow
+                    key={day.key}
+                    day={day}
+                    courses={shownCourses}
+                    conflictIds={conflictIds}
+                    actions={canEditActivePlan ? { onHide: toggleCourseHidden, onRemove: removeCourse } : undefined}
+                  />
                 ))}
               </div>
             </div>
           ) : (
             <div className="day-list">
               {dailyCourses.map((day) => (
-                <DayList key={day.key} day={day} conflictIds={conflictIds} />
+                <DayList
+                  key={day.key}
+                  day={day}
+                  conflictIds={conflictIds}
+                  actions={canEditActivePlan ? { onHide: toggleCourseHidden, onRemove: removeCourse } : undefined}
+                />
               ))}
             </div>
           )}
@@ -2484,7 +2615,7 @@ export default function Home() {
             <div className="block-list">
               {courses.map((course) => (
                 <article
-                  className={conflictIds.has(course.id) ? "course-card is-clash" : "course-card"}
+                  className={["course-card", conflictIds.has(course.id) ? "is-clash" : "", course.hidden ? "is-hidden" : ""].filter(Boolean).join(" ")}
                   key={course.id}
                   style={{ ["--course" as string]: course.color }}
                 >
@@ -2492,6 +2623,7 @@ export default function Home() {
                     <span className="course-code">{course.code}</span>
                     {course.locked && <span className="tag tag-lock"><IconAnchor />ล็อก</span>}
                     {conflictIds.has(course.id) && <span className="tag tag-clash">ชนกัน</span>}
+                    {course.hidden && <span className="tag tag-hidden">ซ่อนอยู่</span>}
                   </header>
                   <p className="course-name">{course.name}</p>
                   <dl className="course-meta">
@@ -2515,6 +2647,9 @@ export default function Home() {
                   <footer>
                     <button type="button" onClick={() => toggleCourseLocked(course.id)} disabled={!canEditActivePlan}>
                       {course.locked ? "ปลดล็อก" : "ล็อก"}
+                    </button>
+                    <button type="button" onClick={() => toggleCourseHidden(course.id)} disabled={!canEditActivePlan}>
+                      {course.hidden ? "แสดง" : "ซ่อน"}
                     </button>
                     <button type="button" onClick={() => editCourse(course)} disabled={!canEditActivePlan}>แก้ไข</button>
                     <button type="button" className="is-destructive" onClick={() => removeCourse(course.id)} disabled={!canEditActivePlan}>ลบ</button>
@@ -2554,30 +2689,102 @@ export default function Home() {
                 <>
                 <p className="status-line pick-count">เก็บไว้ {plannerPool.length} วิชา · ติ๊กใช้สร้างแผน {plannerSelectedCodes.length}/7</p>
                 <div className="pick-list">
-                  {plannerPool.map((group) => (
-                    <div className="pick-row" key={group.code}>
+                  {plannerPool.map((group) => {
+                    const isSelected = plannerSelectedCodes.includes(group.code);
+                    const picks = isSelected ? plannerSectionPicks[group.code] : undefined;
+                    const isExpanded = expandedPlannerCode === group.code;
+                    const panelId = `pick-sections-${group.code}`;
+
+                    return (
+                    <div className={isExpanded ? "pick-row is-open" : "pick-row"} key={group.code}>
                       <label className="check">
                         <input
                           type="checkbox"
-                          checked={plannerSelectedCodes.includes(group.code)}
+                          checked={isSelected}
                           onChange={() => togglePlannerSelected(group.code)}
                         />
                         <span className="check-box" aria-hidden="true" />
                         <span className="check-text">
                           <b>{group.code}</b>
-                          {group.name} · {group.classes.length} section
+                          {group.name} · {picks ? `เลือก ${picks.length}/${group.classes.length} section` : `${group.classes.length} section`}
                         </span>
                       </label>
                       <div className="pick-row-actions">
-                        <button type="button" className="btn btn-quiet" onClick={() => importRemoteCourseGroup(group)} disabled={!canEditActivePlan}>
-                          เพิ่ม
+                        <button
+                          type="button"
+                          className={isExpanded ? "btn btn-quiet is-on" : "btn btn-quiet"}
+                          aria-expanded={isExpanded}
+                          aria-controls={panelId}
+                          onClick={() => setExpandedPlannerCode(isExpanded ? null : group.code)}
+                        >
+                          ดู section
+                          <IconChevron className="pick-chevron" />
                         </button>
                         <button type="button" className="btn btn-quiet" onClick={() => removeFromPlanner(group.code)}>
                           เอาออก
                         </button>
                       </div>
+                      {isExpanded && (
+                        <div className="pick-sections" id={panelId}>
+                          <p className="pick-sections-note">
+                            {!isSelected
+                              ? "ยังไม่ได้ใช้วิชานี้สร้างแผน เลือก section ที่ต้องการ หรือติ๊กวิชาเพื่อใช้ทุก section"
+                              : picks
+                                ? `ตัวช่วยจะลองเฉพาะ ${group.classes.filter((remoteClass) => picks.includes(remoteClass.classid)).map((remoteClass) => `S.${remoteClass.sectioncode}`).join(", ")}`
+                                : "ตัวช่วยจะลองทุก section ของวิชานี้"}
+                            {picks && (
+                              <button type="button" className="link-btn" onClick={() => selectAllPlannerSections(group.code)}>ใช้ทุก section</button>
+                            )}
+                          </p>
+                          <ul className="pick-section-list">
+                            {group.classes.map((remoteClass) => {
+                              const meetings = parseClassMeetings(remoteClass.classtime);
+                              const isPickedSection = Boolean(picks?.includes(remoteClass.classid));
+                              const clashes = remoteClassToCourses(remoteClass, "#000000").some((candidate) =>
+                                shownCourses.some((course) => course.code !== remoteClass.coursecode && overlaps(candidate, course)),
+                              );
+
+                              return (
+                                <li className={isPickedSection ? "pick-section is-picked" : "pick-section"} key={remoteClass.classid}>
+                                  <div className="pick-section-head">
+                                    <span className="remote-section">S.{remoteClass.sectioncode}</span>
+                                    {clashes && <span className="pick-section-clash">ชนกับตาราง</span>}
+                                  </div>
+                                  <ul className="pick-section-times">
+                                    {meetings.length === 0 ? (
+                                      <li>ไม่ระบุเวลา</li>
+                                    ) : (
+                                      meetings.map((meeting, index) => (
+                                        <li key={index}>
+                                          <b>{days.find((day) => day.key === meeting.day)?.label ?? ""}</b> {meeting.start}-{meeting.end}
+                                          {meeting.room && <span> · {meeting.room}</span>}
+                                        </li>
+                                      ))
+                                    )}
+                                  </ul>
+                                  {teacherName(remoteClass) && <p className="pick-section-teacher">{teacherName(remoteClass)}</p>}
+                                  <div className="pick-section-actions">
+                                    <button type="button" className="btn btn-primary" onClick={() => importPlannerSection(remoteClass)} disabled={!canEditActivePlan}>
+                                      นำเข้าตาราง
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={isPickedSection ? "btn btn-line is-on" : "btn btn-line"}
+                                      aria-pressed={isPickedSection}
+                                      onClick={() => togglePlannerSection(group.code, remoteClass.classid)}
+                                    >
+                                      {isPickedSection ? "ใช้วางแผนอยู่" : "ใช้ section นี้วางแผน"}
+                                    </button>
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 </>
               )}
@@ -2755,11 +2962,11 @@ export default function Home() {
                 ))}
               </ul>
             )}
-            {courses.filter((course) => course.midterm || course.final).length === 0 ? (
+            {shownCourses.filter((course) => course.midterm || course.final).length === 0 ? (
               <p className="empty">ยังไม่ได้กรอกเวลาสอบ</p>
             ) : (
               <ul className="exam-list">
-                {courses.filter((course) => course.midterm || course.final).map((course) => (
+                {shownCourses.filter((course) => course.midterm || course.final).map((course) => (
                   <li className="exam-item" key={course.id} style={{ ["--course" as string]: course.color }}>
                     <span className="exam-code">{course.code}</span>
                     <span className="exam-name">{course.name}</span>
@@ -3201,7 +3408,29 @@ export default function Home() {
 }
 
 
-function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; courses: Course[]; conflictIds: Set<string> }) {
+type CourseBlockActions = {
+  onHide: (id: string) => void;
+  onRemove: (id: string) => void;
+};
+
+function CourseBlockButtons({ course, actions }: { course: Course; actions?: CourseBlockActions }) {
+  if (!actions) {
+    return null;
+  }
+
+  return (
+    <span className="block-actions">
+      <button type="button" onClick={() => actions.onHide(course.id)} aria-label={`ซ่อน ${course.code} ${course.name}`} title="ซ่อนจากตาราง">
+        <IconEyeOff />
+      </button>
+      <button type="button" className="is-destructive" onClick={() => actions.onRemove(course.id)} aria-label={`ลบ ${course.code} ${course.name}`} title="ลบออกจากตาราง">
+        <IconClose />
+      </button>
+    </span>
+  );
+}
+
+function DayRow({ day, courses, conflictIds, actions }: { day: (typeof days)[number]; courses: Course[]; conflictIds: Set<string>; actions?: CourseBlockActions }) {
   const dayStart = hours[0] * 60;
   const dayEnd = (hours[hours.length - 1] + 1) * 60;
   const dayMinutes = dayEnd - dayStart;
@@ -3266,6 +3495,7 @@ function DayRow({ day, courses, conflictIds }: { day: (typeof days)[number]; cou
               <time>{course.start}–{course.end}</time>
             </span>
             {course.room && <span className="block-room">{course.room}</span>}
+            <CourseBlockButtons course={course} actions={actions} />
           </article>
         ))}
       </div>
@@ -3286,7 +3516,7 @@ function CourseDifference({ course }: { course: Course }) {
   );
 }
 
-function DayList({ day, conflictIds }: { day: (typeof days)[number] & { courses: Course[] }; conflictIds: Set<string> }) {
+function DayList({ day, conflictIds, actions }: { day: (typeof days)[number] & { courses: Course[] }; conflictIds: Set<string>; actions?: CourseBlockActions }) {
   return (
     <section className="day-agenda">
       <h3>
@@ -3313,6 +3543,7 @@ function DayList({ day, conflictIds }: { day: (typeof days)[number] & { courses:
                     <span>{course.name}</span>
                     <small>{course.room || "-"} · {course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}</small>
                   </span>
+                  <CourseBlockButtons course={course} actions={actions} />
                 </article>
                 {gapMinutes > 0 && (
                   <p className="agenda-gap">

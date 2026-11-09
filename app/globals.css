@@ -1385,7 +1385,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  max-height: 296px;
+  max-height: 420px;
   overflow-y: auto;
 }
 
@@ -1413,6 +1413,130 @@ body {
   display: flex;
   flex-shrink: 0;
   gap: 4px;
+}
+
+.pick-row-actions .btn-quiet {
+  gap: 4px;
+}
+
+.pick-row-actions .btn-quiet.is-on {
+  color: #ffffff;
+  background: var(--primary);
+}
+
+.pick-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.16s ease;
+}
+
+.is-on > .pick-chevron {
+  transform: rotate(180deg);
+}
+
+.pick-row.is-open {
+  border-color: var(--primary);
+}
+
+.pick-sections {
+  flex: 1 1 100%;
+  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.pick-sections-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+
+.link-btn {
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--primary);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.pick-section-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pick-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+}
+
+.pick-section.is-picked {
+  background: var(--primary-tint);
+  border-color: var(--primary-tint-strong);
+}
+
+.pick-section-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pick-section-clash {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.pick-section-times {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.pick-section-times b {
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.pick-section-teacher {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink-quiet);
+}
+
+.pick-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pick-section-actions .btn {
+  flex: 1 1 auto;
+  padding: 6px 10px;
+  min-height: 32px;
+  font-size: 12.5px;
 }
 
 .pick-count {
@@ -2515,4 +2639,107 @@ body {
 .feedback-count.is-full {
   font-weight: 600;
   color: var(--heading);
+}
+
+/* ---------- hide / remove from the week ---------- */
+
+.block-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+
+.block:hover .block-actions,
+.block:focus-within .block-actions,
+.agenda-item:hover .block-actions,
+.agenda-item:focus-within .block-actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .block-actions {
+    opacity: 1;
+  }
+}
+
+.block-actions button {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+
+.block-actions button:hover {
+  color: var(--primary-deep);
+  border-color: var(--primary);
+}
+
+.block-actions button.is-destructive:hover {
+  color: var(--danger-deep);
+  border-color: var(--danger);
+}
+
+.block-actions svg {
+  width: 14px;
+  height: 14px;
+}
+
+.agenda-item {
+  position: relative;
+}
+
+.agenda-item .block-actions {
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+}
+
+.hidden-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--ink-quiet);
+}
+
+.link-btn:disabled {
+  color: var(--disabled);
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+.course-card.is-hidden {
+  background: var(--surface-sunk);
+  border-style: dashed;
+}
+
+.course-card.is-hidden > :not(footer) {
+  opacity: 0.6;
+}
+
+.tag-hidden {
+  color: var(--ink-quiet);
+  background: var(--disabled-ground);
+}
+
+.block:has(.block-actions) .block-code,
+.block:has(.block-actions) .block-name {
+  padding-right: 60px;
+}
+
+.agenda-item:has(.block-actions) .agenda-body {
+  padding-right: 64px;
 }
