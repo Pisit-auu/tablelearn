@@ -900,6 +900,15 @@ function IconChevron({ className }: IconProps) {
   );
 }
 
+function IconEye({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+      <circle cx="12" cy="12" r="3" />
+    </Svg>
+  );
+}
+
 function IconEyeOff({ className }: IconProps) {
   return (
     <Svg className={className}>
@@ -1424,9 +1433,9 @@ export default function Home() {
     () =>
       days.map((day) => ({
         ...day,
-        courses: shownCourses.filter((course) => course.day === day.key).sort((a, b) => toMinutes(a.start) - toMinutes(b.start)),
+        courses: courses.filter((course) => course.day === day.key).sort((a, b) => toMinutes(a.start) - toMinutes(b.start)),
       })),
-    [shownCourses],
+    [courses],
   );
   const conflictIds = useMemo(() => {
     const ids = new Set<string>();
@@ -2740,7 +2749,7 @@ export default function Home() {
 
           {hiddenCourseCount > 0 && (
             <p className="hidden-strip">
-              ซ่อนไว้ {hiddenCourseCount} รายการ ไม่แสดงในตารางและไม่นับเวลาชน
+              ซ่อนไว้ {hiddenCourseCount} รายการ แสดงเป็นสีเทา ไม่นับหน่วยกิตและเวลาชน
               <button type="button" className="link-btn" onClick={showAllCourses} disabled={!canEditActivePlan}>แสดงทั้งหมด</button>
             </p>
           )}
@@ -2756,7 +2765,7 @@ export default function Home() {
                   <DayRow
                     key={day.key}
                     day={day}
-                    courses={shownCourses}
+                    courses={courses}
                     conflictIds={conflictIds}
                     actions={canEditActivePlan ? { onHide: toggleCourseHidden, onRemove: removeCourse } : undefined}
                   />
@@ -3615,8 +3624,13 @@ function CourseBlockButtons({ course, actions }: { course: Course; actions?: Cou
 
   return (
     <span className="block-actions">
-      <button type="button" onClick={() => actions.onHide(course.id)} aria-label={`ซ่อน ${course.code} ${course.name}`} title="ซ่อนจากตาราง">
-        <IconEyeOff />
+      <button
+        type="button"
+        onClick={() => actions.onHide(course.id)}
+        aria-label={`${course.hidden ? "แสดง" : "ซ่อน"} ${course.code} ${course.name}`}
+        title={course.hidden ? "แสดงกลับในตาราง" : "ซ่อน (เป็นสีเทา ไม่นับเวลาชน)"}
+      >
+        {course.hidden ? <IconEye /> : <IconEyeOff />}
       </button>
       <button type="button" className="is-destructive" onClick={() => actions.onRemove(course.id)} aria-label={`ลบ ${course.code} ${course.name}`} title="ลบออกจากตาราง">
         <IconClose />
@@ -3654,7 +3668,7 @@ function DayRow({ day, courses, conflictIds, actions }: { day: (typeof days)[num
         </div>
         {positionedCourses.map(({ course, lane, left, width }) => (
           <article
-            className={conflictIds.has(course.id) ? "block is-clash" : "block"}
+            className={["block", conflictIds.has(course.id) ? "is-clash" : "", course.hidden ? "is-hidden" : ""].filter(Boolean).join(" ")}
             key={course.id}
             style={{
               ["--course" as string]: course.color,
@@ -3667,6 +3681,7 @@ function DayRow({ day, courses, conflictIds, actions }: { day: (typeof days)[num
               {course.code}
               {course.locked && <IconAnchor className="ico-sm" />}
               {conflictIds.has(course.id) && <em className="block-clash">ชนกัน</em>}
+              {course.hidden && <em className="block-hidden">ซ่อน</em>}
             </span>
             <span className="block-name">{course.name}</span>
             <span className="block-time">
@@ -3706,24 +3721,25 @@ function DayList({ day, conflictIds, actions }: { day: (typeof days)[number] & {
       ) : (
         <div className="day-agenda-body">
           {day.courses.map((course, index) => {
-            const nextCourse = day.courses[index + 1];
+            // ช่วงว่างคิดจากวิชาที่แสดงอยู่เท่านั้น วิชาที่ซ่อนไม่นับว่าเป็นเวลาเรียน
+            const nextCourse = course.hidden ? undefined : day.courses.slice(index + 1).find((next) => !next.hidden);
             const gapMinutes = nextCourse ? toMinutes(nextCourse.start) - toMinutes(course.end) : 0;
 
             return (
               <div key={course.id}>
                 <article
-                  className={conflictIds.has(course.id) ? "agenda-item is-clash" : "agenda-item"}
+                  className={["agenda-item", conflictIds.has(course.id) ? "is-clash" : "", course.hidden ? "is-hidden" : ""].filter(Boolean).join(" ")}
                   style={{ ["--course" as string]: course.color }}
                 >
                   <span className="agenda-time">{course.start}<i>{course.end}</i></span>
                   <span className="agenda-body">
                     <b>{course.code}</b>
                     <span>{course.name}</span>
-                    <small>{course.room || "-"} · {course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}</small>
+                    <small>{course.room || "-"} · {course.teacher || "-"} · {course.credits} หน่วยกิต{course.locked ? " · ล็อกไว้" : ""}{course.hidden ? " · ซ่อนอยู่" : ""}</small>
                   </span>
                   <CourseBlockButtons course={course} actions={actions} />
                 </article>
-                {gapMinutes > 0 && (
+                {nextCourse && gapMinutes > 0 && (
                   <p className="agenda-gap">
                     ว่าง <time>{minutesToTime(toMinutes(course.end))}–{minutesToTime(toMinutes(nextCourse.start))}</time> · <time>{Math.round((gapMinutes / 60) * 10) / 10}</time> ชม.
                   </p>

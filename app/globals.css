@@ -2743,3 +2743,41 @@ body {
 .agenda-item:has(.block-actions) .agenda-body {
   padding-right: 64px;
 }
+
+/* hidden classes stay in the week as faded grey ghosts: visible, but not counted */
+.block.is-hidden,
+.agenda-item.is-hidden {
+  background: var(--disabled-ground);
+  border: 1px dashed var(--field-line);
+  box-shadow: none;
+}
+
+.block.is-hidden > :not(.block-actions),
+.agenda-item.is-hidden > :not(.block-actions) {
+  opacity: 0.55;
+}
+
+.block.is-hidden .block-code,
+.block.is-hidden .block-name,
+.agenda-item.is-hidden .agenda-body b,
+.agenda-item.is-hidden .agenda-body span {
+  color: var(--ink-quiet);
+}
+
+/* the course pigment is set inline, so the grey has to win per element */
+.agenda-item.is-hidden .agenda-body b::before {
+  background: var(--disabled);
+}
+
+.block-hidden {
+  flex: 0 0 auto;
+  margin-left: 2px;
+  padding: 1px 7px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 500;
+  color: var(--ink-quiet);
+  background: #e6e5ea;
+  border-radius: 20px;
+}
