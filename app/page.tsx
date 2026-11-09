@@ -399,6 +399,22 @@ function readJson<T>(key: string, fallback: T): T {
 }
 
 const plannerStorageKey = "student-timetable-planner";
+const excludedStorageKey = "student-timetable-excluded";
+
+// วิชาที่ผู้ใช้บอกว่าไม่เอาแน่นอน ซ่อนจากผลค้นหาและจำไว้ข้ามการเปิดหน้า
+type ExcludedCourse = { code: string; name: string };
+
+function readExcludedCourses(): ExcludedCourse[] {
+  const saved = readJson<unknown>(excludedStorageKey, []);
+
+  if (!Array.isArray(saved)) {
+    return [];
+  }
+
+  return saved.filter(
+    (item): item is ExcludedCourse => !!item && typeof item === "object" && typeof item.code === "string" && typeof item.name === "string",
+  );
+}
 // จำกัดวิชาในตัวช่วยจัดแผน กันไม่ให้ localStorage โตจนเต็ม
 const maxPlannerPool = 100;
 
@@ -981,6 +997,7 @@ export default function Home() {
   // plannerSelectedCodes คือวิชาในคลังที่ติ๊กไว้ใช้สร้างแผน
   const [plannerPool, setPlannerPool] = useState<RemoteCourseGroup[]>([]);
   const [plannerPoolNotice, setPlannerPoolNotice] = useState("");
+  const [excludedCourses, setExcludedCourses] = useState<ExcludedCourse[]>([]);
   // section ที่เลือกเฉพาะเจาะจงต่อรหัสวิชา (classid) ถ้าไม่มี key = ใช้ทุก section
   const [plannerSectionPicks, setPlannerSectionPicks] = useState<Record<string, number[]>>({});
   const [expandedPlannerCode, setExpandedPlannerCode] = useState<string | null>(null);
@@ -1164,6 +1181,7 @@ export default function Home() {
       if (savedPlanner.start) setPlannerStart(savedPlanner.start);
       if (savedPlanner.end) setPlannerEnd(savedPlanner.end);
       if (savedPlanner.lunchBreak !== undefined) setPlannerLunchBreak(savedPlanner.lunchBreak);
+      setExcludedCourses(readExcludedCourses());
 
       setHasLoadedLocalData(true);
     }, 0);
@@ -1201,6 +1219,18 @@ export default function Home() {
       console.warn("บันทึกตัวช่วยจัดแผนไม่สำเร็จ", error);
     }
   }, [hasLoadedLocalData, plannerPool, plannerSelectedCodes, plannerSectionPicks, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak]);
+
+  useEffect(() => {
+    if (!hasLoadedLocalData) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(excludedStorageKey, JSON.stringify(excludedCourses));
+    } catch (error) {
+      console.warn("บันทึกวิชาที่ไม่เอาไม่สำเร็จ", error);
+    }
+  }, [excludedCourses, hasLoadedLocalData]);
 
   useEffect(() => {
     if (!hasLoadedLocalData) {
@@ -1396,7 +1426,8 @@ export default function Home() {
       ),
     [shownCourses],
   );
-  const filteredRemoteClasses = useMemo(() => {
+  const excludedCodes = useMemo(() => new Set(excludedCourses.map((course) => course.code)), [excludedCourses]);
+  const searchedRemoteClasses = useMemo(() => {
     const keyword = courseSearch.trim().toLowerCase();
 
     if (!keyword) {
@@ -1405,6 +1436,11 @@ export default function Home() {
 
     return remoteClasses.filter((remoteClass) => remoteClass.coursecode.toLowerCase().includes(keyword));
   }, [courseSearch, remoteClasses]);
+  const filteredRemoteClasses = useMemo(
+    () => searchedRemoteClasses.filter((remoteClass) => !excludedCodes.has(remoteClass.coursecode)),
+    [excludedCodes, searchedRemoteClasses],
+  );
+  const hiddenExcludedCount = searchedRemoteClasses.length - filteredRemoteClasses.length;
   const freeSlots = useMemo(() => freeSlotsForCourses(shownCourses).filter((slot) => shownCourses.some((course) => course.day === slot.day)).slice(0, 14), [shownCourses]);
   const examWarnings = useMemo(() => examWarningsForCourses(shownCourses), [shownCourses]);
   const comparison = useMemo(() => {
@@ -1861,6 +1897,18 @@ export default function Home() {
       delete next[code];
       return next;
     });
+  }
+
+  function excludeCourse(code: string, name: string) {
+    setExcludedCourses((current) => (current.some((course) => course.code === code) ? current : [...current, { code, name }]));
+
+    if (plannerPool.some((group) => group.code === code)) {
+      removeFromPlanner(code);
+    }
+  }
+
+  function unexcludeCourse(code: string) {
+    setExcludedCourses((current) => current.filter((course) => course.code !== code));
   }
 
   function removeFromPlanner(code: string) {
@@ -3533,11 +3581,37 @@ export default function Home() {
                 )}
                 <div ref={remoteResultsRef} className="dialog-run-status">
                   {remoteClasses.length > 0 && (
-                    <p className="status-line">แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ · ตัวช่วยเก็บไว้ {plannerPool.length}/{maxPlannerPool} วิชา</p>
+                    <p className="status-line">
+                      แสดง {filteredRemoteClasses.length} จาก {remoteClasses.length} รายการ
+                      {hiddenExcludedCount > 0 && ` · ซ่อนวิชาที่ไม่เอา ${hiddenExcludedCount} รายการ`}
+                      {` · ตัวช่วยเก็บไว้ ${plannerPool.length}/${maxPlannerPool} วิชา`}
+                    </p>
                   )}
                   {plannerPoolNotice && <p className="status-line">{plannerPoolNotice}</p>}
                 </div>
               </div>
+
+              {excludedCourses.length > 0 && (
+                <div className="excluded-bar">
+                  <span className="excluded-label">ไม่เอาแน่นอน</span>
+                  <ul className="excluded-chips">
+                    {excludedCourses.map((course) => (
+                      <li className="excluded-chip" key={course.code} title={course.name}>
+                        <span className="excluded-chip-code">{course.code}</span>
+                        <span className="excluded-chip-name">{course.name}</span>
+                        <button
+                          type="button"
+                          className="excluded-chip-remove"
+                          onClick={() => unexcludeCourse(course.code)}
+                          aria-label={`ยกเลิกไม่เอาวิชา ${course.code}`}
+                        >
+                          <IconClose />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {filterError && <p className="status-line is-clash">{filterError}</p>}
               {classError && <p className="status-line is-clash">{classError}</p>}
@@ -3545,7 +3619,11 @@ export default function Home() {
                 <p className="empty">ไม่พบรายวิชาตามเงื่อนไขที่เลือก ลองปรับคณะ ภาควิชา หรือรหัสวิชาแล้วโหลดอีกครั้ง</p>
               )}
               {remoteClasses.length > 0 && filteredRemoteClasses.length === 0 && (
-                <p className="empty">ไม่พบรายวิชาที่ตรงกับรหัสวิชา “{courseSearch}”</p>
+                <p className="empty">
+                  {hiddenExcludedCount > 0
+                    ? "รายวิชาที่ตรงเงื่อนไขอยู่ในรายการ “ไม่เอาแน่นอน” ทั้งหมด กดกากบาทที่ชิปด้านบนเพื่อนำกลับมา"
+                    : `ไม่พบรายวิชาที่ตรงกับรหัสวิชา “${courseSearch}”`}
+                </p>
               )}
 
               {filteredRemoteClasses.length > 0 && (
@@ -3596,6 +3674,14 @@ export default function Home() {
                             disabled={!isPicked && plannerPool.length >= maxPlannerPool}
                           >
                             {isPicked ? "เอาออกจากตัวช่วยจัดแผน" : plannerPool.length >= maxPlannerPool ? `ตัวช่วยเต็ม ${maxPlannerPool} วิชา` : "เลือกเข้าตัวช่วยจัดแผน"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-destructive remote-exclude"
+                            onClick={() => excludeCourse(remoteClass.coursecode, remoteClass.coursename)}
+                            title="ซ่อนวิชานี้ทุกกลุ่มเรียน และจำไว้จนกว่าจะยกเลิก"
+                          >
+                            ไม่เอาวิชานี้
                           </button>
                         </div>
                       </li>
