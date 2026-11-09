@@ -2470,3 +2470,49 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ---------- feedback ---------- */
+
+.feedback-form {
+  max-width: 560px;
+}
+
+.feedback-form .field textarea {
+  height: auto;
+  min-height: 84px;
+  padding: 10px 14px;
+  resize: vertical;
+}
+
+.feedback-form .field textarea::placeholder {
+  color: var(--ink-quiet);
+}
+
+.feedback-form .field textarea:hover {
+  border-color: #c3c1cd;
+}
+
+.feedback-form .field textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 3px 10px 0 rgba(34, 41, 47, 0.1);
+}
+
+.feedback-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.feedback-count {
+  font-family: var(--font-num);
+  font-size: 12.5px;
+  color: var(--ink-quiet);
+}
+
+.feedback-count.is-full {
+  font-weight: 600;
+  color: var(--heading);
+}

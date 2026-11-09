@@ -1,4 +1,4 @@
-import postgres from "postgres";
+import { requireSql, type sql } from "./db";
 
 export type SharedCoursePayload = {
   id: string;
@@ -51,8 +51,6 @@ export class SharedPlanError extends Error {
   }
 }
 
-const connectionString = process.env.POSTGRES_URL ?? process.env.DATABASE_URL;
-const sql = connectionString ? postgres(connectionString, { ssl: "require" }) : null;
 const maxCoursesPerPlan = 80;
 const maxPlansPerRoom = 20;
 const maxTextLength = 160;
@@ -155,14 +153,6 @@ function sanitizePayload(payload: Partial<SharedPlanPayload>) {
     plans,
     expectedUpdatedAt,
   };
-}
-
-function requireSql() {
-  if (!sql) {
-    throw new Error("ยังไม่ได้ตั้งค่า POSTGRES_URL หรือ DATABASE_URL");
-  }
-
-  return sql;
 }
 
 async function createSchema(db: NonNullable<typeof sql>) {

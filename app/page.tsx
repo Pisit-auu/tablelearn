@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { sendFeedbackAction } from "./actions/feedback";
 import { loadSharedPlanAction, saveSharedPlanAction } from "./actions/shared-plans";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -778,6 +779,21 @@ function IconChevron({ className }: IconProps) {
   );
 }
 
+function IconMessage({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </Svg>
+  );
+}
+
+const maxFeedbackLength = 100;
+
+// Counts what the user sees as characters, matching the server's char_length.
+function countChars(text: string) {
+  return Array.from(text).length;
+}
+
 const zones: { id: string; label: string; short: string; Icon: (props: IconProps) => React.JSX.Element }[] = [
   { id: "face", label: "ตารางเรียน", short: "ตาราง", Icon: IconFace },
   { id: "blocks", label: "รายวิชา", short: "วิชา", Icon: IconBlock },
@@ -786,6 +802,7 @@ const zones: { id: string; label: string; short: string; Icon: (props: IconProps
   { id: "voids", label: "เวลาว่าง", short: "ว่าง", Icon: IconVoid },
   { id: "exams", label: "ตารางสอบ", short: "สอบ", Icon: IconExam },
   { id: "room", label: "ห้องร่วมกัน", short: "ห้อง", Icon: IconRail },
+  { id: "feedback", label: "ข้อเสนอแนะ", short: "แนะนำ", Icon: IconMessage },
 ];
 
 export default function Home() {
@@ -815,6 +832,9 @@ export default function Home() {
   const [isManualCourseOpen, setIsManualCourseOpen] = useState(false);
   const [shareSession, setShareSession] = useState<ShareSession | null>(null);
   const [shareStatus, setShareStatus] = useState("");
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [excelStatus, setExcelStatus] = useState("");
   const [plannerSelectedCodes, setPlannerSelectedCodes] = useState<string[]>([]);
@@ -1681,6 +1701,34 @@ export default function Home() {
     ]);
     setActivePlanId(nextPlanId);
     setPlannerStatus(`ใช้ ${plan.name} แล้ว`);
+  }
+
+  async function submitFeedback(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const message = feedbackText.trim();
+
+    if (!message) {
+      setFeedbackStatus({ tone: "error", text: "กรุณาพิมพ์ข้อเสนอแนะก่อนส่ง" });
+      return;
+    }
+
+    setIsSendingFeedback(true);
+    setFeedbackStatus(null);
+
+    try {
+      const result = await sendFeedbackAction(message);
+
+      if (result.ok) {
+        setFeedbackText("");
+        setFeedbackStatus({ tone: "ok", text: "ส่งข้อเสนอแนะแล้ว ขอบคุณที่ช่วยแนะนำ" });
+      } else {
+        setFeedbackStatus({ tone: "error", text: result.error });
+      }
+    } catch {
+      setFeedbackStatus({ tone: "error", text: "ส่งข้อเสนอแนะไม่สำเร็จ กรุณาลองใหม่ภายหลัง" });
+    } finally {
+      setIsSendingFeedback(false);
+    }
   }
 
   async function createSharedRoom() {
@@ -2806,6 +2854,45 @@ export default function Home() {
               </div>
             </div>
           )}
+        </section>
+
+        <section className="zone" id="feedback" aria-labelledby="feedback-title" data-folded={foldedZones.includes("feedback") ? "true" : undefined}>
+          <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("feedback")} aria-label={foldedZones.includes("feedback") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("feedback")}><IconChevron /></button>
+            <h2 id="feedback-title">ข้อเสนอแนะ</h2>
+            <p>เจอปัญหาหรืออยากให้เพิ่มอะไร บอกเราได้สั้น ๆ ไม่ต้องระบุตัวตน</p>
+          </div>
+
+          <form className="feedback-form" onSubmit={submitFeedback}>
+            <label className="field">
+              <span>ข้อความ</span>
+              <textarea
+                value={feedbackText}
+                onChange={(event) => {
+                  setFeedbackText(Array.from(event.target.value).slice(0, maxFeedbackLength).join(""));
+                  setFeedbackStatus(null);
+                }}
+                placeholder="เช่น อยากให้ export เป็น Google Calendar ได้"
+                rows={3}
+                aria-describedby="feedback-count"
+              />
+            </label>
+            <div className="feedback-foot">
+              <span
+                id="feedback-count"
+                className={countChars(feedbackText) >= maxFeedbackLength ? "feedback-count is-full" : "feedback-count"}
+                aria-live="polite"
+              >
+                {countChars(feedbackText)}/{maxFeedbackLength}
+              </span>
+              <button type="submit" className="btn btn-primary" disabled={isSendingFeedback || !feedbackText.trim()}>
+                {isSendingFeedback ? "กำลังส่ง…" : "ส่งข้อเสนอแนะ"}
+              </button>
+            </div>
+            {feedbackStatus && (
+              <p className={feedbackStatus.tone === "error" ? "status-line is-clash" : "status-line"} role="status">{feedbackStatus.text}</p>
+            )}
+          </form>
         </section>
 
         <footer className="site-note">
