@@ -550,6 +550,27 @@ function ensureLocalPlans(planList: TimetablePlan[]) {
   return localPlans.length > 0 ? localPlans : [{ id: "default", name: defaultPlanName, courses: [] }];
 }
 
+// section ที่เรียนหลายคาบถูกแยกเป็นหลายรายการ ("ชื่อ S.2 (1)", "ชื่อ S.2 (2)")
+// คาบของ section เดียวกันจึงจับคู่กันด้วยรหัสวิชา + ชื่อที่ตัดเลขคาบออก
+function courseGroupKey(course: Course) {
+  return `${course.code}|${course.name.replace(/\s\(\d+\)$/, "")}`;
+}
+
+function uniqueCourseGroups(courseList: Course[]) {
+  const groups = new Map<string, Course>();
+  courseList.forEach((course) => {
+    if (!groups.has(courseGroupKey(course))) {
+      groups.set(courseGroupKey(course), course);
+    }
+  });
+  return Array.from(groups.values());
+}
+
+// นับหน่วยกิตครั้งเดียวต่อ section ไม่ใช่ต่อคาบ
+function sumCredits(courseList: Course[]) {
+  return uniqueCourseGroups(courseList).reduce((sum, course) => sum + course.credits, 0);
+}
+
 function planStats(courseList: Course[]) {
   const usedDays = new Set(courseList.map((course) => course.day));
   const freeMinutes = freeSlotsForCourses(courseList)
@@ -557,7 +578,7 @@ function planStats(courseList: Course[]) {
     .reduce((sum, slot) => sum + slot.minutes, 0);
 
   return {
-    credits: courseList.reduce((sum, course) => sum + course.credits, 0),
+    credits: sumCredits(courseList),
     usedDays: usedDays.size,
     freeHours: Math.round((freeMinutes / 60) * 10) / 10,
     conflicts: courseList.flatMap((course, index) => courseList.slice(index + 1).filter((next) => overlaps(course, next))).length,
@@ -1224,9 +1245,10 @@ export default function Home() {
   }, [facultyId]);
 
   const shownCourses = useMemo(() => courses.filter((course) => !course.hidden), [courses]);
-  const hiddenCourseCount = courses.length - shownCourses.length;
-  const totalCredits = useMemo(() => shownCourses.reduce((sum, course) => sum + course.credits, 0), [shownCourses]);
-  const examCount = useMemo(() => shownCourses.filter((course) => course.midterm || course.final).length, [shownCourses]);
+  const hiddenCourseCount = uniqueCourseGroups(courses).length - uniqueCourseGroups(shownCourses).length;
+  const totalCredits = useMemo(() => sumCredits(shownCourses), [shownCourses]);
+  const shownCourseCount = useMemo(() => uniqueCourseGroups(shownCourses).length, [shownCourses]);
+  const examCount = useMemo(() => uniqueCourseGroups(shownCourses).filter((course) => course.midterm || course.final).length, [shownCourses]);
   const conflicts = useMemo(
     () =>
       shownCourses.flatMap((course, index) =>
@@ -1418,8 +1440,27 @@ export default function Home() {
       color: editingId ? courses.find((course) => course.id === editingId)?.color ?? palette[0] : palette[courses.length % palette.length],
     };
 
+    // แก้คาบหนึ่ง: ข้อมูลที่เป็นของทั้ง section (หน่วยกิต อาจารย์ วันสอบ) ตามไปที่คาบคู่ด้วย
+    // ส่วนวัน เวลา และห้องเป็นของคาบนั้นเท่านั้น
+    const editedCourse = editingId ? courses.find((course) => course.id === editingId) : undefined;
+    const editedGroupKey = editedCourse ? courseGroupKey(editedCourse) : null;
+    const sharedFields = {
+      credits: nextCourse.credits,
+      teacher: nextCourse.teacher,
+      midterm: nextCourse.midterm,
+      final: nextCourse.final,
+    };
+
     updateActiveCourses((current) =>
-      editingId ? current.map((course) => (course.id === editingId ? nextCourse : course)) : [...current, nextCourse],
+      editingId
+        ? current.map((course) => {
+          if (course.id === editingId) {
+            return nextCourse;
+          }
+
+          return editedGroupKey !== null && courseGroupKey(course) === editedGroupKey ? { ...course, ...sharedFields } : course;
+        })
+        : [...current, nextCourse],
     );
     setForm(emptyCourse);
     setEditingId(null);
@@ -1454,11 +1495,30 @@ export default function Home() {
       return;
     }
 
-    updateActiveCourses((current) => current.filter((course) => course.id !== id));
-    if (editingId === id) {
+    const target = courses.find((course) => course.id === id);
+    const groupKey = target ? courseGroupKey(target) : null;
+    const removedIds = new Set(courses.filter((course) => course.id === id || (groupKey !== null && courseGroupKey(course) === groupKey)).map((course) => course.id));
+
+    updateActiveCourses((current) => current.filter((course) => !removedIds.has(course.id)));
+    if (editingId && removedIds.has(editingId)) {
       setEditingId(null);
       setForm(emptyCourse);
     }
+  }
+
+  // ซ่อน/ล็อกทั้ง section พร้อมกัน ใช้สถานะของรายการที่กดเป็นตัวตั้ง
+  function updateCourseGroup(id: string, change: (target: Course) => Partial<Course>) {
+    updateActiveCourses((current) => {
+      const target = current.find((course) => course.id === id);
+
+      if (!target) {
+        return current;
+      }
+
+      const groupKey = courseGroupKey(target);
+      const patch = change(target);
+      return current.map((course) => (courseGroupKey(course) === groupKey ? { ...course, ...patch } : course));
+    });
   }
 
   function removeAllCourses() {
@@ -1580,7 +1640,7 @@ export default function Home() {
       return;
     }
 
-    updateActiveCourses((current) => current.map((course) => (course.id === id ? { ...course, hidden: !course.hidden } : course)));
+    updateCourseGroup(id, (target) => ({ hidden: !target.hidden }));
   }
 
   function showAllCourses() {
@@ -1598,7 +1658,7 @@ export default function Home() {
       return;
     }
 
-    updateActiveCourses((current) => current.map((course) => (course.id === id ? { ...course, locked: !course.locked } : course)));
+    updateCourseGroup(id, (target) => ({ locked: !target.locked }));
   }
 
   function groupRemoteClasses(list: RemoteClass[]): RemoteCourseGroup[] {
@@ -2071,7 +2131,7 @@ export default function Home() {
     context.fillText(activePlan?.name || defaultPlanName, padding, padding + 28);
     context.fillStyle = ink.quiet;
     context.font = `400 14px ${thaiFace}`;
-    context.fillText(`${shownCourses.length} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 52);
+    context.fillText(`${shownCourseCount} วิชา · ${totalCredits} หน่วยกิต · สร้างจาก TableLearn`, padding, padding + 52);
     context.strokeStyle = line;
     context.lineWidth = 1;
     context.beginPath();
@@ -2425,7 +2485,7 @@ export default function Home() {
           <dl className="measures">
             <div>
               <dt>รายวิชา</dt>
-              <dd>{shownCourses.length}<i>วิชา</i></dd>
+              <dd>{shownCourseCount}<i>วิชา</i></dd>
             </div>
             <div>
               <dt>หน่วยกิต</dt>
@@ -2962,11 +3022,11 @@ export default function Home() {
                 ))}
               </ul>
             )}
-            {shownCourses.filter((course) => course.midterm || course.final).length === 0 ? (
+            {uniqueCourseGroups(shownCourses).filter((course) => course.midterm || course.final).length === 0 ? (
               <p className="empty">ยังไม่ได้กรอกเวลาสอบ</p>
             ) : (
               <ul className="exam-list">
-                {shownCourses.filter((course) => course.midterm || course.final).map((course) => (
+                {uniqueCourseGroups(shownCourses).filter((course) => course.midterm || course.final).map((course) => (
                   <li className="exam-item" key={course.id} style={{ ["--course" as string]: course.color }}>
                     <span className="exam-code">{course.code}</span>
                     <span className="exam-name">{course.name}</span>
