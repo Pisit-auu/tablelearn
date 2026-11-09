@@ -3592,25 +3592,7 @@ export default function Home() {
               </div>
 
               {excludedCourses.length > 0 && (
-                <div className="excluded-bar">
-                  <span className="excluded-label">ไม่เอาแน่นอน</span>
-                  <ul className="excluded-chips">
-                    {excludedCourses.map((course) => (
-                      <li className="excluded-chip" key={course.code} title={course.name}>
-                        <span className="excluded-chip-code">{course.code}</span>
-                        <span className="excluded-chip-name">{course.name}</span>
-                        <button
-                          type="button"
-                          className="excluded-chip-remove"
-                          onClick={() => unexcludeCourse(course.code)}
-                          aria-label={`ยกเลิกไม่เอาวิชา ${course.code}`}
-                        >
-                          <IconClose />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <ExcludedCourseBar courses={excludedCourses} onRemove={unexcludeCourse} />
               )}
 
               {filterError && <p className="status-line is-clash">{filterError}</p>}
@@ -3697,6 +3679,62 @@ export default function Home() {
   );
 }
 
+
+// แถบวิชาที่ไม่เอา ยุบเหลือแถวเดียวเมื่อยาวเกิน แล้วกดขยายดูทั้งหมดได้
+function ExcludedCourseBar({ courses, onRemove }: { courses: ExcludedCourse[]; onRemove: (code: string) => void }) {
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [hiddenCount, setHiddenCount] = useState(0);
+
+  useEffect(() => {
+    const list = listRef.current;
+
+    if (!list) {
+      return;
+    }
+
+    // นับชิปที่ล้นแถวแรก ใช้ตัดสินว่าต้องมีปุ่มขยายไหม
+    const measure = () => {
+      const chips = Array.from(list.children) as HTMLElement[];
+      const firstTop = chips[0]?.offsetTop ?? 0;
+      setHiddenCount(chips.filter((chip) => chip.offsetTop > firstTop + 4).length);
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [courses]);
+
+  const canToggle = hiddenCount > 0;
+
+  return (
+    <div className="excluded-bar">
+      <span className="excluded-label">ไม่เอาแน่นอน {courses.length} วิชา</span>
+      <ul ref={listRef} className={isExpanded ? "excluded-chips is-expanded" : "excluded-chips"}>
+        {courses.map((course) => (
+          <li className="excluded-chip" key={course.code} title={course.name}>
+            <span className="excluded-chip-code">{course.code}</span>
+            <span className="excluded-chip-name">{course.name}</span>
+            <button
+              type="button"
+              className="excluded-chip-remove"
+              onClick={() => onRemove(course.code)}
+              aria-label={`ยกเลิกไม่เอาวิชา ${course.code}`}
+            >
+              <IconClose />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {(canToggle || isExpanded) && (
+        <button type="button" className="excluded-toggle" onClick={() => setIsExpanded((current) => !current)} aria-expanded={isExpanded}>
+          {isExpanded ? "ย่อ" : `+${hiddenCount} ดูทั้งหมด`}
+        </button>
+      )}
+    </div>
+  );
+}
 
 type CourseBlockActions = {
   onHide: (id: string) => void;
