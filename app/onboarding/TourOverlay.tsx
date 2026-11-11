@@ -2,32 +2,26 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MissionId } from "./progress.ts";
+import { placeCard, type Rect } from "./placement.ts";
 import type { Tour } from "./tour-engine.ts";
-
-type Rect = { top: number; left: number; width: number; height: number };
 
 const pad = 6;
 const cardWidth = 300;
-const gap = 16;
 const mobileQuery = "(max-width: 900px)";
 
 function isVisible(element: Element) {
   return element.getClientRects().length > 0;
 }
 
-// รวมกรอบของทุกเป้าหมายในขั้นนี้ ใช้ตัวแรกที่มองเห็นของแต่ละชื่อ
+// รวมกรอบของทุกเป้าหมายที่มองเห็นในขั้นนี้ (ชื่อเดียวอาจติดหลายชิ้น เช่น ตัวกรอง + ปุ่มค้นหา)
 function measureTargets(names: string[]): Rect | null {
   let top = Infinity;
   let left = Infinity;
   let right = -Infinity;
   let bottom = -Infinity;
 
-  for (const name of names) {
-    const element = Array.from(document.querySelectorAll(`[data-tour="${name}"]`)).find(isVisible);
-    if (!element) {
-      continue;
-    }
-
+  const elements = names.flatMap((name) => Array.from(document.querySelectorAll(`[data-tour="${name}"]`)).filter(isVisible));
+  for (const element of elements) {
     const box = element.getBoundingClientRect();
     top = Math.min(top, box.top);
     left = Math.min(left, box.left);
@@ -44,24 +38,6 @@ function measureTargets(names: string[]): Rect | null {
 
 function sameRect(a: Rect | null, b: Rect | null) {
   return a === b || (!!a && !!b && Math.abs(a.top - b.top) < 0.5 && Math.abs(a.left - b.left) < 0.5 && Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5);
-}
-
-function placeCard(rect: Rect, cardHeight: number) {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const clampTop = (value: number) => Math.min(Math.max(12, value), vh - cardHeight - 12);
-  const clampLeft = (value: number) => Math.min(Math.max(12, value), vw - cardWidth - 12);
-
-  if (rect.left + rect.width + gap + cardWidth <= vw - 12) {
-    return { top: clampTop(rect.top), left: rect.left + rect.width + gap };
-  }
-  if (rect.left - gap - cardWidth >= 12) {
-    return { top: clampTop(rect.top), left: rect.left - gap - cardWidth };
-  }
-  if (rect.top + rect.height + gap + cardHeight <= vh - 12) {
-    return { top: rect.top + rect.height + gap, left: clampLeft(rect.left) };
-  }
-  return { top: clampTop(rect.top - gap - cardHeight), left: clampLeft(rect.left) };
 }
 
 export function TourOverlay({
@@ -150,7 +126,7 @@ export function TourOverlay({
   }, [onSkip]);
 
   const isAction = step.kind === "action";
-  const cardStyle = !isMobile && rect ? placeCard(rect, cardHeight) : undefined;
+  const cardStyle = !isMobile && rect ? placeCard(rect, { width: cardWidth, height: cardHeight }, { width: window.innerWidth, height: window.innerHeight }) : undefined;
   const titleId = `tour-title-${tour.mission}`;
 
   return (
