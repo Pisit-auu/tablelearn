@@ -55,6 +55,8 @@ export function TourOverlay({
 }) {
   const step = tour.steps[stepIndex];
   const [rect, setRect] = useState<Rect | null>(null);
+  // มือชี้ไปที่เป้าหมายตัวสุดท้ายในรายการ (ปุ่มที่ต้องกด) ไม่ใช่มุมของกรอบรวม
+  const [handRect, setHandRect] = useState<Rect | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [cardHeight, setCardHeight] = useState(180);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -65,11 +67,17 @@ export function TourOverlay({
     const names = targetKey ? targetKey.split(",") : [];
     let frame = 0;
     let last: Rect | null = null;
+    let lastHand: Rect | null = null;
     const tick = () => {
       const next = names.length > 0 ? measureTargets(names) : null;
       if (!sameRect(next, last)) {
         last = next;
         setRect(next);
+      }
+      const hand = names.length > 0 ? measureTargets(names.slice(-1)) : null;
+      if (!sameRect(hand, lastHand)) {
+        lastHand = hand;
+        setHandRect(hand);
       }
       frame = requestAnimationFrame(tick);
     };
@@ -136,8 +144,8 @@ export function TourOverlay({
       ) : (
         <div className="tour-dim" aria-hidden="true" />
       )}
-      {rect && isAction && (
-        <span className="tour-hand" style={{ top: rect.top + rect.height - 4, left: rect.left + Math.min(rect.width / 2, 60) }} aria-hidden="true">
+      {handRect && isAction && (
+        <span className="tour-hand" style={{ top: handRect.top + handRect.height - 4, left: handRect.left + Math.min(handRect.width / 2, 60) }} aria-hidden="true">
           👆
         </span>
       )}

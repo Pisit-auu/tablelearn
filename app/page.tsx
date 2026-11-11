@@ -1632,6 +1632,11 @@ export default function Home() {
     [canEditActivePlan, isCourseBrowserOpen, filteredRemoteClasses.length, plannerPool.length, generatedPlans.length, courses.length, visiblePlans.length, shareSession],
   );
   const onboarding = useOnboarding(tourSnapshot, { onUnfoldZone: unfoldZone });
+  // บทพาทำชี้การ์ดแรกที่ยังไม่ได้เก็บเข้าตัวช่วย การ์ดที่เก็บแล้วปุ่มกลายเป็น "เอาออก"
+  const firstUnpickedRemoteIndex = useMemo(
+    () => filteredRemoteClasses.findIndex((remoteClass) => !plannerPool.some((group) => group.code === remoteClass.coursecode)),
+    [filteredRemoteClasses, plannerPool],
+  );
   const { completeMission } = onboarding;
 
   function submitCourse(event: FormEvent<HTMLFormElement>) {
@@ -3696,7 +3701,7 @@ export default function Home() {
                           <button
                             type="button"
                             className={isPicked ? "btn btn-line is-on" : "btn btn-line"}
-                            data-tour={remoteIndex === 0 ? "add-to-planner" : undefined}
+                            data-tour={remoteIndex === firstUnpickedRemoteIndex ? "add-to-planner" : undefined}
                             onClick={() => togglePlannerCode(remoteClass.coursecode)}
                             disabled={!isPicked && plannerPool.length >= maxPlannerPool}
                           >
