@@ -3033,10 +3033,11 @@ body {
   height: 18px;
 }
 
+/* เปิดตรงจุดเดียวกับปุ่ม "ภารกิจ" มุมขวาล่าง ไม่กระโดดไปด้านบน */
 .mission-panel {
   position: fixed;
-  top: 20px;
   right: 20px;
+  bottom: 20px;
   z-index: 50;
   width: 340px;
   max-height: calc(100vh - 40px);

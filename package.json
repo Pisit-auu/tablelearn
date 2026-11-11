@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "test": "node --test \"app/onboarding/*.test.ts\""
+    "test": "node --test \"app/onboarding/*.test.ts\" \"app/planner/*.test.ts\""
   },
   "dependencies": {
     "next": "^16.2.9",
