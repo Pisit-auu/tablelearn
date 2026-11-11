@@ -867,8 +867,7 @@ body {
   display: grid;
   grid-template-columns: 88px repeat(14, minmax(66px, 1fr));
   min-width: 1030px;
-  background: var(--line);
-  gap: 1px;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   overflow: hidden;
@@ -884,6 +883,20 @@ body {
   text-align: center;
   color: var(--ink-quiet);
   background: var(--surface-sunk);
+}
+
+.time-head {
+  border-left: 1px solid var(--line);
+}
+
+/* Borders, not grid gap: a 1px gap rounds away at browser zoom below 100%. */
+.day-label,
+.day-timeline {
+  border-top: 1px solid var(--line);
+}
+
+.day-label {
+  border-right: 1px solid var(--line);
 }
 
 .corner {
