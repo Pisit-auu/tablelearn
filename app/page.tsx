@@ -1025,6 +1025,8 @@ export default function Home() {
   const [plannerEnd, setPlannerEnd] = useState("17:00");
   const [plannerLunchBreak, setPlannerLunchBreak] = useState(true);
   const [generatedPlans, setGeneratedPlans] = useState<GeneratedSchedulePlan[]>([]);
+  // เหตุผลที่กดสร้างแผนแล้วไม่ได้แผน ให้บทพาทำอธิบายผู้ใช้ (null = ครั้งล่าสุดสำเร็จหรือยังไม่เคยกด)
+  const [plannerGenerateError, setPlannerGenerateError] = useState<string | null>(null);
   const [plannerStatus, setPlannerStatus] = useState("");
   const [comparePlanAId, setComparePlanAId] = useState("");
   const [comparePlanBId, setComparePlanBId] = useState("");
@@ -1098,7 +1100,7 @@ export default function Home() {
       })),
   []);
 
-  const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "", updateUrl = false) => {
+  const loadSharedPlan = useCallback(async (planId: string, showStatus = true, editToken = "", updateUrl = false): Promise<boolean> => {
     const requestId = sharedRoomLoadRequestRef.current + 1;
     sharedRoomLoadRequestRef.current = requestId;
 
@@ -1110,12 +1112,12 @@ export default function Home() {
       const result = await loadSharedPlanAction(planId);
 
       if (requestId !== sharedRoomLoadRequestRef.current) {
-        return;
+        return false;
       }
 
       if (!result.ok) {
         setShareStatus(result.error);
-        return;
+        return false;
       }
 
       const data = result.data;
@@ -1127,12 +1129,14 @@ export default function Home() {
       if (showStatus) {
         setShareStatus(editToken ? `เข้าห้อง ${planId} แล้ว` : `เข้าห้อง ${planId} แล้ว โหมดดูอย่างเดียว`);
       }
+      return true;
     } catch (error) {
       if (requestId !== sharedRoomLoadRequestRef.current) {
-        return;
+        return false;
       }
 
       setShareStatus(error instanceof Error ? error.message : "เข้าห้องไม่สำเร็จ");
+      return false;
     }
   }, [setSharedRoom]);
 
@@ -1628,8 +1632,9 @@ export default function Home() {
       courseCount: courses.length,
       planCount: visiblePlans.length,
       inRoom: Boolean(shareSession),
+      plannerNotice: plannerGenerateError,
     }),
-    [canEditActivePlan, isCourseBrowserOpen, filteredRemoteClasses.length, plannerPool.length, generatedPlans.length, courses.length, visiblePlans.length, shareSession],
+    [canEditActivePlan, isCourseBrowserOpen, filteredRemoteClasses.length, plannerPool.length, generatedPlans.length, courses.length, visiblePlans.length, shareSession, plannerGenerateError],
   );
   const onboarding = useOnboarding(tourSnapshot, { onUnfoldZone: unfoldZone });
   // บทพาทำชี้การ์ดแรกที่ยังไม่ได้เก็บเข้าตัวช่วย การ์ดที่เก็บแล้วปุ่มกลายเป็น "เอาออก"
@@ -2042,12 +2047,14 @@ export default function Home() {
     if (selectedGroups.length === 0) {
       setGeneratedPlans([]);
       setPlannerStatus("เลือกรหัสวิชาจากข้อมูลที่โหลดก่อน");
+      setPlannerGenerateError("เลือกรหัสวิชาจากข้อมูลที่โหลดก่อน");
       return;
     }
 
     if (selectedGroups.length > 7) {
       setGeneratedPlans([]);
       setPlannerStatus("เลือกได้สูงสุด 7 วิชาต่อครั้งเพื่อให้คำนวณเร็ว");
+      setPlannerGenerateError("เลือกได้สูงสุด 7 วิชาต่อครั้งเพื่อให้คำนวณเร็ว");
       return;
     }
 
@@ -2059,12 +2066,14 @@ export default function Home() {
     if (coursesHaveConflict(lockedCourses)) {
       setGeneratedPlans([]);
       setPlannerStatus("วิชาที่ล็อกหรือวิชาที่คงไว้มีเวลาชนกัน จึงสร้างแผนไม่ได้");
+      setPlannerGenerateError("วิชาที่ล็อกหรือวิชาที่คงไว้มีเวลาชนกัน จึงสร้างแผนไม่ได้");
       return;
     }
 
     if (unlockedSelectedGroups.length === 0) {
       setGeneratedPlans([]);
       setPlannerStatus("วิชาที่เลือกถูกล็อกไว้ทั้งหมด หรือยังไม่ได้โหลด section ของรหัสที่เลือก");
+      setPlannerGenerateError("วิชาที่เลือกถูกล็อกไว้ทั้งหมด หรือยังไม่ได้โหลด section ของรหัสที่เลือก");
       return;
     }
 
@@ -2107,6 +2116,7 @@ export default function Home() {
     const sortedResults = results.sort((a, b) => b.score - a.score).slice(0, 6);
     setGeneratedPlans(sortedResults);
     setPlannerStatus(sortedResults.length > 0 ? `พบแผนที่ไม่ชน ${sortedResults.length} แบบ` : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");
+    setPlannerGenerateError(sortedResults.length > 0 ? null : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");
   }
 
   function applyGeneratedPlan(plan: GeneratedSchedulePlan) {
@@ -2183,7 +2193,7 @@ export default function Home() {
     }
 
     setRoomCodeInput(roomCode);
-    if ((await loadSharedPlan(roomCode, true, roomCode, true)) != null) {
+    if (await loadSharedPlan(roomCode, true, roomCode, true)) {
       completeMission("room");
     }
   }
@@ -3740,6 +3750,7 @@ export default function Home() {
           onAck={onboarding.ackStep}
           onSkip={onboarding.skipTour}
           onStartTour={onboarding.startTour}
+          hint={onboarding.hint}
         />
       )}
     </div>

@@ -11,6 +11,7 @@ const empty: TourSnapshot = {
   courseCount: 0,
   planCount: 1,
   inRoom: false,
+  plannerNotice: null,
   done: [],
 };
 

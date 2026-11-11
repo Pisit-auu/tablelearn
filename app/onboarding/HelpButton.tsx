@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { helpCopy, type HelpZone } from "./help-copy.ts";
 import type { MissionId } from "./progress.ts";
 
@@ -9,6 +9,21 @@ export function HelpButton({ zone, onStartTour }: { zone: HelpZone; onStartTour:
   const rootRef = useRef<HTMLSpanElement>(null);
   const popId = useId();
   const copy = helpCopy[zone];
+  const popRef = useRef<HTMLSpanElement>(null);
+  const [shift, setShift] = useState(0);
+
+  // จอแคบ ป๊อปอัปอาจล้นขวา เลื่อนกลับเข้ามาให้อยู่ในจอ (ไม่ให้หน้าเลื่อนซ้ายขวา)
+  // วัดจากตำแหน่งปุ่ม + ความกว้างป๊อปอัป (ไม่ขยับตาม translate) คำนวณครั้งเดียวตอนเปิด กันวนวัดซ้ำไม่จบ
+  useLayoutEffect(() => {
+    if (!open || !popRef.current || !rootRef.current) {
+      return;
+    }
+
+    const anchorLeft = rootRef.current.getBoundingClientRect().left;
+    const right = anchorLeft + popRef.current.offsetLeft + popRef.current.offsetWidth;
+    const overflow = Math.ceil(right - (document.documentElement.clientWidth - 12));
+    setShift(overflow > 0 ? overflow : 0);
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -46,7 +61,7 @@ export function HelpButton({ zone, onStartTour }: { zone: HelpZone; onStartTour:
         ?
       </button>
       {open && (
-        <span className="help-pop" id={popId} role="note">
+        <span className="help-pop" id={popId} role="note" ref={popRef} style={shift ? { translate: `${-shift}px 0` } : undefined}>
           <b>{copy.title}</b>
           <span>{copy.body}</span>
           {copy.tour && (

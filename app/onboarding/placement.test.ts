@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { placeCard, type Rect } from "./placement.ts";
+import { dockSide, placeCard, type Rect } from "./placement.ts";
 
 const card = { width: 300, height: 200 };
 
@@ -29,4 +29,11 @@ test("when every side is blocked, covers as little of the target as possible", (
   // ขอบล่างของจอเหลือที่ว่าง 88px ใต้เป้าหมาย การ์ดควรชิดล่างสุด ทับเป้าหมายแค่ส่วนที่เลี่ยงไม่ได้
   assert.equal(spot.top, viewport.height - card.height - 12);
   assert.ok(covered <= 300 * (200 - 88), `covered ${covered}`);
+});
+
+test("docked phone card moves to the top when it would cover the button", () => {
+  // จอ 844 สูง การ์ด 230 ชิดเหนือแถบเมนู (bottom offset 78) → ขอบบนการ์ดอยู่ที่ 536
+  assert.equal(dockSide({ top: 700, left: 20, width: 150, height: 40 }, 230, 844), "top");
+  assert.equal(dockSide({ top: 200, left: 20, width: 150, height: 40 }, 230, 844), "bottom");
+  assert.equal(dockSide(null, 230, 844), "bottom");
 });

@@ -118,6 +118,7 @@ export const tours: Record<MissionId, Tour> = {
         title: "ให้ระบบจัดแผน",
         body: "วิชาที่เก็บมาอยู่ตรงนี้ ติ๊กวิชาที่จะใช้ (ไม่เกิน 7) แล้วกด “สร้างแผนที่เป็นไปได้” ระบบจะหาชุด section ที่ไม่ชนกันให้",
         isDone: (s) => s.generatedPlanCount > 0 && !s.browserOpen,
+        hint: (s) => (s.plannerNotice ? `${s.plannerNotice} ลองติ๊กวิชาให้น้อยลงแล้วกดสร้างแผนอีกครั้ง` : null),
       },
       {
         id: "apply",

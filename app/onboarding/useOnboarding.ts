@@ -65,6 +65,7 @@ export function useOnboarding(snapshot: Omit<TourSnapshot, "done">, opts: { onUn
   const tour = activeTour ? tours[activeTour] : null;
   const stepIndex = tour ? resolveStep(tour, tourSnapshot, acked) : -1;
   const step = tour && stepIndex >= 0 ? tour.steps[stepIndex] : null;
+  const hint = step?.hint?.(tourSnapshot) ?? null;
 
   const completeMission = useCallback(
     (id: MissionId) => {
@@ -112,5 +113,5 @@ export function useOnboarding(snapshot: Omit<TourSnapshot, "done">, opts: { onUn
   const skipTour = useCallback(() => setActiveTour(null), []);
   const ackStep = useCallback((id: string) => setAcked((current) => new Set(current).add(id)), []);
 
-  return { progress, panelOpen, setPanelOpen, activeTour, tour, stepIndex, startTour, skipTour, ackStep, completeMission, notice };
+  return { progress, panelOpen, setPanelOpen, activeTour, tour, stepIndex, hint, startTour, skipTour, ackStep, completeMission, notice };
 }

@@ -46,3 +46,15 @@ export function placeCard(
 
   return best;
 }
+
+// บนมือถือการ์ดชิดเหนือแถบเมนูล่าง ถ้าจะบังปุ่มที่ต้องกดให้ย้ายไปชิดบนแทน
+export const phoneDockOffset = 78;
+
+export function dockSide(target: Rect | null, cardHeight: number, viewportHeight: number): "top" | "bottom" {
+  if (!target) {
+    return "bottom";
+  }
+
+  const cardTop = viewportHeight - phoneDockOffset - cardHeight;
+  return target.top + target.height > cardTop ? "top" : "bottom";
+}

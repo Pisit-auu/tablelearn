@@ -10,6 +10,8 @@ export type TourSnapshot = {
   courseCount: number;
   planCount: number;
   inRoom: boolean;
+  // ข้อความจากตัวช่วยจัดแผนเมื่อสร้างแผนไม่ได้ (null = ไม่มีปัญหา)
+  plannerNotice: string | null;
   done: MissionId[];
 };
 
@@ -21,6 +23,8 @@ export type TourStep = {
   targets: string[];
   // ส่วนของหน้าที่ต้องกางและเลื่อนไปหาก่อนแสดงขั้นนี้
   zone?: string;
+  // ข้อความเสริมตามสถานการณ์ เช่น เหตุผลที่ยังไปต่อไม่ได้
+  hint?: (snapshot: TourSnapshot) => string | null;
 } & ({ kind: "action"; isDone: (snapshot: TourSnapshot) => boolean } | { kind: "info"; nextLabel: string });
 
 export type Tour = { mission: MissionId; requiresEdit: boolean; steps: TourStep[] };

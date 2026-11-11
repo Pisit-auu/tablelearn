@@ -13,6 +13,7 @@ const base: TourSnapshot = {
   courseCount: 0,
   planCount: 1,
   inRoom: false,
+  plannerNotice: null,
   done: [],
 };
 
@@ -49,4 +50,11 @@ test("every tour target is a known data-tour name", () => {
 
 test("help copy covers all 8 sections", () => {
   assert.equal(Object.keys(helpCopy).length, 8);
+});
+
+test("generate step explains why no plan came out and suggests fewer courses", () => {
+  const generate = tours.planner.steps[stepIndex("generate")];
+  const notice = "วิชาที่ล็อกหรือวิชาที่คงไว้มีเวลาชนกัน จึงสร้างแผนไม่ได้";
+  assert.equal(generate.hint?.({ ...base, plannerPoolCount: 3, plannerNotice: notice }), `${notice} ลองติ๊กวิชาให้น้อยลงแล้วกดสร้างแผนอีกครั้ง`);
+  assert.equal(generate.hint?.({ ...base, plannerPoolCount: 3, plannerNotice: null }), null);
 });

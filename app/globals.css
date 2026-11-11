@@ -3387,3 +3387,24 @@ body {
     transition: none;
   }
 }
+
+.tour-hint {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--warning-deep);
+  background: var(--warning-tint);
+  border-radius: var(--r-ctl);
+}
+
+.tour-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+  .tour-card.is-docked.is-top {
+    inset: 12px 12px auto 12px;
+  }
+}

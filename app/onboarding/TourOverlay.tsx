@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MissionId } from "./progress.ts";
-import { placeCard, type Rect } from "./placement.ts";
+import { dockSide, placeCard, type Rect } from "./placement.ts";
 import type { Tour } from "./tour-engine.ts";
 
 const pad = 6;
@@ -46,12 +46,14 @@ export function TourOverlay({
   onAck,
   onSkip,
   onStartTour,
+  hint,
 }: {
   tour: Tour;
   stepIndex: number;
   onAck: (stepId: string) => void;
   onSkip: () => void;
   onStartTour: (id: MissionId) => void;
+  hint: string | null;
 }) {
   const step = tour.steps[stepIndex];
   const [rect, setRect] = useState<Rect | null>(null);
@@ -60,6 +62,7 @@ export function TourOverlay({
   const [isMobile, setIsMobile] = useState(false);
   const [cardHeight, setCardHeight] = useState(180);
   const cardRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
   const targetKey = step.targets.join(",");
 
   // ติดตามตำแหน่งเป้าหมายทุกเฟรม เป้าหมายอาจโผล่ทีหลัง (หน้าต่างเปิด ผลค้นหามา) หรือขยับตอนเลื่อนจอ
@@ -96,7 +99,8 @@ export function TourOverlay({
     let tries = 0;
     let timer = 0;
     const attempt = () => {
-      const element = Array.from(document.querySelectorAll(`[data-tour="${names[0]}"]`)).find(isVisible);
+      // เลื่อนไปหาปุ่มที่ต้องกด (ชื่อสุดท้าย) ไม่ใช่กรอบแรก บนมือถือกรอบแรกอาจยาวจนปุ่มหลุดจอ
+      const element = Array.from(document.querySelectorAll(`[data-tour="${names[names.length - 1]}"]`)).filter(isVisible).at(-1);
       if (element) {
         element.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
         return;
@@ -125,7 +129,8 @@ export function TourOverlay({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      // Esc ปิดชั้นบนสุดก่อน ถ้ามีหน้าต่างค้นหาเปิดอยู่ให้หน้าต่างนั้นปิดไป บทพาทำยังอยู่
+      if (event.key === "Escape" && !document.querySelector(".scrim")) {
         onSkip();
       }
     };
@@ -133,7 +138,19 @@ export function TourOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [onSkip]);
 
+  // ให้ใช้คีย์บอร์ดได้: เริ่มบทแล้วโฟกัสการ์ด ขั้นที่ต้องกด "ถัดไป" โฟกัสปุ่มนั้น (ขั้นที่ให้ทำเองไม่แย่งโฟกัส)
+  useEffect(() => {
+    cardRef.current?.focus({ preventScroll: true });
+  }, [tour.mission]);
+
+  useEffect(() => {
+    if (step.kind === "info") {
+      nextRef.current?.focus({ preventScroll: true });
+    }
+  }, [step.id, step.kind]);
+
   const isAction = step.kind === "action";
+  const side = isMobile ? dockSide(handRect ?? rect, cardHeight, window.innerHeight) : "bottom";
   const cardStyle = !isMobile && rect ? placeCard(rect, { width: cardWidth, height: cardHeight }, { width: window.innerWidth, height: window.innerHeight }) : undefined;
   const titleId = `tour-title-${tour.mission}`;
 
@@ -152,7 +169,8 @@ export function TourOverlay({
 
       <div
         ref={cardRef}
-        className={cardStyle ? "tour-card" : "tour-card is-docked"}
+        className={cardStyle ? "tour-card" : side === "top" ? "tour-card is-docked is-top" : "tour-card is-docked"}
+        tabIndex={-1}
         style={cardStyle}
         role="dialog"
         aria-modal="false"
@@ -161,6 +179,7 @@ export function TourOverlay({
         <p className="tour-step">ขั้นที่ {stepIndex + 1} จาก {tour.steps.length}</p>
         <h2 id={titleId}>{step.title}</h2>
         <p className="tour-body" aria-live="polite">{step.body}</p>
+        {hint && <p className="tour-hint" role="status">{hint}</p>}
 
         {step.kind === "action" ? (
           <p className="tour-wait">
@@ -175,7 +194,7 @@ export function TourOverlay({
           </button>
         )}
         {step.kind === "info" && (
-          <button type="button" className="btn btn-primary tour-next" onClick={() => onAck(step.id)}>
+          <button ref={nextRef} type="button" className="btn btn-primary tour-next" onClick={() => onAck(step.id)}>
             {step.nextLabel}
           </button>
         )}
