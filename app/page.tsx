@@ -7,6 +7,8 @@ import { HelpButton } from "./onboarding/HelpButton";
 import { MissionPanel } from "./onboarding/MissionPanel";
 import { TourOverlay } from "./onboarding/TourOverlay";
 import { useOnboarding } from "./onboarding/useOnboarding";
+import { countPlannerSlots, groupOfCode, moveCodeToGroup, nextGroupName, parseCourseGroups, removeGroup, renameGroup, type CourseGroup } from "./planner/course-groups";
+import { solveSlots, type Slot } from "./planner/solve-slots";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -94,6 +96,8 @@ type GeneratedSchedulePlan = {
   courses: Course[];
   score: number;
   reasons: string[];
+  // ป้ายบอกว่าแต่ละกลุ่ม "เลือก 1 วิชา" ได้วิชาไหน หรือถูกข้าม
+  groupNotes: { group: string; text: string; skipped: boolean }[];
 };
 
 const days: { key: DayKey; label: string; short: string }[] = [
@@ -426,6 +430,7 @@ type SavedPlanner = {
   pool: RemoteCourseGroup[];
   selectedCodes: string[];
   sectionPicks: Record<string, number[]>;
+  groups: CourseGroup[];
   avoidDays: DayKey[];
   start: string;
   end: string;
@@ -460,6 +465,7 @@ function readSavedPlanner(): Partial<SavedPlanner> {
     pool,
     selectedCodes: Array.isArray(saved.selectedCodes) ? saved.selectedCodes.filter((code) => poolCodes.has(code)) : [],
     sectionPicks,
+    groups: parseCourseGroups(saved.groups, poolCodes),
     avoidDays: Array.isArray(saved.avoidDays) ? saved.avoidDays.filter((day) => validDayKeys.has(day)) : undefined,
     start: typeof saved.start === "string" && /^\d{2}:\d{2}$/.test(saved.start) ? saved.start : undefined,
     end: typeof saved.end === "string" && /^\d{2}:\d{2}$/.test(saved.end) ? saved.end : undefined,
@@ -1019,6 +1025,7 @@ export default function Home() {
   const [excludedCourses, setExcludedCourses] = useState<ExcludedCourse[]>([]);
   // section ที่เลือกเฉพาะเจาะจงต่อรหัสวิชา (classid) ถ้าไม่มี key = ใช้ทุก section
   const [plannerSectionPicks, setPlannerSectionPicks] = useState<Record<string, number[]>>({});
+  const [plannerGroups, setPlannerGroups] = useState<CourseGroup[]>([]);
   const [expandedPlannerCode, setExpandedPlannerCode] = useState<string | null>(null);
   const [plannerAvoidDays, setPlannerAvoidDays] = useState<DayKey[]>([]);
   const [plannerStart, setPlannerStart] = useState("08:00");
@@ -1200,6 +1207,7 @@ export default function Home() {
       setPlannerPool(savedPlanner.pool ?? []);
       setPlannerSelectedCodes(savedPlanner.selectedCodes ?? []);
       setPlannerSectionPicks(savedPlanner.sectionPicks ?? {});
+      setPlannerGroups(savedPlanner.groups ?? []);
       if (savedPlanner.avoidDays) setPlannerAvoidDays(savedPlanner.avoidDays);
       if (savedPlanner.start) setPlannerStart(savedPlanner.start);
       if (savedPlanner.end) setPlannerEnd(savedPlanner.end);
@@ -1229,6 +1237,7 @@ export default function Home() {
       pool: plannerPool,
       selectedCodes: plannerSelectedCodes,
       sectionPicks: plannerSectionPicks,
+      groups: plannerGroups,
       avoidDays: plannerAvoidDays,
       start: plannerStart,
       end: plannerEnd,
@@ -1241,7 +1250,7 @@ export default function Home() {
       // พื้นที่ localStorage เต็ม (เช่นเก็บวิชาไว้เยอะมาก) ไม่ควรทำให้หน้าใช้งานไม่ได้
       console.warn("บันทึกตัวช่วยจัดแผนไม่สำเร็จ", error);
     }
-  }, [hasLoadedLocalData, plannerPool, plannerSelectedCodes, plannerSectionPicks, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak]);
+  }, [hasLoadedLocalData, plannerPool, plannerSelectedCodes, plannerSectionPicks, plannerGroups, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak]);
 
   useEffect(() => {
     if (!hasLoadedLocalData) {
@@ -1963,6 +1972,7 @@ export default function Home() {
 
   function removeFromPlanner(code: string) {
     setPlannerPool((current) => current.filter((group) => group.code !== code));
+    setPlannerGroups((current) => moveCodeToGroup(current, code, null));
     setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
     dropSectionPicks(code);
     setPlannerPoolNotice("");
@@ -1973,6 +1983,7 @@ export default function Home() {
     setPlannerPoolNotice("");
     setPlannerSelectedCodes([]);
     setPlannerSectionPicks({});
+    setPlannerGroups([]);
     setExpandedPlannerCode(null);
     setGeneratedPlans([]);
     setPlannerStatus("");
@@ -2007,12 +2018,76 @@ export default function Home() {
     }
 
     setPlannerSectionPicks((current) => ({ ...current, [code]: nextPicks }));
-    setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
+    setPlannerSelectedCodes((current) => selectWithGroup(current, code));
   }
 
   function selectAllPlannerSections(code: string) {
     dropSectionPicks(code);
-    setPlannerSelectedCodes((current) => (current.includes(code) ? current : [...current, code]));
+    setPlannerSelectedCodes((current) => selectWithGroup(current, code));
+  }
+
+  // เลือกวิชาที่อยู่ในกลุ่ม = ติ๊กทั้งกลุ่ม (กลุ่มนับว่าติ๊กเมื่อสมาชิกอยู่ใน plannerSelectedCodes)
+  function selectWithGroup(current: string[], code: string) {
+    const members = groupOfCode(plannerGroups, code)?.codes ?? [code];
+    const missing = [code, ...members].filter((item, index, all) => all.indexOf(item) === index && !current.includes(item));
+    return missing.length === 0 ? current : [...current, ...missing];
+  }
+
+  function createPlannerGroup(withCode?: string) {
+    const group: CourseGroup = { id: crypto.randomUUID(), name: nextGroupName(plannerGroups), codes: [] };
+    setPlannerGroups((current) => [...current, group]);
+    if (withCode) {
+      movePlannerCode(withCode, group.id, [...plannerGroups, group]);
+    }
+  }
+
+  function renamePlannerGroup(id: string, name: string) {
+    setPlannerGroups((current) => renameGroup(current, id, name));
+  }
+
+  function releaseCodes(codes: string[]) {
+    setPlannerSelectedCodes((current) => current.filter((item) => !codes.includes(item)));
+    codes.forEach(dropSectionPicks);
+  }
+
+  // ลบกลุ่ม: วิชากลับเป็นรายการปกติ ไม่ติ๊กและไม่มี section ที่เลือกไว้ (ยังอยู่ในตัวช่วย)
+  function deletePlannerGroup(id: string) {
+    releaseCodes(plannerGroups.find((group) => group.id === id)?.codes ?? []);
+    setPlannerGroups((current) => removeGroup(current, id));
+  }
+
+  function movePlannerCode(code: string, groupId: string | null, groups: CourseGroup[] = plannerGroups) {
+    if (groupId === null) {
+      releaseCodes([code]);
+      setPlannerGroups((current) => moveCodeToGroup(current, code, null));
+      return;
+    }
+
+    const target = groups.find((group) => group.id === groupId);
+    if (!target) {
+      return;
+    }
+
+    const wasSelected = plannerSelectedCodes.includes(code);
+    const groupTicked = target.codes.some((item) => plannerSelectedCodes.includes(item));
+    setPlannerGroups((current) => moveCodeToGroup(current, code, groupId));
+    if (wasSelected || groupTicked) {
+      setPlannerSelectedCodes((current) => [...current, ...[code, ...target.codes].filter((item, index, all) => all.indexOf(item) === index && !current.includes(item))]);
+    }
+  }
+
+  function togglePlannerGroup(id: string) {
+    const group = plannerGroups.find((item) => item.id === id);
+    if (!group || group.codes.length === 0) {
+      return;
+    }
+
+    if (group.codes.some((code) => plannerSelectedCodes.includes(code))) {
+      releaseCodes(group.codes);
+      return;
+    }
+
+    setPlannerSelectedCodes((current) => [...current, ...group.codes.filter((code) => !current.includes(code))]);
   }
 
   // ปุ่มบนการ์ดผลค้นหา: เก็บวิชาเข้าคลังพร้อมติ๊กเลือก หรือเอาออกจากคลัง
@@ -2051,7 +2126,7 @@ export default function Home() {
       return;
     }
 
-    if (selectedGroups.length > 7) {
+    if (countPlannerSlots(plannerSelectedCodes, plannerGroups) > 7) {
       setGeneratedPlans([]);
       setPlannerStatus("เลือกได้สูงสุด 7 วิชาต่อครั้งเพื่อให้คำนวณเร็ว");
       setPlannerGenerateError("เลือกได้สูงสุด 7 วิชาต่อครั้งเพื่อให้คำนวณเร็ว");
@@ -2060,9 +2135,12 @@ export default function Home() {
 
     const lockedCourses = shownCourses.filter((course) => course.locked || !plannerSelectedCodes.includes(course.code));
     const lockedCodes = new Set(shownCourses.filter((course) => course.locked).map((course) => course.code));
-    const unlockedSelectedGroups = selectedGroups.filter((group) => !lockedCodes.has(group.code));
-    const results: GeneratedSchedulePlan[] = [];
-
+    const groupedCodes = new Set(plannerGroups.flatMap((group) => group.codes));
+    const unlockedSingles = selectedGroups.filter((group) => !groupedCodes.has(group.code) && !lockedCodes.has(group.code));
+    // กลุ่มที่ติ๊กและยังไม่มีสมาชิกถูกล็อกในตาราง (ล็อกไว้แล้ว = กลุ่มนี้ได้แล้ว ไม่ต้องเลือกเพิ่ม)
+    const openGroups = plannerGroups.filter(
+      (group) => group.codes.some((code) => plannerSelectedCodes.includes(code)) && !group.codes.some((code) => lockedCodes.has(code)),
+    );
     if (coursesHaveConflict(lockedCourses)) {
       setGeneratedPlans([]);
       setPlannerStatus("วิชาที่ล็อกหรือวิชาที่คงไว้มีเวลาชนกัน จึงสร้างแผนไม่ได้");
@@ -2070,48 +2148,60 @@ export default function Home() {
       return;
     }
 
-    if (unlockedSelectedGroups.length === 0) {
+    if (unlockedSingles.length + openGroups.length === 0) {
       setGeneratedPlans([]);
       setPlannerStatus("วิชาที่เลือกถูกล็อกไว้ทั้งหมด หรือยังไม่ได้โหลด section ของรหัสที่เลือก");
       setPlannerGenerateError("วิชาที่เลือกถูกล็อกไว้ทั้งหมด หรือยังไม่ได้โหลด section ของรหัสที่เลือก");
       return;
     }
 
-    function walk(groupIndex: number, picked: Course[][]) {
-      if (results.length >= 20) {
-        return;
-      }
+    type PlanOption = { remoteClass: RemoteClass; courses: Course[] };
+    const toOptions = (classes: RemoteClass[], slotIndex: number): PlanOption[] =>
+      classes.map((remoteClass, optionIndex) => ({
+        remoteClass,
+        courses: remoteClassToCourses(remoteClass, palette[(lockedCourses.length + slotIndex + optionIndex) % palette.length]),
+      }));
+    const slots: Slot<PlanOption>[] = [
+      ...unlockedSingles.map((group, index) => ({ id: group.code, kind: "single" as const, options: toOptions(plannerClassesFor(group), index) })),
+      ...openGroups.map((group, index) => ({
+        id: group.id,
+        kind: "group" as const,
+        cap: 24,
+        options: toOptions(
+          group.codes.flatMap((code) => {
+            const member = plannerPool.find((item) => item.code === code);
+            return member ? plannerClassesFor(member) : [];
+          }),
+          unlockedSingles.length + index,
+        ),
+      })),
+    ];
+    const results: GeneratedSchedulePlan[] = [];
+    const solutions = solveSlots(
+      slots,
+      (chosen) => !coursesHaveConflict([...lockedCourses, ...chosen.flatMap((option) => option.courses)]),
+      { perSlotCap: 12, maxResults: 20 },
+    );
 
-      if (groupIndex >= unlockedSelectedGroups.length) {
-        const candidateCourses = [...lockedCourses, ...picked.flat()];
-
-        if (coursesHaveConflict(candidateCourses)) {
-          return;
-        }
-
-        const { score, reasons } = scorePlan(candidateCourses, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak);
-        results.push({
-          id: crypto.randomUUID(),
-          name: `แผนอัตโนมัติ ${results.length + 1}`,
-          courses: candidateCourses,
-          score,
-          reasons,
-        });
-        return;
-      }
-
-      plannerClassesFor(unlockedSelectedGroups[groupIndex]).slice(0, 12).forEach((remoteClass, optionIndex) => {
-        const color = palette[(lockedCourses.length + groupIndex + optionIndex) % palette.length];
-        const candidate = remoteClassToCourses(remoteClass, color);
-        const partialCourses = [...lockedCourses, ...picked.flat(), ...candidate];
-
-        if (!coursesHaveConflict(partialCourses)) {
-          walk(groupIndex + 1, [...picked, candidate]);
-        }
+    solutions.forEach((solution) => {
+      const candidateCourses = [...lockedCourses, ...solution.picks.flatMap((pick) => pick?.courses ?? [])];
+      const scored = scorePlan(candidateCourses, plannerAvoidDays, plannerStart, plannerEnd, plannerLunchBreak);
+      const groupNotes = openGroups.map((group) => {
+        const pick = solution.picks[unlockedSingles.length + openGroups.indexOf(group)];
+        return pick
+          ? { group: group.name, text: `${group.name} → ${pick.remoteClass.coursename} S.${pick.remoteClass.sectioncode}`, skipped: false }
+          : { group: group.name, text: `ข้ามกลุ่ม ${group.name}: ไม่มีวิชาที่ลงเวลาได้กับแผนนี้`, skipped: true };
       });
-    }
-
-    walk(0, []);
+      const skippedNotes = groupNotes.filter((note) => note.skipped);
+      results.push({
+        id: crypto.randomUUID(),
+        name: `แผนอัตโนมัติ ${results.length + 1}`,
+        courses: candidateCourses,
+        score: Math.max(0, scored.score - skippedNotes.length * 15),
+        reasons: [...scored.reasons, ...skippedNotes.map((note) => note.text)],
+        groupNotes,
+      });
+    });
 
     const sortedResults = results.sort((a, b) => b.score - a.score).slice(0, 6);
     setGeneratedPlans(sortedResults);
@@ -2996,7 +3086,7 @@ export default function Home() {
                 <p className="empty">ยังไม่มีวิชาในตัวช่วย ดึงรายวิชาจากเว็บแล้วกด “เลือกเข้าตัวช่วยจัดแผน” ทีละวิชา หรือ “เพิ่มทั้งหมดเข้าตัวช่วย”</p>
               ) : (
                 <>
-                <p className="status-line pick-count">เก็บไว้ {plannerPool.length}/{maxPlannerPool} วิชา · ติ๊กใช้สร้างแผน {plannerSelectedCodes.length}/7</p>
+                <p className="status-line pick-count">เก็บไว้ {plannerPool.length}/{maxPlannerPool} วิชา · ติ๊กใช้สร้างแผน {countPlannerSlots(plannerSelectedCodes, plannerGroups)}/7</p>
                 <div className="pick-list">
                   {plannerPool.map((group) => {
                     const isSelected = plannerSelectedCodes.includes(group.code);
