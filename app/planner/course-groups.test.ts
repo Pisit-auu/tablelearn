@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   countPlannerSlots,
+  interleave,
   moveCodeToGroup,
   nextGroupName,
   parseCourseGroups,
@@ -51,4 +52,9 @@ test("parseCourseGroups drops bad data instead of breaking the page", () => {
 test("countPlannerSlots counts a group with any ticked member as one", () => {
   assert.equal(countPlannerSlots(["A", "B", "C"], [g("g1", ["B", "C"])]), 2);
   assert.equal(countPlannerSlots(["A", "B", "C"], []), 3);
+});
+
+test("interleave takes options round-robin so every course in a group gets tried", () => {
+  assert.deepEqual(interleave([["a1", "a2", "a3"], ["b1"], ["c1", "c2"]]), ["a1", "b1", "c1", "a2", "c2", "a3"]);
+  assert.deepEqual(interleave([]), []);
 });

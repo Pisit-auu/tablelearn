@@ -84,3 +84,17 @@ export function countPlannerSlots(selectedCodes: string[], groups: CourseGroup[]
   const tickedGroups = groups.filter((group) => group.codes.some((code) => selectedCodes.includes(code))).length;
   return singles + tickedGroups;
 }
+
+// เรียงตัวเลือกของกลุ่มสลับกันทีละวิชา การค้นหาที่มีเพดานจะได้ลองครบทุกวิชาในกลุ่ม ไม่ติดอยู่ที่วิชาแรก
+export function interleave<T>(lists: T[][]): T[] {
+  const longest = Math.max(0, ...lists.map((list) => list.length));
+  const result: T[] = [];
+  for (let index = 0; index < longest; index += 1) {
+    for (const list of lists) {
+      if (index < list.length) {
+        result.push(list[index]);
+      }
+    }
+  }
+  return result;
+}

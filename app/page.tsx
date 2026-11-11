@@ -7,7 +7,8 @@ import { HelpButton } from "./onboarding/HelpButton";
 import { MissionPanel } from "./onboarding/MissionPanel";
 import { TourOverlay } from "./onboarding/TourOverlay";
 import { useOnboarding } from "./onboarding/useOnboarding";
-import { countPlannerSlots, groupOfCode, moveCodeToGroup, nextGroupName, parseCourseGroups, removeGroup, renameGroup, type CourseGroup } from "./planner/course-groups";
+import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupName, parseCourseGroups, removeGroup, renameGroup, type CourseGroup } from "./planner/course-groups";
+import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
 import { solveSlots, type Slot } from "./planner/solve-slots";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -2168,10 +2169,12 @@ export default function Home() {
         kind: "group" as const,
         cap: 24,
         options: toOptions(
-          group.codes.flatMap((code) => {
-            const member = plannerPool.find((item) => item.code === code);
-            return member ? plannerClassesFor(member) : [];
-          }),
+          interleave(
+            group.codes.map((code) => {
+              const member = plannerPool.find((item) => item.code === code);
+              return member ? plannerClassesFor(member) : [];
+            }),
+          ),
           unlockedSingles.length + index,
         ),
       })),
@@ -2781,6 +2784,122 @@ export default function Home() {
     setPlannerStatus(`นำ ${remoteClass.coursecode} S.${remoteClass.sectioncode} เข้าตารางแล้ว`);
   }
 
+  // แถววิชาในตัวช่วยจัดแผน owner = กลุ่มที่วิชานี้อยู่ (วิชาในกลุ่มไม่มีช่องติ๊กของตัวเอง ติ๊กที่หัวกลุ่ม)
+  function renderPickRow(group: RemoteCourseGroup, owner?: CourseGroup) {
+    const isSelected = plannerSelectedCodes.includes(group.code);
+    const picks = isSelected ? plannerSectionPicks[group.code] : undefined;
+    const isExpanded = expandedPlannerCode === group.code;
+    const panelId = `pick-sections-${group.code}`;
+
+    return (
+      <div className={isExpanded ? "pick-row is-open" : "pick-row"} key={group.code}>
+        {owner ? (
+          <span className="check-text pick-member">
+            <b>{group.code}</b>
+            {group.name} · {picks ? `เลือก ${picks.length}/${group.classes.length} section` : `${group.classes.length} section`}
+          </span>
+        ) : (
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => togglePlannerSelected(group.code)}
+            />
+            <span className="check-box" aria-hidden="true" />
+            <span className="check-text">
+              <b>{group.code}</b>
+              {group.name} · {picks ? `เลือก ${picks.length}/${group.classes.length} section` : `${group.classes.length} section`}
+            </span>
+          </label>
+        )}
+        <div className="pick-row-actions">
+          <button
+            type="button"
+            className={isExpanded ? "btn btn-quiet is-on" : "btn btn-quiet"}
+            aria-expanded={isExpanded}
+            aria-controls={panelId}
+            onClick={() => setExpandedPlannerCode(isExpanded ? null : group.code)}
+          >
+            ดู section
+            <IconChevron className="pick-chevron" />
+          </button>
+          {owner ? (
+            <button type="button" className="btn btn-quiet" onClick={() => movePlannerCode(group.code, null)}>
+              นำออกจากกลุ่ม
+            </button>
+          ) : (
+            <GroupMoveMenu
+              groups={plannerGroups}
+              onMove={(groupId) => movePlannerCode(group.code, groupId)}
+              onCreate={() => createPlannerGroup(group.code)}
+            />
+          )}
+          <button type="button" className="btn btn-quiet" onClick={() => removeFromPlanner(group.code)}>
+            เอาออก
+          </button>
+        </div>
+        {isExpanded && (
+          <div className="pick-sections" id={panelId}>
+            <p className="pick-sections-note">
+              {!isSelected
+                ? "ยังไม่ได้ใช้วิชานี้สร้างแผน เลือก section ที่ต้องการ หรือติ๊กวิชาเพื่อใช้ทุก section"
+                : picks
+                  ? `ตัวช่วยจะลองเฉพาะ ${group.classes.filter((remoteClass) => picks.includes(remoteClass.classid)).map((remoteClass) => `S.${remoteClass.sectioncode}`).join(", ")}`
+                  : "ตัวช่วยจะลองทุก section ของวิชานี้"}
+              {picks && (
+                <button type="button" className="link-btn" onClick={() => selectAllPlannerSections(group.code)}>ใช้ทุก section</button>
+              )}
+            </p>
+            <ul className="pick-section-list">
+              {group.classes.map((remoteClass) => {
+                const meetings = parseClassMeetings(remoteClass.classtime);
+                const isPickedSection = Boolean(picks?.includes(remoteClass.classid));
+                const clashes = remoteClassToCourses(remoteClass, "#000000").some((candidate) =>
+                  shownCourses.some((course) => course.code !== remoteClass.coursecode && overlaps(candidate, course)),
+                );
+
+                return (
+                  <li className={isPickedSection ? "pick-section is-picked" : "pick-section"} key={remoteClass.classid}>
+                    <div className="pick-section-head">
+                      <span className="remote-section">S.{remoteClass.sectioncode}</span>
+                      {clashes && <span className="pick-section-clash">ชนกับตาราง</span>}
+                    </div>
+                    <ul className="pick-section-times">
+                      {meetings.length === 0 ? (
+                        <li>ไม่ระบุเวลา</li>
+                      ) : (
+                        meetings.map((meeting, index) => (
+                          <li key={index}>
+                            <b>{days.find((day) => day.key === meeting.day)?.label ?? ""}</b> {meeting.start}-{meeting.end}
+                            {meeting.room && <span> · {meeting.room}</span>}
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                    {teacherName(remoteClass) && <p className="pick-section-teacher">{teacherName(remoteClass)}</p>}
+                    <div className="pick-section-actions">
+                      <button type="button" className="btn btn-primary" onClick={() => importPlannerSection(remoteClass)} disabled={!canEditActivePlan}>
+                        นำเข้าตาราง
+                      </button>
+                      <button
+                        type="button"
+                        className={isPickedSection ? "btn btn-line is-on" : "btn btn-line"}
+                        aria-pressed={isPickedSection}
+                        onClick={() => togglePlannerSection(group.code, remoteClass.classid)}
+                      >
+                        {isPickedSection ? "ใช้วางแผนอยู่" : "ใช้ section นี้วางแผน"}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <aside className="rail">
@@ -3088,103 +3207,44 @@ export default function Home() {
                 <>
                 <p className="status-line pick-count">เก็บไว้ {plannerPool.length}/{maxPlannerPool} วิชา · ติ๊กใช้สร้างแผน {countPlannerSlots(plannerSelectedCodes, plannerGroups)}/7</p>
                 <div className="pick-list">
-                  {plannerPool.map((group) => {
-                    const isSelected = plannerSelectedCodes.includes(group.code);
-                    const picks = isSelected ? plannerSectionPicks[group.code] : undefined;
-                    const isExpanded = expandedPlannerCode === group.code;
-                    const panelId = `pick-sections-${group.code}`;
+                  {plannerPool.filter((group) => !groupOfCode(plannerGroups, group.code)).map((group) => renderPickRow(group))}
+                  {plannerGroups.map((courseGroup) => {
+                    const members = courseGroup.codes
+                      .map((code) => plannerPool.find((group) => group.code === code))
+                      .filter((group): group is RemoteCourseGroup => Boolean(group));
+                    const isTicked = courseGroup.codes.some((code) => plannerSelectedCodes.includes(code));
 
                     return (
-                    <div className={isExpanded ? "pick-row is-open" : "pick-row"} key={group.code}>
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => togglePlannerSelected(group.code)}
-                        />
-                        <span className="check-box" aria-hidden="true" />
-                        <span className="check-text">
-                          <b>{group.code}</b>
-                          {group.name} · {picks ? `เลือก ${picks.length}/${group.classes.length} section` : `${group.classes.length} section`}
-                        </span>
-                      </label>
-                      <div className="pick-row-actions">
-                        <button
-                          type="button"
-                          className={isExpanded ? "btn btn-quiet is-on" : "btn btn-quiet"}
-                          aria-expanded={isExpanded}
-                          aria-controls={panelId}
-                          onClick={() => setExpandedPlannerCode(isExpanded ? null : group.code)}
-                        >
-                          ดู section
-                          <IconChevron className="pick-chevron" />
-                        </button>
-                        <button type="button" className="btn btn-quiet" onClick={() => removeFromPlanner(group.code)}>
-                          เอาออก
-                        </button>
-                      </div>
-                      {isExpanded && (
-                        <div className="pick-sections" id={panelId}>
-                          <p className="pick-sections-note">
-                            {!isSelected
-                              ? "ยังไม่ได้ใช้วิชานี้สร้างแผน เลือก section ที่ต้องการ หรือติ๊กวิชาเพื่อใช้ทุก section"
-                              : picks
-                                ? `ตัวช่วยจะลองเฉพาะ ${group.classes.filter((remoteClass) => picks.includes(remoteClass.classid)).map((remoteClass) => `S.${remoteClass.sectioncode}`).join(", ")}`
-                                : "ตัวช่วยจะลองทุก section ของวิชานี้"}
-                            {picks && (
-                              <button type="button" className="link-btn" onClick={() => selectAllPlannerSections(group.code)}>ใช้ทุก section</button>
-                            )}
-                          </p>
-                          <ul className="pick-section-list">
-                            {group.classes.map((remoteClass) => {
-                              const meetings = parseClassMeetings(remoteClass.classtime);
-                              const isPickedSection = Boolean(picks?.includes(remoteClass.classid));
-                              const clashes = remoteClassToCourses(remoteClass, "#000000").some((candidate) =>
-                                shownCourses.some((course) => course.code !== remoteClass.coursecode && overlaps(candidate, course)),
-                              );
-
-                              return (
-                                <li className={isPickedSection ? "pick-section is-picked" : "pick-section"} key={remoteClass.classid}>
-                                  <div className="pick-section-head">
-                                    <span className="remote-section">S.{remoteClass.sectioncode}</span>
-                                    {clashes && <span className="pick-section-clash">ชนกับตาราง</span>}
-                                  </div>
-                                  <ul className="pick-section-times">
-                                    {meetings.length === 0 ? (
-                                      <li>ไม่ระบุเวลา</li>
-                                    ) : (
-                                      meetings.map((meeting, index) => (
-                                        <li key={index}>
-                                          <b>{days.find((day) => day.key === meeting.day)?.label ?? ""}</b> {meeting.start}-{meeting.end}
-                                          {meeting.room && <span> · {meeting.room}</span>}
-                                        </li>
-                                      ))
-                                    )}
-                                  </ul>
-                                  {teacherName(remoteClass) && <p className="pick-section-teacher">{teacherName(remoteClass)}</p>}
-                                  <div className="pick-section-actions">
-                                    <button type="button" className="btn btn-primary" onClick={() => importPlannerSection(remoteClass)} disabled={!canEditActivePlan}>
-                                      นำเข้าตาราง
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={isPickedSection ? "btn btn-line is-on" : "btn btn-line"}
-                                      aria-pressed={isPickedSection}
-                                      onClick={() => togglePlannerSection(group.code, remoteClass.classid)}
-                                    >
-                                      {isPickedSection ? "ใช้วางแผนอยู่" : "ใช้ section นี้วางแผน"}
-                                    </button>
-                                  </div>
-                                </li>
-                              );
-                            })}
-                          </ul>
+                      <section className="pick-group" key={courseGroup.id} aria-label={`กลุ่ม ${courseGroup.name}`}>
+                        <div className="pick-group-head">
+                          <label className="check">
+                            <input
+                              type="checkbox"
+                              checked={isTicked}
+                              disabled={members.length === 0}
+                              onChange={() => togglePlannerGroup(courseGroup.id)}
+                              aria-label={`ใช้กลุ่ม ${courseGroup.name} สร้างแผน`}
+                            />
+                            <span className="check-box" aria-hidden="true" />
+                          </label>
+                          <GroupNameInput key={courseGroup.name} name={courseGroup.name} onCommit={(name) => renamePlannerGroup(courseGroup.id, name)} />
+                          <span className="pick-group-badge">เลือก 1 วิชา</span>
+                          <button type="button" className="link-btn pick-group-delete" onClick={() => deletePlannerGroup(courseGroup.id)}>
+                            ลบกลุ่ม
+                          </button>
                         </div>
-                      )}
-                    </div>
+                        {members.length === 0 ? (
+                          <p className="pick-group-empty">ย้ายวิชาเข้ากลุ่มนี้ด้วยปุ่ม “ย้ายเข้ากลุ่ม”</p>
+                        ) : (
+                          members.map((member) => renderPickRow(member, courseGroup))
+                        )}
+                      </section>
                     );
                   })}
                 </div>
+                <button type="button" className="btn btn-line pick-group-new" onClick={() => createPlannerGroup()}>
+                  + สร้างกลุ่ม
+                </button>
                 </>
               )}
             </div>
@@ -3241,7 +3301,14 @@ export default function Home() {
                       <div className="plan-body">
                         <strong>{plan.name}</strong>
                         <span><b>{plan.courses.length}</b> รายการ</span>
-                        <small>{plan.reasons.join(" · ")}</small>
+                        {plan.groupNotes.length > 0 && (
+                          <span className="plan-group-notes">
+                            {plan.groupNotes.map((note) => (
+                              <span key={note.group} className={note.skipped ? "plan-group-note is-skipped" : "plan-group-note"}>{note.text}</span>
+                            ))}
+                          </span>
+                        )}
+                        <small>{plan.reasons.filter((reason) => !reason.startsWith("ข้ามกลุ่ม ")).join(" · ")}</small>
                       </div>
                       <button type="button" className="btn btn-line" data-tour={planIndex === 0 ? "apply-plan" : undefined} onClick={() => applyGeneratedPlan(plan)}>ใช้แผนนี้</button>
                     </article>

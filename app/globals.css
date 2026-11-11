@@ -3409,3 +3409,160 @@ body {
     inset: 12px 12px auto 12px;
   }
 }
+
+/* ---------- planner course groups ("เลือก 1 จากกลุ่ม") ---------- */
+
+.pick-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 8px 0 4px;
+  padding: 10px;
+  background: var(--primary-tint);
+  border: 1.5px dashed var(--primary);
+  border-radius: var(--r-card);
+}
+
+.pick-group .pick-row {
+  background: var(--surface);
+}
+
+.pick-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.pick-group-head .check {
+  flex: none;
+}
+
+.pick-group-name {
+  flex: 1 1 120px;
+  min-width: 0;
+  padding: 3px 6px;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--heading);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom-color: var(--muted);
+  border-radius: var(--r-pill);
+}
+
+.pick-group-name:hover {
+  border-color: var(--field-line);
+}
+
+.pick-group-name:focus {
+  outline: none;
+  background: var(--surface);
+  border-color: var(--primary);
+}
+
+.pick-group-badge {
+  flex: none;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--surface);
+  background: var(--primary);
+  border-radius: var(--r-pill);
+}
+
+.pick-group-delete {
+  flex: none;
+  color: var(--danger-deep);
+}
+
+.pick-group-empty {
+  margin: 0;
+  padding: 8px 4px;
+  font-size: 12.5px;
+  color: var(--ink-quiet);
+}
+
+.pick-member {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pick-group-new {
+  margin-top: 10px;
+  border-style: dashed;
+}
+
+.group-move {
+  display: inline-flex;
+}
+
+.group-move-menu {
+  position: fixed;
+  z-index: 55;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: var(--shadow-pop);
+}
+
+.group-move-menu button {
+  padding: 8px 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  text-align: left;
+  color: var(--heading);
+  background: none;
+  border: 0;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.group-move-menu button:hover,
+.group-move-menu button:focus-visible {
+  color: var(--primary);
+  background: var(--primary-tint);
+  outline: none;
+}
+
+.group-move-menu hr {
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.plan-group-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 2px 0;
+}
+
+.plan-group-note {
+  padding: 2px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--primary-deep);
+  background: var(--primary-tint);
+  border-radius: var(--r-pill);
+}
+
+.plan-group-note.is-skipped {
+  color: var(--warning-deep);
+  background: var(--warning-tint);
+}
+
+/* แถววิชามีปุ่มเพิ่ม (ย้ายเข้ากลุ่ม / นำออกจากกลุ่ม) ให้ปุ่มขึ้นบรรทัดใหม่แทนการล้นออกข้าง */
+.pick-row-actions {
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
