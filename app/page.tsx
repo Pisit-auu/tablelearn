@@ -9,6 +9,7 @@ import { TourOverlay } from "./onboarding/TourOverlay";
 import { useOnboarding } from "./onboarding/useOnboarding";
 import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupName, parseCourseGroups, removeGroup, renameGroup, replaceableCodes, type CourseGroup } from "./planner/course-groups";
 import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
+import { mergePlannerFile, parsePlannerFile, plannerFileName, serializePlannerFile, type PlannerSnapshot } from "./planner/planner-file";
 import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -1044,6 +1045,8 @@ export default function Home() {
   // timetable instead of a nine-thousand-pixel scroll. Desktop ignores this entirely.
   const [foldedZones, setFoldedZones] = useState<string[]>(() => zones.filter((zone) => zone.id !== "face").map((zone) => zone.id));
   const excelInputRef = useRef<HTMLInputElement | null>(null);
+  const plannerFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [plannerFileStatus, setPlannerFileStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const hasLocalPlanMutationRef = useRef(false);
   const plansRef = useRef<TimetablePlan[]>([]);
   const sharedRoomLoadRequestRef = useRef(0);
@@ -2035,6 +2038,60 @@ export default function Home() {
     const members = groupOfCode(plannerGroups, code)?.codes ?? [code];
     const missing = [code, ...members].filter((item, index, all) => all.indexOf(item) === index && !current.includes(item));
     return missing.length === 0 ? current : [...current, ...missing];
+  }
+
+  // บันทึกวิชาในตัวช่วยจัดแผนเป็นไฟล์ .json (ย้ายเครื่อง / ส่งให้เพื่อน / สำรองไว้)
+  function exportPlannerFile() {
+    const snapshot: PlannerSnapshot = {
+      pool: plannerPool as unknown as PlannerSnapshot["pool"],
+      selectedCodes: plannerSelectedCodes,
+      sectionPicks: plannerSectionPicks,
+      groups: plannerGroups,
+    };
+    const url = URL.createObjectURL(new Blob([serializePlannerFile(snapshot)], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = plannerFileName();
+    link.click();
+    URL.revokeObjectURL(url);
+    setPlannerFileStatus({ tone: "ok", text: `บันทึก ${plannerPool.length} วิชาเป็นไฟล์แล้ว` });
+  }
+
+  // นำเข้าไฟล์: เพิ่มรวมกับของเดิม ไม่ทับวิชาที่มีอยู่ และไม่แตะเงื่อนไขเวลา
+  async function importPlannerFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setPlannerFileStatus({ tone: "error", text: "ไฟล์ใหญ่เกิน 2MB" });
+      return;
+    }
+
+    const parsed = parsePlannerFile(await file.text());
+    if (!parsed.ok) {
+      setPlannerFileStatus({ tone: "error", text: parsed.error });
+      return;
+    }
+
+    const current: PlannerSnapshot = {
+      pool: plannerPool as unknown as PlannerSnapshot["pool"],
+      selectedCodes: plannerSelectedCodes,
+      sectionPicks: plannerSectionPicks,
+      groups: plannerGroups,
+    };
+    const { next, added, duplicates, skipped } = mergePlannerFile(current, parsed.data, { maxPool: maxPlannerPool, newId: () => crypto.randomUUID() });
+    setPlannerPool(next.pool as unknown as RemoteCourseGroup[]);
+    setPlannerSelectedCodes(next.selectedCodes);
+    setPlannerSectionPicks(next.sectionPicks);
+    setPlannerGroups(next.groups);
+
+    const parts = [`เพิ่ม ${added} วิชา`];
+    if (duplicates > 0) parts.push(`มีอยู่แล้ว ${duplicates} วิชา (คงของเดิมไว้)`);
+    if (skipped > 0) parts.push(`ไม่ได้เพิ่ม ${skipped} วิชา เพราะตัวช่วยเก็บได้สูงสุด ${maxPlannerPool} วิชา`);
+    setPlannerFileStatus({ tone: added > 0 ? "ok" : "error", text: parts.join(" · ") });
   }
 
   function createPlannerGroup(withCode?: string) {
@@ -3207,6 +3264,18 @@ export default function Home() {
                   </button>
                 )}
               </div>
+              <div className="planner-file">
+                <input ref={plannerFileInputRef} className="file-input" type="file" accept=".json,application/json" onChange={importPlannerFile} aria-label="นำเข้าไฟล์ตัวช่วยจัดแผน" />
+                <button type="button" className="btn btn-line" onClick={exportPlannerFile} disabled={plannerPool.length === 0}>
+                  บันทึกเป็นไฟล์
+                </button>
+                <button type="button" className="btn btn-line" onClick={() => plannerFileInputRef.current?.click()}>
+                  นำเข้าไฟล์
+                </button>
+              </div>
+              {plannerFileStatus && (
+                <p className={plannerFileStatus.tone === "error" ? "status-line is-clash" : "status-line"} role="status">{plannerFileStatus.text}</p>
+              )}
               {plannerPool.length === 0 ? (
                 <p className="empty">ยังไม่มีวิชาในตัวช่วย ดึงรายวิชาจากเว็บแล้วกด “เลือกเข้าตัวช่วยจัดแผน” ทีละวิชา หรือ “เพิ่มทั้งหมดเข้าตัวช่วย”</p>
               ) : (

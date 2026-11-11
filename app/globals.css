@@ -3571,3 +3571,15 @@ body {
   max-height: calc(100vh - 24px);
   overflow-y: auto;
 }
+
+/* บันทึก/นำเข้าไฟล์ตัวช่วยจัดแผน */
+.planner-file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.planner-file + .status-line {
+  margin: 0 0 12px;
+}
