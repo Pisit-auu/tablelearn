@@ -3,6 +3,10 @@
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sendFeedbackAction } from "./actions/feedback";
 import { loadSharedPlanAction, saveSharedPlanAction } from "./actions/shared-plans";
+import { HelpButton } from "./onboarding/HelpButton";
+import { MissionPanel } from "./onboarding/MissionPanel";
+import { TourOverlay } from "./onboarding/TourOverlay";
+import { useOnboarding } from "./onboarding/useOnboarding";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -1609,9 +1613,26 @@ export default function Home() {
     setFoldedZones((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
   }
 
-  function unfoldZone(id: string) {
-    setFoldedZones((current) => current.filter((item) => item !== id));
-  }
+  // คืน array เดิมถ้าไม่ได้ย่อไว้ จะได้ไม่ render ซ้ำ (บทพาทำเรียกทุกครั้งที่เปลี่ยนขั้น)
+  const unfoldZone = useCallback((id: string) => {
+    setFoldedZones((current) => (current.includes(id) ? current.filter((item) => item !== id) : current));
+  }, []);
+
+  const tourSnapshot = useMemo(
+    () => ({
+      canEdit: canEditActivePlan,
+      browserOpen: isCourseBrowserOpen,
+      searchResultCount: filteredRemoteClasses.length,
+      plannerPoolCount: plannerPool.length,
+      generatedPlanCount: generatedPlans.length,
+      courseCount: courses.length,
+      planCount: visiblePlans.length,
+      inRoom: Boolean(shareSession),
+    }),
+    [canEditActivePlan, isCourseBrowserOpen, filteredRemoteClasses.length, plannerPool.length, generatedPlans.length, courses.length, visiblePlans.length, shareSession],
+  );
+  const onboarding = useOnboarding(tourSnapshot, { onUnfoldZone: unfoldZone });
+  const { completeMission } = onboarding;
 
   function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1849,7 +1870,11 @@ export default function Home() {
       return;
     }
 
-    updateCourseGroup(id, (target) => ({ locked: !target.locked }));
+    const target = courses.find((course) => course.id === id);
+    updateCourseGroup(id, (current) => ({ locked: !current.locked }));
+    if (target && !target.locked) {
+      completeMission("lock");
+    }
   }
 
   function groupRemoteClasses(list: RemoteClass[]): RemoteCourseGroup[] {
@@ -2094,6 +2119,7 @@ export default function Home() {
     ]);
     setActivePlanId(nextPlanId);
     setPlannerStatus(`ใช้ ${plan.name} แล้ว`);
+    completeMission("planner");
   }
 
   async function submitFeedback(event: FormEvent<HTMLFormElement>) {
@@ -2139,6 +2165,7 @@ export default function Home() {
     setRoomCodeInput(planId);
     window.history.replaceState(null, "", `?room=${planId}`);
     setShareStatus(`สร้างห้อง ${planId} แล้ว`);
+    completeMission("room");
   }
 
   async function enterSharedRoom(event?: FormEvent<HTMLFormElement>) {
@@ -2151,7 +2178,9 @@ export default function Home() {
     }
 
     setRoomCodeInput(roomCode);
-    await loadSharedPlan(roomCode, true, roomCode, true);
+    if ((await loadSharedPlan(roomCode, true, roomCode, true)) != null) {
+      completeMission("room");
+    }
   }
 
   async function copyRoomCode() {
@@ -2658,12 +2687,12 @@ export default function Home() {
           </span>
         </div>
 
-        <button type="button" className="btn btn-primary rail-cta" onClick={() => setIsCourseBrowserOpen(true)}>
+        <button type="button" className="btn btn-primary rail-cta" data-tour="fetch-courses" onClick={() => setIsCourseBrowserOpen(true)}>
           ดึงรายวิชาจากเว็บ
           <IconArrow />
         </button>
 
-        <nav className="rail-nav" aria-label="ส่วนของหน้า">
+        <nav className="rail-nav" data-tour="zone-nav" aria-label="ส่วนของหน้า">
           {zones.map((zone) => (
             <a
               key={zone.id}
@@ -2716,7 +2745,7 @@ export default function Home() {
         <section className="zone zone-primary" id="face" aria-labelledby="face-title" data-folded={foldedZones.includes("face") ? "true" : undefined}>
           <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("face")} aria-label={foldedZones.includes("face") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("face")}><IconChevron /></button>
-            <h1 id="face-title">ตารางเรียนสัปดาห์นี้</h1>
+            <div className="zone-title"><h1 id="face-title">ตารางเรียนสัปดาห์นี้</h1><HelpButton zone="face" onStartTour={onboarding.startTour} /></div>
             <p>ดูทุกคาบเรียนในสัปดาห์ พร้อมเวลาที่ชนกันและชั่วโมงว่างที่เหลือ</p>
           </div>
 
@@ -2764,7 +2793,7 @@ export default function Home() {
               <input value={activePlan?.name ?? ""} onChange={(event) => renamePlan(event.target.value)} disabled={!canEditActivePlan} />
             </label>
             <div className="strip-actions">
-              <button type="button" className="btn btn-line" onClick={addPlan}>
+              <button type="button" className="btn btn-line" data-tour="add-plan" onClick={addPlan}>
                 <IconPlus />
                 เพิ่มตาราง
               </button>
@@ -2818,7 +2847,7 @@ export default function Home() {
           )}
 
           {timetableView === "grid" ? (
-            <div className="grid-scroll">
+            <div className="grid-scroll" data-tour="timetable">
               <div className="timetable">
                 <div className="corner">วัน / เวลา</div>
                 {hours.map((hour) => (
@@ -2836,7 +2865,7 @@ export default function Home() {
               </div>
             </div>
           ) : (
-            <div className="day-list">
+            <div className="day-list" data-tour="timetable">
               {dailyCourses.map((day) => (
                 <DayList
                   key={day.key}
@@ -2852,7 +2881,7 @@ export default function Home() {
         <section className="zone" id="blocks" aria-labelledby="blocks-title" data-folded={foldedZones.includes("blocks") ? "true" : undefined}>
           <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("blocks")} aria-label={foldedZones.includes("blocks") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("blocks")}><IconChevron /></button>
-            <h2 id="blocks-title">รายวิชาที่บันทึก</h2>
+            <div className="zone-title"><h2 id="blocks-title">รายวิชาที่บันทึก</h2><HelpButton zone="blocks" onStartTour={onboarding.startTour} /></div>
             <p>รายวิชาทั้งหมดในตารางนี้ ล็อกไว้เพื่อกันไม่ให้ตัวช่วยจัดแผนสลับ section</p>
             <div className="zone-actions">
               <button
@@ -2875,10 +2904,10 @@ export default function Home() {
           </div>
 
           {courses.length === 0 ? (
-            <p className="empty">ยังไม่มีรายวิชา ดึงรายวิชาจากเว็บหรือเพิ่มด้วยตนเองเพื่อเริ่มจัดตาราง</p>
+            <p className="empty" data-tour="blocks-empty">ยังไม่มีรายวิชา ดึงรายวิชาจากเว็บหรือเพิ่มด้วยตนเองเพื่อเริ่มจัดตาราง</p>
           ) : (
             <div className="block-list">
-              {courses.map((course) => (
+              {courses.map((course, courseIndex) => (
                 <article
                   className={["course-card", conflictIds.has(course.id) ? "is-clash" : "", course.hidden ? "is-hidden" : ""].filter(Boolean).join(" ")}
                   key={course.id}
@@ -2910,7 +2939,7 @@ export default function Home() {
                     </div>
                   </dl>
                   <footer>
-                    <button type="button" onClick={() => toggleCourseLocked(course.id)} disabled={!canEditActivePlan}>
+                    <button type="button" data-tour={courseIndex === 0 ? "lock-first" : undefined} onClick={() => toggleCourseLocked(course.id)} disabled={!canEditActivePlan}>
                       {course.locked ? "ปลดล็อก" : "ล็อก"}
                     </button>
                     <button type="button" onClick={() => toggleCourseHidden(course.id)} disabled={!canEditActivePlan}>
@@ -2926,12 +2955,12 @@ export default function Home() {
         </section>
 
         <section className="zone" id="planner" aria-labelledby="planner-title" data-folded={foldedZones.includes("planner") ? "true" : undefined}>
-          <div className="zone-head">
+          <div className="zone-head" data-tour="planner-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("planner")} aria-label={foldedZones.includes("planner") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("planner")}><IconChevron /></button>
-            <h2 id="planner-title">ตัวช่วยจัดแผน</h2>
+            <div className="zone-title"><h2 id="planner-title">ตัวช่วยจัดแผน</h2><HelpButton zone="planner" onStartTour={onboarding.startTour} /></div>
             <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
             <div className="zone-actions">
-              <button type="button" className="btn btn-primary" onClick={generateSchedulePlans} disabled={plannerSelectedCodes.length === 0}>
+              <button type="button" className="btn btn-primary" data-tour="planner-generate" onClick={generateSchedulePlans} disabled={plannerSelectedCodes.length === 0}>
                 สร้างแผนที่เป็นไปได้
                 <IconArrow />
               </button>
@@ -2939,7 +2968,7 @@ export default function Home() {
           </div>
 
           <div className="bench-grid">
-            <div className="bench">
+            <div className="bench" data-tour="planner-pool">
               <div className="bench-head">
                 <h3>วิชาในตัวช่วยจัดแผน</h3>
                 {plannerPool.length > 0 && (
@@ -3098,7 +3127,7 @@ export default function Home() {
                 <p className="empty">ยังไม่มีแผนที่สร้าง</p>
               ) : (
                 <div className="plan-results">
-                  {generatedPlans.map((plan) => (
+                  {generatedPlans.map((plan, planIndex) => (
                     <article className="plan-result" key={plan.id}>
                       <div className="plan-score">
                         <b>{plan.score}</b>
@@ -3109,7 +3138,7 @@ export default function Home() {
                         <span><b>{plan.courses.length}</b> รายการ</span>
                         <small>{plan.reasons.join(" · ")}</small>
                       </div>
-                      <button type="button" className="btn btn-line" onClick={() => applyGeneratedPlan(plan)}>ใช้แผนนี้</button>
+                      <button type="button" className="btn btn-line" data-tour={planIndex === 0 ? "apply-plan" : undefined} onClick={() => applyGeneratedPlan(plan)}>ใช้แผนนี้</button>
                     </article>
                   ))}
                 </div>
@@ -3121,14 +3150,14 @@ export default function Home() {
         <section className="zone" id="compare" aria-labelledby="compare-title" data-folded={foldedZones.includes("compare") ? "true" : undefined}>
           <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("compare")} aria-label={foldedZones.includes("compare") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("compare")}><IconChevron /></button>
-            <h2 id="compare-title">เปรียบเทียบ 2 แผน</h2>
+            <div className="zone-title"><h2 id="compare-title">เปรียบเทียบ 2 แผน</h2><HelpButton zone="compare" onStartTour={onboarding.startTour} /></div>
             <p>ดูคะแนนพื้นฐาน วันเรียน หน่วยกิต เวลาว่าง และรายวิชาที่ต่างกัน</p>
           </div>
 
-          <div className="compare-bar">
+          <div className="compare-bar" data-tour="compare-pickers">
             <label className="field field-select">
               <span>แผน A</span>
-              <select value={comparePlanA?.id ?? ""} onChange={(event) => setComparePlanAId(event.target.value)}>
+              <select value={comparePlanA?.id ?? ""} onChange={(event) => { setComparePlanAId(event.target.value); if (event.target.value !== comparePlanB?.id) completeMission("compare"); }}>
                 {visiblePlans.map((plan) => (
                   <option key={plan.id} value={plan.id}>{plan.name}</option>
                 ))}
@@ -3136,7 +3165,7 @@ export default function Home() {
             </label>
             <label className="field field-select">
               <span>แผน B</span>
-              <select value={comparePlanB?.id ?? ""} onChange={(event) => setComparePlanBId(event.target.value)}>
+              <select value={comparePlanB?.id ?? ""} onChange={(event) => { setComparePlanBId(event.target.value); if (event.target.value !== comparePlanA?.id) completeMission("compare"); }}>
                 {visiblePlans.map((plan) => (
                   <option key={plan.id} value={plan.id}>{plan.name}</option>
                 ))}
@@ -3193,7 +3222,7 @@ export default function Home() {
           <section className="zone" id="voids" aria-labelledby="voids-title" data-folded={foldedZones.includes("voids") ? "true" : undefined}>
             <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("voids")} aria-label={foldedZones.includes("voids") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("voids")}><IconChevron /></button>
-              <h2 id="voids-title">เวลาว่าง</h2>
+              <div className="zone-title"><h2 id="voids-title">เวลาว่าง</h2><HelpButton zone="voids" onStartTour={onboarding.startTour} /></div>
               <p>ช่วงเวลาที่ไม่มีเรียนในแต่ละวัน</p>
             </div>
             {freeSlots.length === 0 ? (
@@ -3214,7 +3243,7 @@ export default function Home() {
           <section className="zone" id="exams" aria-labelledby="exams-title" data-folded={foldedZones.includes("exams") ? "true" : undefined}>
             <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("exams")} aria-label={foldedZones.includes("exams") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("exams")}><IconChevron /></button>
-              <h2 id="exams-title">ตารางสอบ</h2>
+              <div className="zone-title"><h2 id="exams-title">ตารางสอบ</h2><HelpButton zone="exams" onStartTour={onboarding.startTour} /></div>
               <p>วันสอบกลางภาคและปลายภาคของทุกวิชาในตารางนี้</p>
             </div>
             {examWarnings.length > 0 && (
@@ -3253,7 +3282,7 @@ export default function Home() {
         <section className="zone" id="room" aria-labelledby="room-title" data-folded={foldedZones.includes("room") ? "true" : undefined}>
           <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("room")} aria-label={foldedZones.includes("room") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("room")}><IconChevron /></button>
-            <h2 id="room-title">ห้องตารางร่วมกัน</h2>
+            <div className="zone-title"><h2 id="room-title">ห้องตารางร่วมกัน</h2><HelpButton zone="room" onStartTour={onboarding.startTour} /></div>
             <p>ส่งรหัสห้องให้เพื่อน แล้วแก้ตารางเดียวกันจากคนละเครื่อง</p>
           </div>
 
@@ -3280,12 +3309,12 @@ export default function Home() {
 
             <div className="bench">
               <h3>เข้าห้อง</h3>
-              <button type="button" className="btn btn-primary room-create" onClick={createSharedRoom}>
+              <button type="button" className="btn btn-primary room-create" data-tour="room-create" onClick={createSharedRoom}>
                 สร้างห้องว่าง
                 <IconArrow />
               </button>
               <p className="bench-note">สร้างรหัสใหม่และพาไปตารางห้องเปล่า ไม่ดึงวิชาจากตารางนี้</p>
-              <form className="room-join" onSubmit={enterSharedRoom}>
+              <form className="room-join" data-tour="room-join" onSubmit={enterSharedRoom}>
                 <label className="field">
                   <span>รหัสห้อง</span>
                   <input
@@ -3302,12 +3331,12 @@ export default function Home() {
             <div className="bench">
               <h3>จัดการห้อง</h3>
               <div className="room-actions">
-                <button type="button" className="btn btn-line" onClick={copyRoomCode} disabled={!shareSession}>
+                <button type="button" className="btn btn-line" data-tour="room-code" onClick={copyRoomCode} disabled={!shareSession}>
                   <IconCopy />
                   คัดลอกรหัสห้อง
                 </button>
                 <button type="button" className="btn btn-line" onClick={() => shareSession && loadSharedPlan(shareSession.shareId, true, shareSession.editToken)} disabled={!shareSession}>โหลดล่าสุด</button>
-                <button type="button" className="btn btn-line btn-destructive" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
+                <button type="button" className="btn btn-line btn-destructive" data-tour="room-leave" onClick={() => leaveSharedMode()} disabled={!shareSession}>ออกจากห้อง</button>
               </div>
               {shareStatus && <p className="status-line">{shareStatus}</p>}
             </div>
@@ -3331,7 +3360,7 @@ export default function Home() {
         <section className="zone" id="feedback" aria-labelledby="feedback-title" data-folded={foldedZones.includes("feedback") ? "true" : undefined}>
           <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("feedback")} aria-label={foldedZones.includes("feedback") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("feedback")}><IconChevron /></button>
-            <h2 id="feedback-title">ข้อเสนอแนะ</h2>
+            <div className="zone-title"><h2 id="feedback-title">ข้อเสนอแนะ</h2><HelpButton zone="feedback" onStartTour={onboarding.startTour} /></div>
             <p>เจอปัญหาหรืออยากให้เพิ่มอะไร บอกเราได้สั้น ๆ ไม่ต้องระบุตัวตน</p>
           </div>
 
@@ -3497,13 +3526,13 @@ export default function Home() {
                 <h2 id="course-browser-title">ข้อมูลรายวิชา KMUTNB</h2>
                 <p>เลือกตัวกรองแล้วกดโหลด ระบบจะดึงข้อมูลจาก regapi ตามค่าที่กำหนด</p>
               </div>
-              <button type="button" className="btn btn-icon" aria-label="ปิด" onClick={() => setIsCourseBrowserOpen(false)}>
+              <button type="button" className="btn btn-icon" data-tour="browser-close" aria-label="ปิด" onClick={() => setIsCourseBrowserOpen(false)}>
                 <IconClose />
               </button>
             </div>
 
             <div className="dialog-body">
-              <div className="filter-grid">
+              <div className="filter-grid" data-tour="course-search">
                 <label className="field">
                   <span>ปีการศึกษา</span>
                   <input
@@ -3584,7 +3613,7 @@ export default function Home() {
                 </label>
               </div>
 
-              <div className="dialog-run">
+              <div className="dialog-run" data-tour="course-search">
                 <button className="btn btn-primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
                   {isLoadingClasses ? "กำลังค้นหา..." : "ค้นหารายวิชา"}
                   <IconArrow />
@@ -3625,7 +3654,7 @@ export default function Home() {
 
               {filteredRemoteClasses.length > 0 && (
                 <ul className="remote-list">
-                  {filteredRemoteClasses.map((remoteClass) => {
+                  {filteredRemoteClasses.map((remoteClass, remoteIndex) => {
                     const parsedTime = parseClassTime(remoteClass.classtime);
                     const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
                     const isPicked = plannerPool.some((group) => group.code === remoteClass.coursecode);
@@ -3667,6 +3696,7 @@ export default function Home() {
                           <button
                             type="button"
                             className={isPicked ? "btn btn-line is-on" : "btn btn-line"}
+                            data-tour={remoteIndex === 0 ? "add-to-planner" : undefined}
                             onClick={() => togglePlannerCode(remoteClass.coursecode)}
                             disabled={!isPicked && plannerPool.length >= maxPlannerPool}
                           >
@@ -3689,6 +3719,23 @@ export default function Home() {
             </div>
           </section>
         </div>
+      )}
+
+      <MissionPanel
+        progress={onboarding.progress}
+        open={onboarding.panelOpen}
+        onOpenChange={onboarding.setPanelOpen}
+        onStart={onboarding.startTour}
+        notice={onboarding.notice}
+      />
+      {onboarding.tour && onboarding.stepIndex >= 0 && (
+        <TourOverlay
+          tour={onboarding.tour}
+          stepIndex={onboarding.stepIndex}
+          onAck={onboarding.ackStep}
+          onSkip={onboarding.skipTour}
+          onStartTour={onboarding.startTour}
+        />
       )}
     </div>
   );
