@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { solveSlots, type Slot } from "./solve-slots.ts";
+import { selectTopPlans, solveSlots, type Slot } from "./solve-slots.ts";
 
 type Opt = { id: string; at: string };
 const o = (id: string, at: string): Opt => ({ id, at });
@@ -77,4 +77,29 @@ test("maxResults respected", () => {
   const options = Array.from({ length: 10 }, (_, index) => o(`x${index}`, `t${index}`));
   const result = solveSlots([{ id: "g", kind: "group", options }], fits, { perSlotCap: 12, maxResults: 4 });
   assert.equal(result.length, 4);
+});
+
+test("competing groups with many options still return plans covering each group", () => {
+  const many = (prefix: string) => Array.from({ length: 24 }, (_, index) => o(`${prefix}${index}`, "mon"));
+  const slots: Slot<Opt>[] = [
+    { id: "s", kind: "single", options: [o("s1", "tue")] },
+    { id: "A", kind: "group", options: many("a"), cap: 24 },
+    { id: "B", kind: "group", options: many("b"), cap: 24 },
+  ];
+  const result = solveSlots(slots, fits, opts);
+  const skipSets = new Set(result.map((r) => r.skipped.join(",")));
+  assert.ok(skipSets.has("A") && skipSets.has("B"), `skip sets: ${[...skipSets].join(" / ")}`);
+  assert.ok(result.every((r) => r.skipped.length === 1));
+});
+
+test("selectTopPlans keeps the best plan of every skip set before filling by score", () => {
+  const plans = [
+    { score: 90, key: "B" },
+    { score: 89, key: "B" },
+    { score: 88, key: "B" },
+    { score: 70, key: "A" },
+  ];
+  const top = selectTopPlans(plans, 2, (plan) => plan.score, (plan) => plan.key);
+  assert.deepEqual(top.map((plan) => `${plan.key}${plan.score}`), ["B90", "A70"]);
+  assert.deepEqual(selectTopPlans(plans, 3, (p) => p.score, (p) => p.key).map((p) => p.score), [90, 89, 70]);
 });

@@ -98,3 +98,13 @@ export function interleave<T>(lists: T[][]): T[] {
   }
   return result;
 }
+
+// วิชาที่ตัวช่วยจัดแผนสลับ section ได้: วิชาที่ติ๊ก + สมาชิกทุกตัวของกลุ่มที่ติ๊ก
+// (กันกรณีสมาชิกบางตัวหลุดจากรายการติ๊ก แล้วถูกคงไว้ในตารางจนแผนมีวิชาจากกลุ่มเดียวกัน 2 ตัว)
+export function replaceableCodes(selectedCodes: string[], groups: CourseGroup[]): Set<string> {
+  const codes = new Set(selectedCodes);
+  groups
+    .filter((group) => group.codes.some((code) => codes.has(code)))
+    .forEach((group) => group.codes.forEach((code) => codes.add(code)));
+  return codes;
+}

@@ -7,9 +7,9 @@ import { HelpButton } from "./onboarding/HelpButton";
 import { MissionPanel } from "./onboarding/MissionPanel";
 import { TourOverlay } from "./onboarding/TourOverlay";
 import { useOnboarding } from "./onboarding/useOnboarding";
-import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupName, parseCourseGroups, removeGroup, renameGroup, type CourseGroup } from "./planner/course-groups";
+import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupName, parseCourseGroups, removeGroup, renameGroup, replaceableCodes, type CourseGroup } from "./planner/course-groups";
 import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
-import { solveSlots, type Slot } from "./planner/solve-slots";
+import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -2014,7 +2014,10 @@ export default function Home() {
 
     if (nextPicks.length === 0) {
       dropSectionPicks(code);
-      setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+      // วิชาในกลุ่มไม่มีช่องติ๊กของตัวเอง เลิกเลือก section ตัวสุดท้าย = กลับไปใช้ทุก section แต่ยังอยู่ในกลุ่มที่ติ๊ก
+      if (!groupOfCode(plannerGroups, code)) {
+        setPlannerSelectedCodes((current) => current.filter((item) => item !== code));
+      }
       return;
     }
 
@@ -2134,7 +2137,8 @@ export default function Home() {
       return;
     }
 
-    const lockedCourses = shownCourses.filter((course) => course.locked || !plannerSelectedCodes.includes(course.code));
+    const replaceable = replaceableCodes(plannerSelectedCodes, plannerGroups);
+    const lockedCourses = shownCourses.filter((course) => course.locked || !replaceable.has(course.code));
     const lockedCodes = new Set(shownCourses.filter((course) => course.locked).map((course) => course.code));
     const groupedCodes = new Set(plannerGroups.flatMap((group) => group.codes));
     const unlockedSingles = selectedGroups.filter((group) => !groupedCodes.has(group.code) && !lockedCodes.has(group.code));
@@ -2206,7 +2210,7 @@ export default function Home() {
       });
     });
 
-    const sortedResults = results.sort((a, b) => b.score - a.score).slice(0, 6);
+    const sortedResults = selectTopPlans(results, 6, (plan) => plan.score, (plan) => plan.groupNotes.filter((note) => note.skipped).map((note) => note.group).join("|"));
     setGeneratedPlans(sortedResults);
     setPlannerStatus(sortedResults.length > 0 ? `พบแผนที่ไม่ชน ${sortedResults.length} แบบ` : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");
     setPlannerGenerateError(sortedResults.length > 0 ? null : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");

@@ -7,6 +7,7 @@ import {
   nextGroupName,
   parseCourseGroups,
   renameGroup,
+  replaceableCodes,
   type CourseGroup,
 } from "./course-groups.ts";
 
@@ -57,4 +58,9 @@ test("countPlannerSlots counts a group with any ticked member as one", () => {
 test("interleave takes options round-robin so every course in a group gets tried", () => {
   assert.deepEqual(interleave([["a1", "a2", "a3"], ["b1"], ["c1", "c2"]]), ["a1", "b1", "c1", "a2", "c2", "a3"]);
   assert.deepEqual(interleave([]), []);
+});
+
+test("replaceableCodes treats every member of a ticked group as replaceable", () => {
+  const groups = [g("g1", ["A", "B"]), g("g2", ["C", "D"])];
+  assert.deepEqual([...replaceableCodes(["B", "E"], groups)].sort(), ["A", "B", "E"]);
 });
