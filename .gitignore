@@ -42,3 +42,6 @@ pnpm-debug.log*
 # agent tooling: local settings and vendored third-party skills
 .claude/settings.local.json
 .codex/
+
+# superpowers scratch (brainstorm mockups, plan ledgers)
+.superpowers/
