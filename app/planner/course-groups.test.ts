@@ -5,6 +5,7 @@ import {
   interleave,
   moveCodeToGroup,
   nextGroupName,
+  nextMenuIndex,
   parseCourseGroups,
   renameGroup,
   replaceableCodes,
@@ -63,4 +64,13 @@ test("interleave takes options round-robin so every course in a group gets tried
 test("replaceableCodes treats every member of a ticked group as replaceable", () => {
   const groups = [g("g1", ["A", "B"]), g("g2", ["C", "D"])];
   assert.deepEqual([...replaceableCodes(["B", "E"], groups)].sort(), ["A", "B", "E"]);
+});
+
+test("nextMenuIndex moves with arrow keys and wraps, Home/End jump", () => {
+  assert.equal(nextMenuIndex(0, "ArrowDown", 3), 1);
+  assert.equal(nextMenuIndex(2, "ArrowDown", 3), 0);
+  assert.equal(nextMenuIndex(0, "ArrowUp", 3), 2);
+  assert.equal(nextMenuIndex(1, "Home", 3), 0);
+  assert.equal(nextMenuIndex(0, "End", 3), 2);
+  assert.equal(nextMenuIndex(1, "a", 3), null);
 });

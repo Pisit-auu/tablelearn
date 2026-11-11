@@ -3566,3 +3566,8 @@ body {
   flex-shrink: 1;
   min-width: 0;
 }
+
+.group-move-menu {
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+}

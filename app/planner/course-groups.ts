@@ -108,3 +108,22 @@ export function replaceableCodes(selectedCodes: string[], groups: CourseGroup[])
     .forEach((group) => group.codes.forEach((code) => codes.add(code)));
   return codes;
 }
+
+// ปุ่มลูกศรในเมนู "ย้ายเข้ากลุ่ม": วนรอบบน-ล่าง Home/End ไปต้น/ท้าย (null = ไม่ใช่ปุ่มเลื่อน)
+export function nextMenuIndex(current: number, key: string, count: number): number | null {
+  if (count <= 0) {
+    return null;
+  }
+  switch (key) {
+    case "ArrowDown":
+      return (current + 1) % count;
+    case "ArrowUp":
+      return (current - 1 + count) % count;
+    case "Home":
+      return 0;
+    case "End":
+      return count - 1;
+    default:
+      return null;
+  }
+}

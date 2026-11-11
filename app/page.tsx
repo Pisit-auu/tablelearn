@@ -98,7 +98,7 @@ type GeneratedSchedulePlan = {
   score: number;
   reasons: string[];
   // ป้ายบอกว่าแต่ละกลุ่ม "เลือก 1 วิชา" ได้วิชาไหน หรือถูกข้าม
-  groupNotes: { group: string; text: string; skipped: boolean }[];
+  groupNotes: { groupId: string; group: string; text: string; skipped: boolean }[];
 };
 
 const days: { key: DayKey; label: string; short: string }[] = [
@@ -2196,8 +2196,8 @@ export default function Home() {
       const groupNotes = openGroups.map((group) => {
         const pick = solution.picks[unlockedSingles.length + openGroups.indexOf(group)];
         return pick
-          ? { group: group.name, text: `${group.name} → ${pick.remoteClass.coursename} S.${pick.remoteClass.sectioncode}`, skipped: false }
-          : { group: group.name, text: `ข้ามกลุ่ม ${group.name}: ไม่มีวิชาที่ลงเวลาได้กับแผนนี้`, skipped: true };
+          ? { groupId: group.id, group: group.name, text: `${group.name} → ${pick.remoteClass.coursename} S.${pick.remoteClass.sectioncode}`, skipped: false }
+          : { groupId: group.id, group: group.name, text: `ข้ามกลุ่ม ${group.name}: ไม่มีวิชาที่ลงเวลาได้กับแผนนี้`, skipped: true };
       });
       const skippedNotes = groupNotes.filter((note) => note.skipped);
       results.push({
@@ -2210,7 +2210,7 @@ export default function Home() {
       });
     });
 
-    const sortedResults = selectTopPlans(results, 6, (plan) => plan.score, (plan) => plan.groupNotes.filter((note) => note.skipped).map((note) => note.group).join("|"));
+    const sortedResults = selectTopPlans(results, 6, (plan) => plan.score, (plan) => plan.groupNotes.filter((note) => note.skipped).map((note) => note.groupId).join("|"));
     setGeneratedPlans(sortedResults);
     setPlannerStatus(sortedResults.length > 0 ? `พบแผนที่ไม่ชน ${sortedResults.length} แบบ` : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");
     setPlannerGenerateError(sortedResults.length > 0 ? null : "ไม่พบแผนที่ไม่ชนตามรายวิชาที่เลือก");
@@ -2846,7 +2846,9 @@ export default function Home() {
           <div className="pick-sections" id={panelId}>
             <p className="pick-sections-note">
               {!isSelected
-                ? "ยังไม่ได้ใช้วิชานี้สร้างแผน เลือก section ที่ต้องการ หรือติ๊กวิชาเพื่อใช้ทุก section"
+                ? owner
+                  ? "กลุ่มนี้ยังไม่ได้ใช้สร้างแผน เลือก section ที่ต้องการ หรือติ๊กที่หัวกลุ่มเพื่อใช้ทุก section"
+                  : "ยังไม่ได้ใช้วิชานี้สร้างแผน เลือก section ที่ต้องการ หรือติ๊กวิชาเพื่อใช้ทุก section"
                 : picks
                   ? `ตัวช่วยจะลองเฉพาะ ${group.classes.filter((remoteClass) => picks.includes(remoteClass.classid)).map((remoteClass) => `S.${remoteClass.sectioncode}`).join(", ")}`
                   : "ตัวช่วยจะลองทุก section ของวิชานี้"}
@@ -3308,7 +3310,7 @@ export default function Home() {
                         {plan.groupNotes.length > 0 && (
                           <span className="plan-group-notes">
                             {plan.groupNotes.map((note) => (
-                              <span key={note.group} className={note.skipped ? "plan-group-note is-skipped" : "plan-group-note"}>{note.text}</span>
+                              <span key={note.groupId} className={note.skipped ? "plan-group-note is-skipped" : "plan-group-note"}>{note.text}</span>
                             ))}
                           </span>
                         )}
