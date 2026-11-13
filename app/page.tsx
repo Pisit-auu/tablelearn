@@ -12,6 +12,7 @@ import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
 import { mergePlannerFile, parsePlannerFile, plannerFileName, serializePlannerFile, type PlannerSnapshot } from "./planner/planner-file";
 import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
 import { buildIcs, defaultIcsRange } from "./calendar/ics";
+import { classQueryParams } from "./ge/class-query";
 import { filterGeCourses, GE_SOURCE_URL, geCourses, geGroups, type GeGroupId } from "./ge/ge-courses";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -2812,25 +2813,10 @@ export default function Home() {
     setClassError("");
 
     try {
-      const params = new URLSearchParams({
-        year: academicYear,
-        semester,
-        campus: campusId,
-        division: divisionCode,
-        level: levelId,
-        faculty: facultyId,
-        department: departmentId,
-      });
-
-      const courseCode = courseCodeOverride ?? courseSearch.trim();
-
-      if (courseCode) {
-        params.set("courseCode", courseCode);
-      }
-
-      if (classSet) {
-        params.set("classSet", classSet);
-      }
+      const params = classQueryParams(
+        { academicYear, semester, campusId, divisionCode, levelId, facultyId, departmentId, classSet, courseSearch },
+        courseCodeOverride,
+      );
 
       const response = await fetch(`/api/kmutnb/classes?${params.toString()}`);
       const data = await response.json();
@@ -3336,6 +3322,9 @@ export default function Home() {
                           className="btn btn-line"
                           onClick={() => {
                             setCourseSearch(course.code);
+                            setFacultyId("");
+                            setDepartmentId("");
+                            setClassSet("");
                             setIsCourseBrowserOpen(true);
                             void loadRemoteClasses(course.code);
                           }}
@@ -3891,7 +3880,7 @@ export default function Home() {
 
             <div className="dialog-body">
               <p className="field-hint">
-                ใช้กับ Google Calendar, Apple Calendar หรือ Outlook ได้ ใน Google Calendar ไปที่ ตั้งค่า → นำเข้าและส่งออก แล้วเลือกไฟล์นี้ ถ้านำเข้าซ้ำจะได้นัดซ้ำ แนะนำให้สร้างปฏิทินแยกไว้สำหรับตารางเรียน
+                ใช้กับ Google Calendar, Apple Calendar หรือ Outlook ได้ ใน Google Calendar ไปที่ ตั้งค่า → นำเข้าและส่งออก แล้วเลือกไฟล์นี้ แนะนำให้สร้างปฏิทินแยกไว้สำหรับตารางเรียน ถ้าแก้ตารางแล้วส่งออกใหม่ ให้ลบปฏิทินนั้นแล้วสร้างใหม่ก่อนนำเข้า เพราะการนำเข้าซ้ำจะไม่อัปเดตนัดเดิม
               </p>
               <div className="field-pair">
                 <label className="field">
