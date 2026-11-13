@@ -1007,6 +1007,7 @@ export default function Home() {
   const [icsDialog, setIcsDialog] = useState<{ firstDay: string; lastDay: string; error: string } | null>(null);
   const [geQuery, setGeQuery] = useState("");
   const visibleGeCourses = useMemo(() => filterGeCourses(geCourses, geGroup, geQuery), [geGroup, geQuery]);
+  const geFiltering = geGroup !== "" || geQuery.trim() !== "";
   const [academicYear, setAcademicYear] = useState("2569");
   const [semester, setSemester] = useState("1");
   const [campusId, setCampusId] = useState("10");
@@ -3306,8 +3307,12 @@ export default function Home() {
               const rows = visibleGeCourses.filter((course) => course.group === group.id);
               if (rows.length === 0) return null;
               return (
-                <div className="ge-group" key={group.id}>
-                  <h3>{group.label} <span>{rows.length} วิชา</span></h3>
+                // พับทุกกลุ่มไว้ก่อน รายการยาวเกินไปถ้ากางหมด เปิดให้อัตโนมัติเมื่อค้นหาหรือเลือกกลุ่ม
+                <details className="ge-group" key={`${group.id}-${geFiltering}`} open={geFiltering}>
+                  <summary>
+                    <IconChevron className="ge-chevron" />
+                    <h3>{group.label} <span>{rows.length} วิชา</span></h3>
+                  </summary>
                   <ul className="ge-list">
                     {rows.map((course) => (
                       <li className="ge-row" key={course.code}>
@@ -3338,7 +3343,7 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
-                </div>
+                </details>
               );
             })
           )}
