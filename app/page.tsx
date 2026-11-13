@@ -3271,6 +3271,7 @@ export default function Home() {
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("ge")} aria-label={foldedZones.includes("ge") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("ge")}><IconChevron /></button>
             <div className="zone-title"><h2 id="ge-title">วิชาศึกษาทั่วไป</h2><HelpButton zone="ge" onStartTour={onboarding.startTour} /></div>
             <p>
+              สำหรับหลักสูตร ป.ตรี 4–5 ปี ที่เรียน ณ มจพ. กรุงเทพฯ และ มจพ. วิทยาเขตปราจีนบุรี ·{" "}
               <a href={GE_SOURCE_URL} target="_blank" rel="noreferrer">รายวิชาจากเล่มรายวิชาศึกษาทั่วไป ฉบับปี พ.ศ. 2566</a>
             </p>
           </div>
