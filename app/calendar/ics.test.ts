@@ -89,3 +89,24 @@ test("buildIcs names the course in exam summaries without the section", () => {
   assert.ok(ics.includes("SUMMARY:สอบกลางภาค 080303503 BADMINTON"));
   assert.ok(!ics.includes("SUMMARY:สอบกลางภาค 080303503 BADMINTON S.12"));
 });
+
+test("buildIcs uses the exam end time when known", () => {
+  const ics = unfold(buildIcs([{ ...base, midtermEnd: "15:00" }], range, now));
+  assert.ok(ics.includes("DTEND;TZID=Asia/Bangkok:20270112T150000"));
+  assert.ok(!ics.includes("DURATION:PT3H"));
+});
+
+test("buildIcs skips class meetings in exam weeks", () => {
+  const other = { ...base, id: "c9", code: "010013016", day: "fri" as const, midterm: "", final: "2027-03-17T09:00" };
+  const ics = unfold(buildIcs([base, other], { firstDay: "2026-11-16", lastDay: "2027-03-19" }, now));
+  const classEvent = ics.split("BEGIN:VEVENT").find((block) => block.includes("UID:c1@tablelearn")) ?? "";
+  assert.ok(classEvent.includes("EXDATE;TZID=Asia/Bangkok:20270113T130000,20270317T130000"));
+  assert.ok(!classEvent.includes("20270120T130000"));
+});
+
+test("defaultIcsRange ends the day before the final-exam week", () => {
+  const today = new Date(2026, 10, 13);
+  assert.deepEqual(defaultIcsRange(today, [{ final: "2027-03-17T09:00" }, { final: "2027-03-15T13:00" }]), { firstDay: "2026-11-16", lastDay: "2027-03-14" });
+  assert.equal(defaultIcsRange(today, [{ final: "" }]).lastDay, "2027-03-05");
+  assert.equal(defaultIcsRange(today, [{ final: "2026-10-01T09:00" }]).lastDay, "2027-03-05");
+});

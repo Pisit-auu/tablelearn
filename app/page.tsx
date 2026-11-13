@@ -11,7 +11,8 @@ import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupN
 import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
 import { mergePlannerFile, parsePlannerFile, plannerFileName, serializePlannerFile, type PlannerSnapshot } from "./planner/planner-file";
 import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
-import { buildIcs, defaultIcsRange } from "./calendar/ics";
+import { parseExamSlot } from "./calendar/exam";
+import { buildIcs, defaultIcsRange, examWeekStarts } from "./calendar/ics";
 import { classQueryParams, type CatalogQuery } from "./ge/class-query";
 import { filterGeCourses, GE_SOURCE_URL, geCampuses, geCoursesFor, geGroups, type GeCampus, type GeGroupId } from "./ge/ge-courses";
 
@@ -29,6 +30,9 @@ type Course = {
   teacher: string;
   midterm: string;
   final: string;
+  // เวลาสอบจบ "HH:MM" จากระบบทะเบียน ใช้ตอนส่งออกปฏิทิน ข้อมูลเก่าไม่มีช่องนี้
+  midtermEnd?: string;
+  finalEnd?: string;
   color: string;
   locked?: boolean;
   // ซ่อนจากตารางชั่วคราว: ไม่แสดง ไม่นับหน่วยกิตและเวลาชน แต่ยังเก็บไว้ในรายวิชาที่บันทึก
@@ -205,25 +209,14 @@ function parseClassMeetings(value: string) {
   return meetings;
 }
 
-function parseExam(value: string, type: "MIDTERM" | "FINAL") {
-  const clean = stripHtml(value);
-  const match = clean.match(new RegExp(`${type}\\s+(\\d{2})/(\\d{2})/(\\d{2})\\s+(\\d{2}:\\d{2})`, "i"));
-
-  if (!match) {
-    return "";
-  }
-
-  const buddhistYear = 2500 + Number(match[3]);
-  const gregorianYear = buddhistYear - 543;
-  return `${gregorianYear}-${match[2]}-${match[1]}T${match[4]}`;
-}
-
 function teacherName(remoteClass: RemoteClass) {
   return remoteClass.instructor?.map((teacher) => `${teacher.prefixname ?? ""}${teacher.officername ?? ""} ${teacher.officersurname ?? ""}`.trim()).join(", ") ?? "";
 }
 
 function remoteClassToCourses(remoteClass: RemoteClass, color: string): Course[] {
   const meetings = parseClassMeetings(remoteClass.classtime);
+  const midterm = parseExamSlot(remoteClass.classexam, "MIDTERM");
+  const final = parseExamSlot(remoteClass.classexam, "FINAL");
 
   return (meetings.length > 0 ? meetings : [parseClassTime(remoteClass.classtime)]).map((meeting, index, allMeetings) => ({
     id: crypto.randomUUID(),
@@ -235,8 +228,10 @@ function remoteClassToCourses(remoteClass: RemoteClass, color: string): Course[]
     end: meeting.end,
     room: meeting.room,
     teacher: teacherName(remoteClass),
-    midterm: parseExam(remoteClass.classexam, "MIDTERM"),
-    final: parseExam(remoteClass.classexam, "FINAL"),
+    midterm: midterm.start,
+    final: final.start,
+    ...(midterm.end ? { midtermEnd: midterm.end } : {}),
+    ...(final.end ? { finalEnd: final.end } : {}),
     color,
   }));
 }
@@ -1685,22 +1680,29 @@ export default function Home() {
       return;
     }
 
+    const editedCourse = editingId ? courses.find((course) => course.id === editingId) : undefined;
+    // เวลาสอบจบไม่มีช่องให้แก้ในฟอร์ม เก็บไว้เฉพาะเมื่อวันเวลาสอบเริ่มไม่ถูกแก้
+    const midtermEnd = editedCourse?.midterm === form.midterm ? editedCourse.midtermEnd : undefined;
+    const finalEnd = editedCourse?.final === form.final ? editedCourse.finalEnd : undefined;
     const nextCourse: Course = {
       ...form,
       id: editingId ?? crypto.randomUUID(),
       credits: Number(form.credits),
+      ...(midtermEnd ? { midtermEnd } : {}),
+      ...(finalEnd ? { finalEnd } : {}),
       color: editingId ? courses.find((course) => course.id === editingId)?.color ?? palette[0] : palette[courses.length % palette.length],
     };
 
     // แก้คาบหนึ่ง: ข้อมูลที่เป็นของทั้ง section (หน่วยกิต อาจารย์ วันสอบ) ตามไปที่คาบคู่ด้วย
     // ส่วนวัน เวลา และห้องเป็นของคาบนั้นเท่านั้น
-    const editedCourse = editingId ? courses.find((course) => course.id === editingId) : undefined;
     const editedGroupKey = editedCourse ? courseGroupKey(editedCourse) : null;
     const sharedFields = {
       credits: nextCourse.credits,
       teacher: nextCourse.teacher,
       midterm: nextCourse.midterm,
       final: nextCourse.final,
+      midtermEnd: nextCourse.midtermEnd,
+      finalEnd: nextCourse.finalEnd,
     };
 
     updateActiveCourses((current) =>
@@ -3129,7 +3131,7 @@ export default function Home() {
               />
               <button type="button" className="btn btn-line" onClick={() => excelInputRef.current?.click()} disabled={!canEditActivePlan}>นำเข้า Excel</button>
               <button type="button" className="btn btn-line" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
-              <button type="button" className="btn btn-line" onClick={() => setIcsDialog({ ...defaultIcsRange(new Date()), error: "" })} disabled={shownCourses.length === 0}>ส่งออกปฏิทิน</button>
+              <button type="button" className="btn btn-line" onClick={() => setIcsDialog({ ...defaultIcsRange(new Date(), shownCourses), error: "" })} disabled={shownCourses.length === 0}>ส่งออกปฏิทิน</button>
               <button type="button" className="btn btn-line" onClick={exportExcel} disabled={courses.length === 0}>ส่งออก Excel</button>
             </div>
             <div className="view-toggle" role="group" aria-label="มุมมองตาราง">
@@ -3912,6 +3914,14 @@ export default function Home() {
               <p className="field-hint">
                 ใช้กับ Google Calendar, Apple Calendar หรือ Outlook ได้ ใน Google Calendar ไปที่ ตั้งค่า → นำเข้าและส่งออก แล้วเลือกไฟล์นี้ แนะนำให้สร้างปฏิทินแยกไว้สำหรับตารางเรียน ถ้าแก้ตารางแล้วส่งออกใหม่ ให้ลบปฏิทินนั้นแล้วสร้างใหม่ก่อนนำเข้า เพราะการนำเข้าซ้ำจะไม่อัปเดตนัดเดิม
               </p>
+              {examWeekStarts(shownCourses).length > 0 && (
+                <p className="field-hint">
+                  ไม่ใส่คาบเรียนในสัปดาห์ที่มีสอบ ({examWeekStarts(shownCourses)
+                    .map((monday) => new Date(`${monday}T00:00`).toLocaleDateString("th-TH", { day: "numeric", month: "short" }))
+                    .map((label) => `สัปดาห์ ${label}`)
+                    .join(", ")})
+                </p>
+              )}
               <div className="field-pair">
                 <label className="field">
                   <span>วันเริ่มเรียน</span>

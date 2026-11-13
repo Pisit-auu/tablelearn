@@ -12,6 +12,9 @@ export type IcsCourse = {
   teacher: string;
   midterm: string;
   final: string;
+  // เวลาสอบจบ "HH:MM" จากระบบทะเบียน ถ้าไม่มีใช้ 3 ชั่วโมง
+  midtermEnd?: string;
+  finalEnd?: string;
 };
 
 const weekdayIndex: Record<IcsCourse["day"], number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6 };
@@ -66,6 +69,24 @@ function foldLine(line: string) {
   return parts.join("\r\n ");
 }
 
+const dayMs = 86_400_000;
+
+function mondayOf(date: Date) {
+  return new Date(date.getTime() - ((date.getUTCDay() + 6) % 7) * dayMs);
+}
+
+// วันจันทร์ของทุกสัปดาห์ที่มีสอบกลางภาคหรือปลายภาค (วิชาไหนก็ได้) สัปดาห์เหล่านี้ไม่มีคาบเรียน
+export function examWeekStarts(courses: Pick<IcsCourse, "midterm" | "final">[]): string[] {
+  const weeks = new Set<string>();
+  for (const course of courses) {
+    for (const value of [course.midterm, course.final]) {
+      const match = value.match(/^(\d{4}-\d{2}-\d{2})T/);
+      if (match) weeks.add(isoDay(mondayOf(parseDay(match[1]))));
+    }
+  }
+  return [...weeks].sort();
+}
+
 export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDay: string }, now: Date): string {
   const first = parseDay(range.firstDay);
   const last = parseDay(range.lastDay);
@@ -76,6 +97,7 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
   const stamp = utcStamp(now);
   // 23:59:59 เวลาไทยของวันสุดท้าย = 16:59:59 UTC
   const until = `${dayStamp(last)}T165959Z`;
+  const examWeeks = examWeekStarts(courses).map(parseDay);
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -112,6 +134,11 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
       `RRULE:FREQ=WEEKLY;UNTIL=${until}`,
       `SUMMARY:${escapeText(`${course.code} ${course.name}`.trim())}`,
     );
+    const skipped = examWeeks
+      .map((monday) => new Date(monday.getTime() + ((weekdayIndex[course.day] + 6) % 7) * dayMs))
+      .filter((meeting) => meeting >= date && meeting <= last)
+      .map((meeting) => localStamp(meeting, course.start));
+    if (skipped.length > 0) lines.push(`EXDATE;TZID=Asia/Bangkok:${skipped.join(",")}`);
     if (course.room && course.room.trim() !== "-") lines.push(`LOCATION:${escapeText(course.room)}`);
     if (course.teacher) lines.push(`DESCRIPTION:${escapeText(`อาจารย์: ${course.teacher}`)}`);
     lines.push("END:VEVENT");
@@ -119,9 +146,9 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
 
   const seenExams = new Set<string>();
   for (const course of courses) {
-    for (const [kind, label, value] of [
-      ["midterm", "สอบกลางภาค", course.midterm],
-      ["final", "สอบปลายภาค", course.final],
+    for (const [kind, label, value, endTime] of [
+      ["midterm", "สอบกลางภาค", course.midterm, course.midtermEnd],
+      ["final", "สอบปลายภาค", course.final, course.finalEnd],
     ] as const) {
       const match = value.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
       const key = `${course.code}|${kind}|${value}`;
@@ -132,7 +159,12 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
       const timing =
         match[2] === "00:00"
           ? [`DTSTART;VALUE=DATE:${dayStamp(examDay)}`, `DTEND;VALUE=DATE:${dayStamp(new Date(examDay.getTime() + 86_400_000))}`]
-          : [`DTSTART;TZID=Asia/Bangkok:${localStamp(examDay, match[2])}`, `DURATION:${examDuration}`];
+          : [
+            `DTSTART;TZID=Asia/Bangkok:${localStamp(examDay, match[2])}`,
+            endTime && /^\d{2}:\d{2}$/.test(endTime) && endTime > match[2]
+              ? `DTEND;TZID=Asia/Bangkok:${localStamp(examDay, endTime)}`
+              : `DURATION:${examDuration}`,
+          ];
       const courseName = course.name.replace(/\s+S\.\d+.*$/, "").trim();
       lines.push(
         "BEGIN:VEVENT",
@@ -150,10 +182,14 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
   return lines.map(foldLine).join("\r\n") + "\r\n";
 }
 
-export function defaultIcsRange(today: Date): { firstDay: string; lastDay: string } {
+// เริ่มวันจันทร์ถัดไป จบวันก่อนสัปดาห์สอบปลายภาคแรกที่อยู่หลังวันเริ่ม ถ้าไม่มีวันสอบปลายภาค ใช้ 16 สัปดาห์
+export function defaultIcsRange(today: Date, courses: Pick<IcsCourse, "final">[] = []): { firstDay: string; lastDay: string } {
   const date = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
   const offset = (1 - date.getUTCDay() + 7) % 7;
-  const first = new Date(date.getTime() + offset * 86_400_000);
-  const last = new Date(first.getTime() + 109 * 86_400_000);
+  const first = new Date(date.getTime() + offset * dayMs);
+  const finalWeeks = examWeekStarts(courses.map((course) => ({ midterm: "", final: course.final })))
+    .map(parseDay)
+    .filter((monday) => monday > first);
+  const last = finalWeeks.length > 0 ? new Date(finalWeeks[0].getTime() - dayMs) : new Date(first.getTime() + 109 * dayMs);
   return { firstDay: isoDay(first), lastDay: isoDay(last) };
 }

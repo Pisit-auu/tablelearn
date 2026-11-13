@@ -12,6 +12,8 @@ export type SharedCoursePayload = {
   teacher: string;
   midterm: string;
   final: string;
+  midtermEnd?: string;
+  finalEnd?: string;
   color: string;
   locked?: boolean;
   hidden?: boolean;
@@ -120,6 +122,8 @@ function sanitizeCourse(course: Partial<SharedCoursePayload>, index: number): Sh
     teacher: trimField(course.teacher),
     midterm: validateDateTime(course.midterm),
     final: validateDateTime(course.final),
+    ...(/^\d{2}:\d{2}$/.test(String(course.midtermEnd ?? "")) ? { midtermEnd: String(course.midtermEnd) } : {}),
+    ...(/^\d{2}:\d{2}$/.test(String(course.finalEnd ?? "")) ? { finalEnd: String(course.finalEnd) } : {}),
     color: /^#[0-9a-f]{6}$/i.test(String(course.color ?? "")) ? String(course.color) : "#2457ff",
     ...(course.locked === true ? { locked: true } : {}),
     ...(course.hidden === true ? { hidden: true } : {}),
