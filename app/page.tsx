@@ -12,8 +12,8 @@ import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
 import { mergePlannerFile, parsePlannerFile, plannerFileName, serializePlannerFile, type PlannerSnapshot } from "./planner/planner-file";
 import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
 import { buildIcs, defaultIcsRange } from "./calendar/ics";
-import { classQueryParams } from "./ge/class-query";
-import { filterGeCourses, GE_SOURCE_URL, geCourses, geGroups, type GeGroupId } from "./ge/ge-courses";
+import { classQueryParams, type CatalogQuery } from "./ge/class-query";
+import { filterGeCourses, GE_SOURCE_URL, geCampuses, geCoursesFor, geGroups, type GeCampus, type GeGroupId } from "./ge/ge-courses";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -1006,7 +1006,10 @@ export default function Home() {
   const [geGroup, setGeGroup] = useState<GeGroupId | "">("");
   const [icsDialog, setIcsDialog] = useState<{ firstDay: string; lastDay: string; error: string } | null>(null);
   const [geQuery, setGeQuery] = useState("");
-  const visibleGeCourses = useMemo(() => filterGeCourses(geCourses, geGroup, geQuery), [geGroup, geQuery]);
+  const [geCampus, setGeCampus] = useState<GeCampus>("main");
+  const campusGeCourses = useMemo(() => geCoursesFor(geCampus), [geCampus]);
+  const visibleGeCourses = useMemo(() => filterGeCourses(campusGeCourses, geGroup, geQuery), [campusGeCourses, geGroup, geQuery]);
+  const geCampusInfo = geCampuses.find((campus) => campus.id === geCampus) ?? geCampuses[0];
   const geFiltering = geGroup !== "" || geQuery.trim() !== "";
   const [academicYear, setAcademicYear] = useState("2569");
   const [semester, setSemester] = useState("1");
@@ -2812,15 +2815,15 @@ export default function Home() {
     }
   }
 
-  // courseCodeOverride ใช้ตอนเปิดจากแค็ตตาล็อก GE เพราะ setCourseSearch ยังไม่ทันอัปเดต state
-  async function loadRemoteClasses(courseCodeOverride?: string) {
+  // catalog ใช้ตอนเปิดจากแค็ตตาล็อก GE เพราะ setCourseSearch/setCampusId ยังไม่ทันอัปเดต state
+  async function loadRemoteClasses(catalog?: CatalogQuery) {
     setIsLoadingClasses(true);
     setClassError("");
 
     try {
       const params = classQueryParams(
         { academicYear, semester, campusId, divisionCode, levelId, facultyId, departmentId, classSet, courseSearch },
-        courseCodeOverride,
+        catalog,
       );
 
       const response = await fetch(`/api/kmutnb/classes?${params.toString()}`);
@@ -3271,12 +3274,25 @@ export default function Home() {
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("ge")} aria-label={foldedZones.includes("ge") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("ge")}><IconChevron /></button>
             <div className="zone-title"><h2 id="ge-title">วิชาศึกษาทั่วไป</h2><HelpButton zone="ge" onStartTour={onboarding.startTour} /></div>
             <p>
-              สำหรับหลักสูตร ป.ตรี 4–5 ปี ที่เรียน ณ มจพ. กรุงเทพฯ และ มจพ. วิทยาเขตปราจีนบุรี ·{" "}
+              สำหรับหลักสูตร ป.ตรี 4–5 ปี ที่เรียน ณ {geCampusInfo.label} ·{" "}
               <a href={GE_SOURCE_URL} target="_blank" rel="noreferrer">รายวิชาจากเล่มรายวิชาศึกษาทั่วไป ฉบับปี พ.ศ. 2566</a>
             </p>
           </div>
 
           <div className="ge-filters">
+            <div className="ge-chips" role="group" aria-label="วิทยาเขต">
+              {geCampuses.map((campus) => (
+                <button
+                  type="button"
+                  key={campus.id}
+                  className={geCampus === campus.id ? "btn btn-line is-on" : "btn btn-line"}
+                  aria-pressed={geCampus === campus.id}
+                  onClick={() => setGeCampus(campus.id)}
+                >
+                  {campus.short}
+                </button>
+              ))}
+            </div>
             <input
               className="ge-search"
               type="search"
@@ -3298,7 +3314,7 @@ export default function Home() {
                 </button>
               ))}
             </div>
-            <p className="ge-count">แสดง {visibleGeCourses.length} จาก {geCourses.length} วิชา</p>
+            <p className="ge-count">แสดง {visibleGeCourses.length} จาก {campusGeCourses.length} วิชา</p>
           </div>
 
           {visibleGeCourses.length === 0 ? (
@@ -3331,12 +3347,16 @@ export default function Home() {
                           type="button"
                           className="btn btn-line"
                           onClick={() => {
+                            // วิชาระยองค้นที่วิทยาเขตระยอง วิชาชุดกรุงเทพฯ/ปราจีนบุรีคงวิทยาเขตที่เลือกไว้ ยกเว้นค้างอยู่ที่ระยอง
+                            const nextCampusId =
+                              course.campus === "rayong" ? geCampusInfo.registrarCampusId : campusId === "21" ? "10" : campusId;
                             setCourseSearch(course.code);
+                            setCampusId(nextCampusId);
                             setFacultyId("");
                             setDepartmentId("");
                             setClassSet("");
                             setIsCourseBrowserOpen(true);
-                            void loadRemoteClasses(course.code);
+                            void loadRemoteClasses({ courseCode: course.code, campusId: nextCampusId });
                           }}
                         >
                           ดูกลุ่มเรียน

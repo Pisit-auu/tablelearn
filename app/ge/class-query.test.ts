@@ -23,7 +23,7 @@ test("classQueryParams keeps every browser filter without an override", () => {
 });
 
 test("classQueryParams with a course code drops faculty, department and classSet", () => {
-  const params = classQueryParams(filters, "080303503");
+  const params = classQueryParams(filters, { courseCode: "080303503" });
   assert.equal(params.get("courseCode"), "080303503");
   assert.equal(params.get("faculty"), "");
   assert.equal(params.get("department"), "");
@@ -32,4 +32,10 @@ test("classQueryParams with a course code drops faculty, department and classSet
   assert.equal(params.get("semester"), "2");
   assert.equal(params.get("campus"), "10");
   assert.equal(params.get("level"), "61");
+});
+
+test("classQueryParams uses the catalog campus when given", () => {
+  const params = classQueryParams(filters, { courseCode: "140303503", campusId: "21" });
+  assert.equal(params.get("campus"), "21");
+  assert.equal(params.get("courseCode"), "140303503");
 });

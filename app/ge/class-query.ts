@@ -1,5 +1,5 @@
 // พารามิเตอร์ของ /api/kmutnb/classes จากตัวกรองในหน้าต่างดึงรายวิชา
-// เมื่อเปิดจากแค็ตตาล็อก GE (มี courseCodeOverride) ไม่ส่งคณะ/ภาควิชา/กลุ่มเรียนที่ตั้งค้างไว้
+// เมื่อเปิดจากแค็ตตาล็อก GE (มี catalog) ไม่ส่งคณะ/ภาควิชา/กลุ่มเรียนที่ตั้งค้างไว้ และใช้วิทยาเขตของแค็ตตาล็อกถ้าระบุ
 // เพราะวิชา GE เปิดโดยคณะอื่น ตัวกรองค้างจะทำให้ไม่เจอกลุ่มเรียน แล้วเข้าใจผิดว่าเทอมนี้ไม่เปิด
 export type ClassQueryFilters = {
   academicYear: string;
@@ -13,18 +13,20 @@ export type ClassQueryFilters = {
   courseSearch: string;
 };
 
-export function classQueryParams(filters: ClassQueryFilters, courseCodeOverride?: string): URLSearchParams {
-  const fromCatalog = courseCodeOverride !== undefined;
+export type CatalogQuery = { courseCode: string; campusId?: string };
+
+export function classQueryParams(filters: ClassQueryFilters, catalog?: CatalogQuery): URLSearchParams {
+  const fromCatalog = catalog !== undefined;
   const params = new URLSearchParams({
     year: filters.academicYear,
     semester: filters.semester,
-    campus: filters.campusId,
+    campus: catalog?.campusId ?? filters.campusId,
     division: filters.divisionCode,
     level: filters.levelId,
     faculty: fromCatalog ? "" : filters.facultyId,
     department: fromCatalog ? "" : filters.departmentId,
   });
-  const courseCode = courseCodeOverride ?? filters.courseSearch.trim();
+  const courseCode = catalog?.courseCode ?? filters.courseSearch.trim();
 
   if (courseCode) {
     params.set("courseCode", courseCode);
