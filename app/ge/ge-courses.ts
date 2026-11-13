@@ -23,8 +23,8 @@ export type GeCourse = {
   citOnly?: true;
 };
 
-// TODO: แทนด้วยลิงก์เต็มของเล่มบน acdserv เมื่อได้รับจากผู้ใช้
-export const GE_SOURCE_URL = "https://acdserv.kmutnb.ac.th/";
+export const GE_SOURCE_URL =
+  "https://acdserv.kmutnb.ac.th/download/%E0%B8%A3%E0%B8%B2%E0%B8%A2%E0%B8%A7%E0%B8%B4%E0%B8%8A%E0%B8%B2%E0%B8%A8%E0%B8%B6%E0%B8%81%E0%B8%A9%E0%B8%B2%E0%B8%97%E0%B8%B1%E0%B9%88%E0%B8%A7%E0%B9%84%E0%B8%9B-2566-%E0%B8%AA%E0%B8%B3%E0%B8%AB";
 
 export function filterGeCourses(courses: GeCourse[], group: GeGroupId | "", query: string): GeCourse[] {
   const needle = query.trim().toLowerCase();

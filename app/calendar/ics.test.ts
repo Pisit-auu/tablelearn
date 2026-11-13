@@ -34,7 +34,7 @@ test("buildIcs uses firstDay when it matches the weekday", () => {
 
 test("buildIcs adds one exam event per unique exam", () => {
   const ics = unfold(buildIcs([base, { ...base, id: "c2", day: "fri" }], range, now));
-  assert.equal(ics.split("SUMMARY:สอบกลางภาค 080303503").length - 1, 1);
+  assert.equal(ics.split("SUMMARY:สอบกลางภาค 080303503 BADMINTON").length - 1, 1);
   assert.ok(ics.includes("DTSTART;TZID=Asia/Bangkok:20270112T130000"));
   assert.ok(ics.includes("DURATION:PT3H"));
   assert.equal(ics.split("BEGIN:VEVENT").length - 1, 3);
@@ -68,4 +68,24 @@ test("defaultIcsRange picks next Monday and 16 weeks", () => {
 test("buildIcs omits placeholder room", () => {
   const ics = buildIcs([{ ...base, room: "-" }], range, now);
   assert.ok(!ics.includes("LOCATION:"));
+});
+
+test("buildIcs makes a date-only exam an all-day event", () => {
+  const ics = unfold(buildIcs([{ ...base, midterm: "2027-01-12T00:00" }], range, now));
+  assert.ok(ics.includes("DTSTART;VALUE=DATE:20270112"));
+  assert.ok(ics.includes("DTEND;VALUE=DATE:20270113"));
+  assert.ok(!ics.includes("20270112T000000"));
+});
+
+test("buildIcs skips a course with an unknown day instead of throwing", () => {
+  const broken = { ...base, id: "bad", day: "xyz" as IcsCourse["day"], midterm: "" };
+  const ics = unfold(buildIcs([broken, { ...base, midterm: "" }], range, now));
+  assert.equal(ics.split("BEGIN:VEVENT").length - 1, 1);
+  assert.ok(!ics.includes("UID:bad@tablelearn"));
+});
+
+test("buildIcs names the course in exam summaries without the section", () => {
+  const ics = unfold(buildIcs([{ ...base, name: "BADMINTON S.12 (2)" }], range, now));
+  assert.ok(ics.includes("SUMMARY:สอบกลางภาค 080303503 BADMINTON"));
+  assert.ok(!ics.includes("SUMMARY:สอบกลางภาค 080303503 BADMINTON S.12"));
 });

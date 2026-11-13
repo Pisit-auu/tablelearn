@@ -94,6 +94,10 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
   ];
 
   for (const course of courses) {
+    // ข้อมูลเสีย (วันไม่รู้จัก) ข้ามไป ไม่ให้ทั้งไฟล์ล้มเหลว
+    if (!(course.day in weekdayIndex)) {
+      continue;
+    }
     const offset = (weekdayIndex[course.day] - first.getUTCDay() + 7) % 7;
     const date = new Date(first.getTime() + offset * 86_400_000);
     if (date > last) {
@@ -123,13 +127,19 @@ export function buildIcs(courses: IcsCourse[], range: { firstDay: string; lastDa
       const key = `${course.code}|${kind}|${value}`;
       if (!match || seenExams.has(key)) continue;
       seenExams.add(key);
+      const examDay = parseDay(match[1]);
+      // 00:00 มาจากไฟล์ Excel ที่มีแต่วันที่ ทำเป็นนัดทั้งวันแทนการเดาเวลา
+      const timing =
+        match[2] === "00:00"
+          ? [`DTSTART;VALUE=DATE:${dayStamp(examDay)}`, `DTEND;VALUE=DATE:${dayStamp(new Date(examDay.getTime() + 86_400_000))}`]
+          : [`DTSTART;TZID=Asia/Bangkok:${localStamp(examDay, match[2])}`, `DURATION:${examDuration}`];
+      const courseName = course.name.replace(/\s+S\.\d+.*$/, "").trim();
       lines.push(
         "BEGIN:VEVENT",
         `UID:${course.code}-${kind}-${match[1]}${match[2].replace(":", "")}@tablelearn`,
         `DTSTAMP:${stamp}`,
-        `DTSTART;TZID=Asia/Bangkok:${localStamp(parseDay(match[1]), match[2])}`,
-        `DURATION:${examDuration}`,
-        `SUMMARY:${escapeText(`${label} ${course.code}`)}`,
+        ...timing,
+        `SUMMARY:${escapeText(`${label} ${course.code} ${courseName}`.trim())}`,
         `DESCRIPTION:${escapeText("ตรวจเวลาสอบล่าสุดที่ reg.kmutnb.ac.th")}`,
         "END:VEVENT",
       );

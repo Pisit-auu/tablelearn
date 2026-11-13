@@ -1547,7 +1547,11 @@ export default function Home() {
         return;
       }
 
-      setIcsDialog(null);
+      if (icsDialog) {
+        setIcsDialog(null);
+        return;
+      }
+
       setIsManualCourseOpen(false);
       setEditingId(null);
       setForm(emptyCourse);
