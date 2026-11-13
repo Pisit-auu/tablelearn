@@ -48,8 +48,8 @@ test("every tour target is a known data-tour name", () => {
   }
 });
 
-test("help copy covers all 8 sections", () => {
-  assert.equal(Object.keys(helpCopy).length, 8);
+test("help copy covers all 9 sections", () => {
+  assert.equal(Object.keys(helpCopy).length, 9);
 });
 
 test("generate step explains why no plan came out and suggests fewer courses", () => {

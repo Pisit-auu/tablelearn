@@ -3583,3 +3583,136 @@ body {
 .planner-file + .status-line {
   margin: 0 0 12px;
 }
+
+/* แค็ตตาล็อกวิชาศึกษาทั่วไป */
+.ge-filters {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.ge-search {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--heading);
+  background: var(--surface);
+  border: 1px solid var(--field-line);
+  border-radius: 6px;
+}
+
+.ge-search:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 3px 10px 0 rgba(34, 41, 47, 0.1);
+}
+
+.ge-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ge-count {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-quiet);
+}
+
+.ge-group + .ge-group {
+  margin-top: 18px;
+}
+
+.ge-group h3 {
+  margin: 0 0 8px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--heading);
+}
+
+.ge-group h3 span {
+  font-weight: 400;
+  font-size: 12.5px;
+  color: var(--ink-quiet);
+}
+
+.ge-list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.ge-row {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr) auto auto;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--surface);
+}
+
+.ge-row + .ge-row {
+  border-top: 1px solid var(--line-soft);
+}
+
+.ge-code,
+.ge-credits {
+  font-family: var(--font-num);
+  font-size: 13px;
+  color: var(--heading);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ge-credits {
+  color: var(--ink-quiet);
+}
+
+.ge-name {
+  min-width: 0;
+}
+
+.ge-name p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--heading);
+}
+
+.ge-name .ge-en {
+  font-size: 12.5px;
+  color: var(--ink-quiet);
+}
+
+.tag-cit {
+  color: var(--warning-deep);
+  background: var(--warning-tint);
+}
+
+@media (max-width: 720px) {
+  .ge-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ge-name {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .ge-row .btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
+.zone-head p a {
+  color: var(--primary-deep);
+}

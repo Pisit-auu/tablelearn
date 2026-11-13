@@ -11,6 +11,7 @@ import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupN
 import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
 import { mergePlannerFile, parsePlannerFile, plannerFileName, serializePlannerFile, type PlannerSnapshot } from "./planner/planner-file";
 import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
+import { filterGeCourses, GE_SOURCE_URL, geCourses, geGroups, type GeGroupId } from "./ge/ge-courses";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
@@ -964,6 +965,7 @@ function countChars(text: string) {
 const zones: { id: string; label: string; short: string; Icon: (props: IconProps) => React.JSX.Element }[] = [
   { id: "face", label: "ตารางเรียน", short: "ตาราง", Icon: IconFace },
   { id: "blocks", label: "รายวิชา", short: "วิชา", Icon: IconBlock },
+  { id: "ge", label: "วิชาศึกษาทั่วไป", short: "GE", Icon: IconBlock },
   { id: "planner", label: "ตัวช่วยจัดแผน", short: "จัดแผน", Icon: IconCrane },
   { id: "compare", label: "เปรียบเทียบ", short: "เทียบ", Icon: IconCompare },
   { id: "voids", label: "เวลาว่าง", short: "ว่าง", Icon: IconVoid },
@@ -999,6 +1001,9 @@ export default function Home() {
     },
   });
   const [courseSearch, setCourseSearch] = useState("");
+  const [geGroup, setGeGroup] = useState<GeGroupId | "">("");
+  const [geQuery, setGeQuery] = useState("");
+  const visibleGeCourses = useMemo(() => filterGeCourses(geCourses, geGroup, geQuery), [geGroup, geQuery]);
   const [academicYear, setAcademicYear] = useState("2569");
   const [semester, setSemester] = useState("1");
   const [campusId, setCampusId] = useState("10");
@@ -2776,7 +2781,8 @@ export default function Home() {
     }
   }
 
-  async function loadRemoteClasses() {
+  // courseCodeOverride ใช้ตอนเปิดจากแค็ตตาล็อก GE เพราะ setCourseSearch ยังไม่ทันอัปเดต state
+  async function loadRemoteClasses(courseCodeOverride?: string) {
     setIsLoadingClasses(true);
     setClassError("");
 
@@ -2791,8 +2797,10 @@ export default function Home() {
         department: departmentId,
       });
 
-      if (courseSearch.trim()) {
-        params.set("courseCode", courseSearch.trim());
+      const courseCode = courseCodeOverride ?? courseSearch.trim();
+
+      if (courseCode) {
+        params.set("courseCode", courseCode);
       }
 
       if (classSet) {
@@ -3238,6 +3246,82 @@ export default function Home() {
                 </article>
               ))}
             </div>
+          )}
+        </section>
+
+        <section className="zone" id="ge" aria-labelledby="ge-title" data-folded={foldedZones.includes("ge") ? "true" : undefined}>
+          <div className="zone-head">
+            <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("ge")} aria-label={foldedZones.includes("ge") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("ge")}><IconChevron /></button>
+            <div className="zone-title"><h2 id="ge-title">วิชาศึกษาทั่วไป</h2><HelpButton zone="ge" onStartTour={onboarding.startTour} /></div>
+            <p>
+              <a href={GE_SOURCE_URL} target="_blank" rel="noreferrer">รายวิชาจากเล่มรายวิชาศึกษาทั่วไป ฉบับปี พ.ศ. 2566</a>
+            </p>
+          </div>
+
+          <div className="ge-filters">
+            <input
+              className="ge-search"
+              type="search"
+              value={geQuery}
+              onChange={(event) => setGeQuery(event.target.value)}
+              placeholder="ค้นหารหัสหรือชื่อวิชา"
+              aria-label="ค้นหาวิชาศึกษาทั่วไป"
+            />
+            <div className="ge-chips" role="group" aria-label="กลุ่มวิชา">
+              {[{ id: "" as const, short: "ทั้งหมด" }, ...geGroups].map((group) => (
+                <button
+                  type="button"
+                  key={group.id || "all"}
+                  className={geGroup === group.id ? "btn btn-line is-on" : "btn btn-line"}
+                  aria-pressed={geGroup === group.id}
+                  onClick={() => setGeGroup(group.id)}
+                >
+                  {group.short}
+                </button>
+              ))}
+            </div>
+            <p className="ge-count">แสดง {visibleGeCourses.length} จาก {geCourses.length} วิชา</p>
+          </div>
+
+          {visibleGeCourses.length === 0 ? (
+            <p className="empty">ไม่พบวิชาที่ตรงกับคำค้นหรือกลุ่มที่เลือก</p>
+          ) : (
+            geGroups.map((group) => {
+              const rows = visibleGeCourses.filter((course) => course.group === group.id);
+              if (rows.length === 0) return null;
+              return (
+                <div className="ge-group" key={group.id}>
+                  <h3>{group.label} <span>{rows.length} วิชา</span></h3>
+                  <ul className="ge-list">
+                    {rows.map((course) => (
+                      <li className="ge-row" key={course.code}>
+                        <span className="ge-code">{course.code}</span>
+                        <div className="ge-name">
+                          <p>
+                            {course.nameTh}
+                            {course.required && <span className="tag tag-lock">บังคับ</span>}
+                            {course.citOnly && <span className="tag tag-cit" title="เล่มระบุว่าเปิดให้นักศึกษาวิทยาลัยเทคโนโลยีอุตสาหกรรมเท่านั้น">เปิดเฉพาะ CIT</span>}
+                          </p>
+                          <p className="ge-en">{course.nameEn}</p>
+                        </div>
+                        <span className="ge-credits">{course.credits}</span>
+                        <button
+                          type="button"
+                          className="btn btn-line"
+                          onClick={() => {
+                            setCourseSearch(course.code);
+                            setIsCourseBrowserOpen(true);
+                            void loadRemoteClasses(course.code);
+                          }}
+                        >
+                          ดูกลุ่มเรียน
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })
           )}
         </section>
 
@@ -3861,7 +3945,7 @@ export default function Home() {
               </div>
 
               <div className="dialog-run" data-tour="course-search">
-                <button className="btn btn-primary" type="button" onClick={loadRemoteClasses} disabled={isLoadingClasses}>
+                <button className="btn btn-primary" type="button" onClick={() => loadRemoteClasses()} disabled={isLoadingClasses}>
                   {isLoadingClasses ? "กำลังค้นหา..." : "ค้นหารายวิชา"}
                   <IconArrow />
                 </button>

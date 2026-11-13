@@ -1,6 +1,6 @@
 import type { MissionId } from "./progress.ts";
 
-export type HelpZone = "face" | "blocks" | "planner" | "compare" | "voids" | "exams" | "room" | "feedback";
+export type HelpZone = "face" | "blocks" | "ge" | "planner" | "compare" | "voids" | "exams" | "room" | "feedback";
 
 export const helpCopy: Record<HelpZone, { title: string; body: string; tour?: MissionId }> = {
   face: {
@@ -11,6 +11,10 @@ export const helpCopy: Record<HelpZone, { title: string; body: string; tour?: Mi
     title: "รายวิชาที่บันทึก",
     body: "ทุกวิชาที่อยู่ในตารางนี้ กด “ล็อก” วิชาที่ต้องได้ section นี้แน่ ๆ ตัวช่วยจัดแผนจะไม่ยุ่งกับมัน กด “ซ่อน” ถ้าแค่อยากลองดูตารางแบบไม่มีวิชานั้น",
     tour: "lock",
+  },
+  ge: {
+    title: "วิชาศึกษาทั่วไป",
+    body: "รายวิชาศึกษาทั่วไป (GE) ตามเล่มฉบับปี 2566 กรองตามกลุ่มหรือค้นหาด้วยรหัสและชื่อวิชา กด “ดูกลุ่มเรียน” เพื่อดูว่าเทอมที่เลือกเปิดกลุ่มไหนบ้าง แล้วนำเข้าตารางได้เลย",
   },
   planner: {
     title: "ตัวช่วยจัดแผน",
