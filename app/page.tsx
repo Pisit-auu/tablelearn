@@ -11,6 +11,7 @@ import { countPlannerSlots, groupOfCode, interleave, moveCodeToGroup, nextGroupN
 import { GroupMoveMenu, GroupNameInput } from "./planner/GroupControls";
 import { mergePlannerFile, parsePlannerFile, plannerFileName, serializePlannerFile, type PlannerSnapshot } from "./planner/planner-file";
 import { selectTopPlans, solveSlots, type Slot } from "./planner/solve-slots";
+import { buildIcs, defaultIcsRange } from "./calendar/ics";
 import { filterGeCourses, GE_SOURCE_URL, geCourses, geGroups, type GeGroupId } from "./ge/ge-courses";
 
 type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
@@ -1002,6 +1003,7 @@ export default function Home() {
   });
   const [courseSearch, setCourseSearch] = useState("");
   const [geGroup, setGeGroup] = useState<GeGroupId | "">("");
+  const [icsDialog, setIcsDialog] = useState<{ firstDay: string; lastDay: string; error: string } | null>(null);
   const [geQuery, setGeQuery] = useState("");
   const visibleGeCourses = useMemo(() => filterGeCourses(geCourses, geGroup, geQuery), [geGroup, geQuery]);
   const [academicYear, setAcademicYear] = useState("2569");
@@ -1530,7 +1532,7 @@ export default function Home() {
   }, [shownCourses]);
 
   useEffect(() => {
-    if (!isManualCourseOpen && !isCourseBrowserOpen) {
+    if (!isManualCourseOpen && !isCourseBrowserOpen && !icsDialog) {
       return;
     }
 
@@ -1544,6 +1546,7 @@ export default function Home() {
         return;
       }
 
+      setIcsDialog(null);
       setIsManualCourseOpen(false);
       setEditingId(null);
       setForm(emptyCourse);
@@ -1552,7 +1555,7 @@ export default function Home() {
     window.addEventListener("keydown", closeOnEscape);
 
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [isCourseBrowserOpen, isManualCourseOpen]);
+  }, [isCourseBrowserOpen, isManualCourseOpen, icsDialog]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -2060,6 +2063,28 @@ export default function Home() {
     link.click();
     URL.revokeObjectURL(url);
     setPlannerFileStatus({ tone: "ok", text: `บันทึก ${plannerPool.length} วิชาเป็นไฟล์แล้ว` });
+  }
+
+  function downloadIcs() {
+    if (!icsDialog) {
+      return;
+    }
+
+    let ics: string;
+    try {
+      ics = buildIcs(shownCourses, icsDialog, new Date());
+    } catch (error) {
+      setIcsDialog({ ...icsDialog, error: error instanceof Error ? error.message : "สร้างไฟล์ปฏิทินไม่สำเร็จ" });
+      return;
+    }
+
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${(activePlan?.name ?? defaultPlanName).replace(/[\\/:*?"<>|]/g, "-")}.ics`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setIcsDialog(null);
   }
 
   // นำเข้าไฟล์: เพิ่มรวมกับของเดิม ไม่ทับวิชาที่มีอยู่ และไม่แตะเงื่อนไขเวลา
@@ -3110,6 +3135,7 @@ export default function Home() {
               />
               <button type="button" className="btn btn-line" onClick={() => excelInputRef.current?.click()} disabled={!canEditActivePlan}>นำเข้า Excel</button>
               <button type="button" className="btn btn-line" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
+              <button type="button" className="btn btn-line" onClick={() => setIcsDialog({ ...defaultIcsRange(new Date()), error: "" })} disabled={shownCourses.length === 0}>ส่งออกปฏิทิน</button>
               <button type="button" className="btn btn-line" onClick={exportExcel} disabled={courses.length === 0}>ส่งออก Excel</button>
             </div>
             <div className="view-toggle" role="group" aria-label="มุมมองตาราง">
@@ -3836,6 +3862,53 @@ export default function Home() {
             <div className="dialog-foot">
               <button className="btn btn-primary" type="submit">
                 {editingId ? "บันทึกการแก้ไข" : "เพิ่มลงตาราง"}
+                <IconArrow />
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {icsDialog && (
+        <div className="scrim" role="presentation" {...scrimCloseProps(() => setIcsDialog(null))}>
+          <form
+            className="dialog dialog-form"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ics-title"
+            onSubmit={(event) => {
+              event.preventDefault();
+              downloadIcs();
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="dialog-head">
+              <h2 id="ics-title">ส่งออกเป็นปฏิทิน (.ics)</h2>
+              <button type="button" className="btn btn-icon" aria-label="ปิด" onClick={() => setIcsDialog(null)}>
+                <IconClose />
+              </button>
+            </div>
+
+            <div className="dialog-body">
+              <p className="field-hint">
+                ใช้กับ Google Calendar, Apple Calendar หรือ Outlook ได้ ใน Google Calendar ไปที่ ตั้งค่า → นำเข้าและส่งออก แล้วเลือกไฟล์นี้ ถ้านำเข้าซ้ำจะได้นัดซ้ำ แนะนำให้สร้างปฏิทินแยกไว้สำหรับตารางเรียน
+              </p>
+              <div className="field-pair">
+                <label className="field">
+                  <span>วันเริ่มเรียน</span>
+                  <input required type="date" value={icsDialog.firstDay} onChange={(event) => setIcsDialog({ ...icsDialog, firstDay: event.target.value, error: "" })} />
+                </label>
+                <label className="field">
+                  <span>วันเรียนวันสุดท้าย</span>
+                  <input required type="date" value={icsDialog.lastDay} onChange={(event) => setIcsDialog({ ...icsDialog, lastDay: event.target.value, error: "" })} />
+                </label>
+              </div>
+              {icsDialog.error && <p className="status-line is-clash" role="alert">{icsDialog.error}</p>}
+            </div>
+
+            <div className="dialog-foot">
+              <button className="btn btn-primary" type="submit">
+                ดาวน์โหลดไฟล์
                 <IconArrow />
               </button>
             </div>
