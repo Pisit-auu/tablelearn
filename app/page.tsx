@@ -3131,7 +3131,7 @@ export default function Home() {
               />
               <button type="button" className="btn btn-line" onClick={() => excelInputRef.current?.click()} disabled={!canEditActivePlan}>นำเข้า Excel</button>
               <button type="button" className="btn btn-line" onClick={exportTimetableImage} disabled={courses.length === 0}>บันทึกเป็นรูป</button>
-              <button type="button" className="btn btn-line" onClick={() => setIcsDialog({ ...defaultIcsRange(new Date(), shownCourses), error: "" })} disabled={shownCourses.length === 0}>ส่งออกปฏิทิน</button>
+              <button type="button" className="btn btn-line" onClick={() => setIcsDialog({ ...defaultIcsRange(new Date(), shownCourses), error: "" })} disabled={shownCourses.length === 0}>ส่งออกไป Google Calendar</button>
               <button type="button" className="btn btn-line" onClick={exportExcel} disabled={courses.length === 0}>ส่งออก Excel</button>
             </div>
             <div className="view-toggle" role="group" aria-label="มุมมองตาราง">
@@ -3904,7 +3904,7 @@ export default function Home() {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="dialog-head">
-              <h2 id="ics-title">ส่งออกเป็นปฏิทิน (.ics)</h2>
+              <h2 id="ics-title">ส่งออกไป Google Calendar</h2>
               <button type="button" className="btn btn-icon" aria-label="ปิด" onClick={() => setIcsDialog(null)}>
                 <IconClose />
               </button>
