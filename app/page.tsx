@@ -364,11 +364,56 @@ function excelCellText(value: unknown) {
   return normalizeText(value);
 }
 
-function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
+// iPhone and iPad (iPadOS reports itself as a Mac, so touch points tell them apart)
+function isAppleTouchDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+// Safari drops a download when the anchor is detached or the object URL is
+// revoked in the same tick as the click, so keep both alive for a moment.
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.download = filename.replace(/[\\/:*?"<>|]/g, "_");
-  link.href = canvas.toDataURL("image/png");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener";
+  link.style.display = "none";
+  document.body.appendChild(link);
   link.click();
+  window.setTimeout(() => {
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, 60_000);
+}
+
+function downloadCanvas(canvas: HTMLCanvasElement, filename: string) {
+  const safeName = filename.replace(/[\\/:*?"<>|]/g, "_");
+  // stay synchronous: navigator.share needs the click's user activation,
+  // which an async canvas.toBlob callback can outlive on Safari
+  const base64 = canvas.toDataURL("image/png").split(",")[1] ?? "";
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  const blob = new Blob([bytes], { type: "image/png" });
+
+  // on iPhone/iPad the share sheet offers "Save Image" straight into Photos,
+  // where a plain download lands in Files (or is silently ignored)
+  if (isAppleTouchDevice() && typeof navigator.share === "function") {
+    const file = new File([blob], safeName, { type: "image/png" });
+    if (navigator.canShare?.({ files: [file] })) {
+      navigator.share({ files: [file] }).catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        saveBlob(blob, safeName);
+      });
+      return;
+    }
+  }
+
+  saveBlob(blob, safeName);
 }
 
 function drawWrappedText(
@@ -2100,12 +2145,7 @@ export default function Home() {
       sectionPicks: plannerSectionPicks,
       groups: plannerGroups,
     };
-    const url = URL.createObjectURL(new Blob([serializePlannerFile(snapshot)], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = plannerFileName();
-    link.click();
-    URL.revokeObjectURL(url);
+    saveBlob(new Blob([serializePlannerFile(snapshot)], { type: "application/json" }), plannerFileName());
     setPlannerFileStatus({ tone: "ok", text: `บันทึก ${plannerPool.length} วิชาเป็นไฟล์แล้ว` });
   }
 
@@ -2122,12 +2162,10 @@ export default function Home() {
       return;
     }
 
-    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${(activePlan?.name ?? defaultPlanName).replace(/[\\/:*?"<>|]/g, "-")}.ics`;
-    link.click();
-    URL.revokeObjectURL(url);
+    saveBlob(
+      new Blob([ics], { type: "text/calendar;charset=utf-8" }),
+      `${(activePlan?.name ?? defaultPlanName).replace(/[\\/:*?"<>|]/g, "-")}.ics`,
+    );
     setIcsDialog(null);
   }
 
