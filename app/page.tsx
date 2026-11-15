@@ -236,6 +236,27 @@ function remoteClassToCourses(remoteClass: RemoteClass, color: string): Course[]
   }));
 }
 
+// ชื่อ section ที่ remoteClassToCourses ตั้งให้ (ไม่รวมเลขคาบท้ายชื่อ)
+function remoteSectionName(remoteClass: RemoteClass) {
+  return `${remoteClass.coursename} S.${remoteClass.sectioncode}`;
+}
+
+// สถานะของ section นี้เทียบกับตาราง: มีแล้ว / มีวิชานี้แต่คนละ section / ยังไม่มี
+function remoteClassStatus(remoteClass: RemoteClass, courseList: Course[]): "added" | "other-section" | "none" {
+  const sameCode = courseList.filter((course) => course.code === remoteClass.coursecode);
+
+  if (sameCode.length === 0) {
+    return "none";
+  }
+
+  const sectionName = remoteSectionName(remoteClass);
+  return sameCode.some((course) => course.name.replace(/\s+\(\d+\)$/, "") === sectionName) ? "added" : "other-section";
+}
+
+function importButtonLabel(status: ReturnType<typeof remoteClassStatus>, fallback: string) {
+  return status === "added" ? "อยู่ในตารางแล้ว" : status === "other-section" ? "เปลี่ยนเป็น section นี้" : fallback;
+}
+
 function comboValue(option: ComboOption) {
   return String(option.comboid).replace(/\.0$/, "");
 }
@@ -558,14 +579,24 @@ function examItems(courseList: Course[]) {
   ]).filter(Boolean) as { course: Course; type: string; value: string }[];
 }
 
+// วิชาเดียวกัน (รหัสเดียวกัน) ไม่ถือว่าสอบชนกับตัวเอง แม้จะมีหลายคาบหรือถูกเพิ่มซ้ำ
 function examCourseIdentity(course: Course) {
-  return `${course.code}|${course.name.replace(/\s+\(\d+\)$/, "")}`;
+  return course.code.trim() || course.name.replace(/\s+\(\d+\)$/, "");
 }
 
 function examWarningsForCourses(courseList: Course[]) {
-  const items = examItems(courseList);
+  // คาบเรียนหลายคาบของวิชาเดียวกันมีวันสอบชุดเดียวกัน นับครั้งเดียวพอ
+  const seen = new Set<string>();
+  const items = examItems(courseList).filter((item) => {
+    const key = `${examCourseIdentity(item.course)}|${item.type}|${item.value}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 
-  return items.flatMap((item, index) =>
+  const warnings = items.flatMap((item, index) =>
     items.slice(index + 1).flatMap((next) => {
       if (examCourseIdentity(item.course) === examCourseIdentity(next.course)) {
         return [];
@@ -593,6 +624,8 @@ function examWarningsForCourses(courseList: Course[]) {
       return [];
     }),
   );
+
+  return Array.from(new Set(warnings));
 }
 
 function courseKey(course: Course) {
@@ -2858,10 +2891,22 @@ export default function Home() {
       return;
     }
 
-    const color = palette[courses.length % palette.length];
+    const status = remoteClassStatus(remoteClass, courses);
+
+    if (status === "added") {
+      return status;
+    }
+
+    // เปลี่ยน section: ใช้สีเดิมและแทนที่ section เก่า แทนการเพิ่มวิชาซ้ำ
+    const existing = courses.find((course) => course.code === remoteClass.coursecode);
+    const color = existing?.color ?? palette[courses.length % palette.length];
     const importedCourses = remoteClassToCourses(remoteClass, color);
 
-    updateActiveCourses((current) => [...current, ...importedCourses]);
+    updateActiveCourses((current) => [
+      ...current.filter((course) => course.code !== remoteClass.coursecode),
+      ...importedCourses,
+    ]);
+    return status;
   }
 
   function importPlannerSection(remoteClass: RemoteClass) {
@@ -2870,8 +2915,15 @@ export default function Home() {
       return;
     }
 
-    importRemoteClass(remoteClass);
-    setPlannerStatus(`นำ ${remoteClass.coursecode} S.${remoteClass.sectioncode} เข้าตารางแล้ว`);
+    const status = importRemoteClass(remoteClass);
+    const label = `${remoteClass.coursecode} S.${remoteClass.sectioncode}`;
+    setPlannerStatus(
+      status === "added"
+        ? `${label} อยู่ในตารางแล้ว`
+        : status === "other-section"
+          ? `เปลี่ยน ${remoteClass.coursecode} เป็น S.${remoteClass.sectioncode} แล้ว`
+          : `นำ ${label} เข้าตารางแล้ว`,
+    );
   }
 
   // แถววิชาในตัวช่วยจัดแผน owner = กลุ่มที่วิชานี้อยู่ (วิชาในกลุ่มไม่มีช่องติ๊กของตัวเอง ติ๊กที่หัวกลุ่ม)
@@ -2970,8 +3022,8 @@ export default function Home() {
                     </ul>
                     {teacherName(remoteClass) && <p className="pick-section-teacher">{teacherName(remoteClass)}</p>}
                     <div className="pick-section-actions">
-                      <button type="button" className="btn btn-primary" onClick={() => importPlannerSection(remoteClass)} disabled={!canEditActivePlan}>
-                        นำเข้าตาราง
+                      <button type="button" className="btn btn-primary" onClick={() => importPlannerSection(remoteClass)} disabled={!canEditActivePlan || remoteClassStatus(remoteClass, courses) === "added"}>
+                        {importButtonLabel(remoteClassStatus(remoteClass, courses), "นำเข้าตาราง")}
                       </button>
                       <button
                         type="button"
@@ -3201,6 +3253,10 @@ export default function Home() {
             <div className="zone-title"><h2 id="blocks-title">รายวิชาที่บันทึก</h2><HelpButton zone="blocks" onStartTour={onboarding.startTour} /></div>
             <p>รายวิชาทั้งหมดในตารางนี้ ล็อกไว้เพื่อกันไม่ให้ตัวช่วยจัดแผนสลับ section</p>
             <div className="zone-actions">
+              <button type="button" className="btn btn-primary" onClick={() => setIsCourseBrowserOpen(true)}>
+                ดึงรายวิชาจากเว็บ
+                <IconArrow />
+              </button>
               <button
                 type="button"
                 className="btn btn-line"
@@ -3378,6 +3434,9 @@ export default function Home() {
             <div className="zone-title"><h2 id="planner-title">ตัวช่วยจัดแผน</h2><HelpButton zone="planner" onStartTour={onboarding.startTour} /></div>
             <p>เลือกหลาย section จากรายวิชาที่โหลด แล้วให้ระบบสร้างแผนที่ไม่ชนกับวิชาในตารางปัจจุบัน</p>
             <div className="zone-actions">
+              <button type="button" className="btn btn-line" onClick={() => setIsCourseBrowserOpen(true)}>
+                ดึงรายวิชาจากเว็บ
+              </button>
               <button type="button" className="btn btn-primary" data-tour="planner-generate" onClick={generateSchedulePlans} disabled={plannerSelectedCodes.length === 0}>
                 สร้างแผนที่เป็นไปได้
                 <IconArrow />
@@ -4091,6 +4150,7 @@ export default function Home() {
                     const parsedTime = parseClassTime(remoteClass.classtime);
                     const dayLabel = days.find((day) => day.key === parsedTime.day)?.label ?? "";
                     const isPicked = plannerPool.some((group) => group.code === remoteClass.coursecode);
+                    const importStatus = remoteClassStatus(remoteClass, courses);
 
                     return (
                       <li className="remote-card" key={remoteClass.classid}>
@@ -4122,9 +4182,9 @@ export default function Home() {
                             type="button"
                             className="btn btn-primary"
                             onClick={() => importRemoteClass(remoteClass)}
-                            disabled={!canEditActivePlan}
+                            disabled={!canEditActivePlan || importStatus === "added"}
                           >
-                            นำเข้าลงตาราง
+                            {importButtonLabel(importStatus, "นำเข้าลงตาราง")}
                           </button>
                           <button
                             type="button"
