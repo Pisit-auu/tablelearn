@@ -2425,6 +2425,158 @@ body {
   height: 14px;
 }
 
+/* ---------- mini week dock (sticks while scrolling the planner) ---------- */
+
+/* zero-height sticky anchor: the dock floats over content without shifting layout */
+.mini-dock-anchor {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 0;
+  margin-bottom: calc(-1 * var(--gap));
+}
+
+.mini-dock {
+  position: absolute;
+  inset: 0 0 auto 0;
+  padding: 8px 12px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 var(--r-card) var(--r-card);
+  box-shadow: var(--shadow-card);
+  animation: mini-dock-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.mini-dock.is-collapsed {
+  left: auto;
+  padding: 4px 8px 4px 12px;
+}
+
+@keyframes mini-dock-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mini-dock:not(.is-collapsed) .mini-head {
+  margin-bottom: 6px;
+}
+
+.mini-title,
+.mini-toggle {
+  padding: 4px 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--heading);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.mini-title:hover {
+  color: var(--primary);
+}
+
+.mini-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: var(--ink-quiet);
+}
+
+.mini-toggle .ico {
+  width: 14px;
+  height: 14px;
+  transform: rotate(180deg);
+}
+
+.mini-dock.is-collapsed .mini-toggle .ico {
+  transform: none;
+}
+
+.mini-grid {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  overflow: hidden;
+}
+
+.mini-corner,
+.mini-hours,
+.mini-day {
+  background: var(--surface-sunk);
+}
+
+.mini-hours {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-quiet);
+}
+
+.mini-hours span {
+  padding: 2px 0 2px 3px;
+  border-left: 1px solid var(--line);
+}
+
+.mini-day {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  border-top: 1px solid var(--line);
+}
+
+.mini-row {
+  position: relative;
+  border-top: 1px solid var(--line);
+  background-image: repeating-linear-gradient(to right, transparent 0, transparent calc(100% / 14 - 1px), var(--line-soft) calc(100% / 14 - 1px), var(--line-soft) calc(100% / 14));
+}
+
+.mini-block {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-num);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--course, var(--primary));
+  background: color-mix(in srgb, var(--course, var(--primary)) 14%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--course, var(--primary)) 35%, #ffffff);
+  border-radius: 3px;
+}
+
+.mini-block.is-clash {
+  color: var(--danger);
+  background: #fdeced;
+  border-color: var(--danger);
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 1180px) {
@@ -2543,6 +2695,20 @@ body {
 
   .works {
     padding-bottom: 78px;
+  }
+
+  .mini-dock {
+    padding: 6px 8px 8px;
+  }
+
+  .mini-hours span {
+    padding-left: 1px;
+    font-size: 9px;
+  }
+
+  .mini-block {
+    padding: 0 2px;
+    font-size: 9.5px;
   }
 
   .zone,

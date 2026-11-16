@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sendFeedbackAction } from "./actions/feedback";
 import { loadSharedPlanAction, saveSharedPlanAction } from "./actions/shared-plans";
 import { HelpButton } from "./onboarding/HelpButton";
@@ -1126,6 +1126,9 @@ export default function Home() {
   const [comparePlanBId, setComparePlanBId] = useState("");
   const [timetableView, setTimetableView] = useState<"grid" | "list">("grid");
   const [activeZone, setActiveZone] = useState<string>("face");
+  // ตารางย่อที่ติดด้านบน: โผล่เมื่อเลื่อนผ่านส่วน "ตารางเรียนสัปดาห์นี้" ไปแล้ว
+  const [isFacePassed, setIsFacePassed] = useState(false);
+  const [isMiniDockCollapsed, setIsMiniDockCollapsed] = useState(false);
   // Mobile only: every zone but the week starts folded, so the phone opens on the
   // timetable instead of a nine-thousand-pixel scroll. Desktop ignores this entirely.
   const [foldedZones, setFoldedZones] = useState<string[]>(() => zones.filter((zone) => zone.id !== "face").map((zone) => zone.id));
@@ -1648,6 +1651,47 @@ export default function Home() {
 
     return () => window.clearTimeout(timeout);
   }, []);
+
+  useEffect(() => {
+    const face = document.getElementById("face");
+
+    if (!face) {
+      return;
+    }
+
+    let hasReadMiniDockPref = false;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const passed = !entry.isIntersecting && entry.boundingClientRect.bottom < 0;
+
+        if (passed && !hasReadMiniDockPref) {
+          hasReadMiniDockPref = true;
+          try {
+            setIsMiniDockCollapsed(window.localStorage.getItem("student-timetable-mini-dock") === "collapsed");
+          } catch {
+            // อ่าน localStorage ไม่ได้ (เช่นโหมดส่วนตัว) ใช้ค่าเริ่มต้นคือเปิดไว้
+          }
+        }
+
+        setIsFacePassed(passed);
+      },
+      { threshold: 0 },
+    );
+
+    observer.observe(face);
+    return () => observer.disconnect();
+  }, []);
+
+  function toggleMiniDock() {
+    setIsMiniDockCollapsed((collapsed) => {
+      try {
+        window.localStorage.setItem("student-timetable-mini-dock", collapsed ? "open" : "collapsed");
+      } catch {
+        // ไม่จำค่าก็ไม่เป็นไร
+      }
+      return !collapsed;
+    });
+  }
 
   useEffect(() => {
     const sections = zones
@@ -3148,6 +3192,22 @@ export default function Home() {
       </aside>
 
       <main className="works">
+        {isFacePassed && shownCourses.length > 0 && (
+          <div className="mini-dock-anchor">
+            <MiniTimetable
+              courses={shownCourses}
+              conflictIds={conflictIds}
+              collapsed={isMiniDockCollapsed}
+              onToggle={toggleMiniDock}
+              onJump={() => {
+                navClickZoneRef.current = { id: "face", until: Date.now() + 1200 };
+                setActiveZone("face");
+                unfoldZone("face");
+                document.getElementById("face")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            />
+          </div>
+        )}
         <section className="zone zone-primary" id="face" aria-labelledby="face-title" data-folded={foldedZones.includes("face") ? "true" : undefined}>
           <div className="zone-head">
             <button type="button" className="zone-fold" aria-expanded={!foldedZones.includes("face")} aria-label={foldedZones.includes("face") ? "เปิดส่วนนี้" : "ย่อส่วนนี้"} onClick={() => toggleZoneFold("face")}><IconChevron /></button>
@@ -4411,6 +4471,67 @@ function DayRow({ day, courses, conflictIds, actions }: { day: (typeof days)[num
         ))}
       </div>
     </>
+  );
+}
+
+// ตารางย่อขนาดเล็กที่ติดด้านบนจอ ให้เห็นตารางขณะเลื่อนลงไปจัดแผน ไม่ต้องเลื่อนขึ้นลง
+function MiniTimetable({ courses, conflictIds, collapsed, onToggle, onJump }: { courses: Course[]; conflictIds: Set<string>; collapsed: boolean; onToggle: () => void; onJump: () => void }) {
+  const dayStart = hours[0] * 60;
+  const dayEnd = (hours[hours.length - 1] + 1) * 60;
+  const dayMinutes = dayEnd - dayStart;
+  const laneHeight = 20;
+  const laneGap = 2;
+  // จ.–ศ. แสดงเสมอ ส่วนเสาร์อาทิตย์แสดงเฉพาะเมื่อมีเรียน
+  const shownDays = days.filter((day, index) => index < 5 || courses.some((course) => course.day === day.key));
+
+  return (
+    <section className={collapsed ? "mini-dock is-collapsed" : "mini-dock"} aria-label="ตารางเรียนแบบย่อ">
+      <header className="mini-head">
+        <button type="button" className="mini-title" onClick={onJump}>ตารางเรียนสัปดาห์นี้</button>
+        <button type="button" className="mini-toggle" onClick={onToggle} aria-expanded={!collapsed} aria-label={collapsed ? "ขยายตารางย่อ" : "ย่อตารางให้เหลือแถบเดียว"}>
+          {collapsed ? "แสดงตาราง" : "ซ่อน"}
+          <IconChevron />
+        </button>
+      </header>
+      {!collapsed && (
+        <div className="mini-grid">
+          <span className="mini-corner" aria-hidden="true" />
+          <div className="mini-hours" aria-hidden="true">
+            {hours.map((hour) => (
+              <span key={hour}>{hour}</span>
+            ))}
+          </div>
+          {shownDays.map((day) => {
+            const { placed, laneCount } = packDayLanes(courses, day.key, dayStart, dayEnd);
+            const rowHeight = Math.max(1, laneCount) * laneHeight + (Math.max(1, laneCount) - 1) * laneGap + 4;
+
+            return (
+              <Fragment key={day.key}>
+                <span className="mini-day">{day.short}</span>
+                <div className="mini-row" style={{ height: rowHeight }}>
+                  {placed.map(({ course, lane, start, finish }) => (
+                    <span
+                      key={course.id}
+                      className={conflictIds.has(course.id) ? "mini-block is-clash" : "mini-block"}
+                      style={{
+                        ["--course" as string]: course.color,
+                        left: `${((start - dayStart) / dayMinutes) * 100}%`,
+                        width: `${((finish - start) / dayMinutes) * 100}%`,
+                        top: 2 + lane * (laneHeight + laneGap),
+                        height: laneHeight,
+                      }}
+                      title={`${course.code} ${course.name} ${course.start}–${course.end}${course.room ? ` ${course.room}` : ""}`}
+                    >
+                      {course.code}
+                    </span>
+                  ))}
+                </div>
+              </Fragment>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }
 
